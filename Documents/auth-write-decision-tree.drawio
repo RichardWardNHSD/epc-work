@@ -1,0 +1,78 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T12:00:00.000Z" agent="Kiro" version="24.0.0" type="device">
+  <diagram id="write-decision-tree" name="Write Operation Authorisation Decision Tree">
+    <mxGraphModel dx="1100" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Write Operation Authorisation Decision Tree" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="500" height="30" as="geometry" />
+        </mxCell>
+        <!-- Start -->
+        <mxCell id="start" value="Inbound request&#xa;with bearer token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="50" width="160" height="40" as="geometry" />
+        </mxCell>
+        <!-- Decision 1: Token valid? -->
+        <mxCell id="d1" value="Token valid?&#xa;(signature, expiry, audience)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e-start-d1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="start" target="d1" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- 401 -->
+        <mxCell id="r401" value="401 Unauthorized" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="135" width="130" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d1-401" value="No" style="fontSize=9;" edge="1" source="d1" target="r401" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- Decision 2: ODS match? -->
+        <mxCell id="d2" value="ODS in token matches&#xa;NHSD-End-User-Organisation-ODS&#xa;header?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="220" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d1-d2" value="Yes" style="fontSize=9;" edge="1" source="d1" target="d2" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- 403 spoofing -->
+        <mxCell id="r403-spoof" value="403 Forbidden&#xa;(ODS spoofing rejected)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="240" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d2-spoof" value="No" style="fontSize=9;" edge="1" source="d2" target="r403-spoof" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- Decision 3: Write operation? -->
+        <mxCell id="d3" value="Write operation?&#xa;(POST/PUT/PATCH/DELETE)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="330" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d2-d3" value="Yes" style="fontSize=9;" edge="1" source="d2" target="d3" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- GET path -->
+        <mxCell id="r-get" value="Return data&#xa;(apply private address&#xa;redaction if applicable)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="340" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d3-get" value="No (GET)" style="fontSize=9;" edge="1" source="d3" target="r-get" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- Decision 4: User-restricted? -->
+        <mxCell id="d4" value="User-restricted&#xa;token (CIS2)?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="430" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d3-d4" value="Yes" style="fontSize=9;" edge="1" source="d3" target="d4" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- Decision 5: Role check -->
+        <mxCell id="d5" value="User role permits&#xa;this operation?&#xa;(RBAC check)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="520" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d4-d5" value="Yes" style="fontSize=9;" edge="1" source="d4" target="d5" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- 403 role -->
+        <mxCell id="r403-role" value="403 Forbidden&#xa;(role not authorised)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="535" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d5-role" value="No" style="fontSize=9;" edge="1" source="d5" target="r403-role" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- Decision 6: Ownership -->
+        <mxCell id="d6" value="Token ODS / Product ID&#xa;matches resource owner?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="620" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d5-d6" value="Yes" style="fontSize=9;" edge="1" source="d5" target="d6" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e-d4-d6" value="No (app-restricted)" style="fontSize=9;" edge="1" source="d4" target="d6" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- 403 ownership -->
+        <mxCell id="r403-own" value="403 Forbidden&#xa;(ownership mismatch)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="635" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d6-own" value="No" style="fontSize=9;" edge="1" source="d6" target="r403-own" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <!-- Success -->
+        <mxCell id="r-success" value="Execute operation&#xa;Create audit record" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="730" width="180" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="e-d6-success" value="Yes" style="fontSize=9;" edge="1" source="d6" target="r-success" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

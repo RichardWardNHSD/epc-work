@@ -1,0 +1,89 @@
+<mxfile host="app.diagrams.net" modified="2026-05-19T12:00:00.000Z" agent="Kiro" version="24.0.0" type="device">
+  <diagram id="cis2-flow" name="User-Restricted (CIS2) Auth Flow">
+    <mxGraphModel dx="1400" dy="750" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="User-Restricted (CIS2) Authentication Flow" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="30" as="geometry" />
+        </mxCell>
+        <!-- Participants -->
+        <mxCell id="user-box" value="Human User&#xa;(DoS Lead,&#xa;Supplier Admin)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="app-box" value="Client App&#xa;(EPC Admin UI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="60" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="cis2-box" value="NHS CIS2&#xa;(Identity Provider)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="480" y="60" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="apim-box" value="APIM / OAuth&#xa;Token Endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="730" y="60" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="epc-box" value="Endpoint Catalog&#xa;API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="980" y="60" width="120" height="55" as="geometry" />
+        </mxCell>
+        <!-- Lifelines -->
+        <mxCell id="user-line" style="endArrow=none;dashed=1;strokeColor=#999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="90" y="115" as="sourcePoint" /><mxPoint x="90" y="700" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="app-line" style="endArrow=none;dashed=1;strokeColor=#999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="300" y="115" as="sourcePoint" /><mxPoint x="300" y="700" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="cis2-line" style="endArrow=none;dashed=1;strokeColor=#999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="545" y="115" as="sourcePoint" /><mxPoint x="545" y="700" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="apim-line" style="endArrow=none;dashed=1;strokeColor=#999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="795" y="115" as="sourcePoint" /><mxPoint x="795" y="700" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="epc-line" style="endArrow=none;dashed=1;strokeColor=#999;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1040" y="115" as="sourcePoint" /><mxPoint x="1040" y="700" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 1 -->
+        <mxCell id="s1" value="1. Initiate action" style="fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="90" y="150" as="sourcePoint" /><mxPoint x="300" y="150" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 2 -->
+        <mxCell id="s2" value="2. Redirect to CIS2 login" style="fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="300" y="190" as="sourcePoint" /><mxPoint x="545" y="190" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 3 -->
+        <mxCell id="s3" value="3. Authenticate (smartcard / Windows Hello)" style="fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="90" y="230" as="sourcePoint" /><mxPoint x="545" y="230" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 4 -->
+        <mxCell id="s4" value="4. ID token + auth code&#xa;(UUID, ODS, role)" style="fontSize=9;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="545" y="280" as="sourcePoint" /><mxPoint x="300" y="280" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 5 -->
+        <mxCell id="s5" value="5. POST /oauth2/token&#xa;grant_type=authorization_code&#xa;code + client_assertion" style="fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="300" y="330" as="sourcePoint" /><mxPoint x="795" y="330" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 6 -->
+        <mxCell id="s6" value="6. 200 OK { access_token }" style="fontSize=9;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="795" y="380" as="sourcePoint" /><mxPoint x="300" y="380" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 7 -->
+        <mxCell id="s7" value="7. PUT /Endpoint/ep-001&#xa;Authorization: Bearer token&#xa;NHSD-End-User-Organisation-ODS: R778" style="fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="300" y="430" as="sourcePoint" /><mxPoint x="1040" y="430" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 8: EPC validates -->
+        <mxCell id="s8-note" value="8. Validate token&#xa;Extract UUID, role, ODS&#xa;Check ODS vs header&#xa;Check role (RBAC)&#xa;Check ownership" style="shape=note;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="950" y="450" width="160" height="70" as="geometry" />
+        </mxCell>
+        <!-- Step 9: Success -->
+        <mxCell id="s9" value="9. 200 OK" style="fontSize=9;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1040" y="550" as="sourcePoint" /><mxPoint x="300" y="550" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 9 alt: 403 -->
+        <mxCell id="s9-alt" value="OR 403 Forbidden" style="fontSize=9;dashed=1;strokeColor=#cc0000;fontColor=#cc0000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1040" y="590" as="sourcePoint" /><mxPoint x="300" y="590" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <!-- Step 10 -->
+        <mxCell id="s10" value="10. Confirm to user" style="fontSize=9;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="300" y="640" as="sourcePoint" /><mxPoint x="90" y="640" as="targetPoint" /></mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

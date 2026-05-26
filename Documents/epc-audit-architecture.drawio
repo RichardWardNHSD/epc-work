@@ -1,0 +1,267 @@
+<mxfile host="app.diagrams.net" modified="2026-05-14T12:00:00.000Z" agent="Kiro" version="24.0.0" type="device">
+  <diagram id="epc-audit-architecture" name="EPC Audit &amp; Observability Architecture">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Endpoint Catalog — Audit &amp; Observability Architecture" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Internet / Apigee Layer -->
+        <mxCell id="apigee-group" value="Internet / Apigee" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;dashed=1;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="1000" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="apigee" value="Apigee API Gateway&#xa;(Splunk Logging)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.general_AWS_cloud;labelBackgroundColor=none;sketch=0;fillColor=#E7157B;strokeColor=none;fontColor=#232F3E;align=center;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="95" width="50" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Cloud Boundary -->
+        <mxCell id="aws-cloud" value="AWS Cloud" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=14;fontStyle=1;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;strokeColor=#232F3E;fillColor=none;verticalAlign=top;align=left;spacingLeft=30;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="120" y="180" width="1160" height="680" as="geometry" />
+        </mxCell>
+
+        <!-- API Gateway -->
+        <mxCell id="apigw" value="API Gateway&#xa;(REST API)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;" vertex="1" parent="1">
+          <mxGeometry x="640" y="220" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="apigw-note" value="Access Logging → CloudWatch&#xa;X-Request-Id / X-Correlation-Id" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="710" y="225" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda Functions Group -->
+        <mxCell id="lambda-group" value="Lambda Functions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=top;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="320" width="630" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Resource Handler Lambda -->
+        <mxCell id="lambda-resource" value="Resource Handler&#xa;(CRUD Operations)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="420" y="360" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- Audit Writer (inline) -->
+        <mxCell id="lambda-audit-writer" value="Audit Writer&#xa;(Inline)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="600" y="360" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- Audit Query Lambda -->
+        <mxCell id="lambda-audit-query" value="Audit Query Handler&#xa;(GET /AuditEvent)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="780" y="360" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- Health Check Lambda -->
+        <mxCell id="lambda-health" value="Health Check&#xa;(GET /_health)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;" vertex="1" parent="1">
+          <mxGeometry x="920" y="360" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- DynamoDB Group -->
+        <mxCell id="dynamo-group" value="DynamoDB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;verticalAlign=top;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="530" width="500" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- DynamoDB Resources Table -->
+        <mxCell id="dynamo-resources" value="epc-resources&#xa;(Catalogued Resources)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#C925D1;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="380" y="570" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- DynamoDB Audit Table -->
+        <mxCell id="dynamo-audit" value="epc-audit&#xa;(Audit Records)&#xa;GSI-1: by-organisation&#xa;GSI-2: by-date&#xa;GSI-3: by-endpoint&#xa;GSI-4: by-healthcare-service" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#C925D1;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;" vertex="1" parent="1">
+          <mxGeometry x="620" y="560" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- CloudWatch Group -->
+        <mxCell id="cw-group" value="CloudWatch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="530" width="380" height="310" as="geometry" />
+        </mxCell>
+
+        <!-- CloudWatch Logs -->
+        <mxCell id="cw-logs" value="CloudWatch Logs&#xa;• /aws/lambda/epc-*&#xa;• /aws/apigateway/epc-*&#xa;(90-day retention)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;" vertex="1" parent="1">
+          <mxGeometry x="900" y="570" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- CloudWatch Metrics -->
+        <mxCell id="cw-metrics" value="CloudWatch Metrics&#xa;• Built-in (API GW, Lambda, DDB)&#xa;• Custom (EMF): AuditRecordWritten,&#xa;  AuditWriteFailed, QueryLatency" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="570" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- CloudWatch Alarms -->
+        <mxCell id="cw-alarms" value="CloudWatch Alarms&#xa;• 5xx rate &gt; 1%&#xa;• P95 latency &gt; 2s&#xa;• Audit write failures&#xa;• Lambda throttles" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;" vertex="1" parent="1">
+          <mxGeometry x="900" y="700" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- CloudWatch Dashboard -->
+        <mxCell id="cw-dashboard" value="CloudWatch Dashboard&#xa;EPC-Operations&#xa;• Audit Activity&#xa;• System Health&#xa;• Logs (Insights)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="700" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- SNS -->
+        <mxCell id="sns" value="SNS Topic&#xa;(Alarm Notifications)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;" vertex="1" parent="1">
+          <mxGeometry x="980" y="790" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- S3 Archive -->
+        <mxCell id="s3-archive" value="S3 Bucket&#xa;(Log Archive — 1 year)&#xa;→ Glacier after 30 days" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#3F8624;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;" vertex="1" parent="1">
+          <mxGeometry x="200" y="700" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <!-- Connections -->
+        <!-- Apigee → API Gateway -->
+        <mxCell id="edge-apigee-apigw" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="apigee" target="apigw" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-apigee-apigw-label" value="HTTPS" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;" vertex="1" connectable="0" parent="edge-apigee-apigw">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- API Gateway → Resource Handler -->
+        <mxCell id="edge-apigw-resource" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" source="apigw" target="lambda-resource" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-apigw-resource-label" value="POST/PUT/PATCH/DELETE" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-apigw-resource">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- API Gateway → Audit Query -->
+        <mxCell id="edge-apigw-query" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" source="apigw" target="lambda-audit-query" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-apigw-query-label" value="GET /AuditEvent" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-apigw-query">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- API Gateway → Health Check -->
+        <mxCell id="edge-apigw-health" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" source="apigw" target="lambda-health" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-apigw-health-label" value="GET /_health" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-apigw-health">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Resource Handler → DynamoDB Resources -->
+        <mxCell id="edge-resource-dynamo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" source="lambda-resource" target="dynamo-resources" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-resource-dynamo-label" value="Read/Write" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-resource-dynamo">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Audit Writer → DynamoDB Audit -->
+        <mxCell id="edge-writer-audit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" source="lambda-audit-writer" target="dynamo-audit" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-writer-audit-label" value="PutItem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-writer-audit">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Audit Query → DynamoDB Audit -->
+        <mxCell id="edge-query-audit" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" source="lambda-audit-query" target="dynamo-audit" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-query-audit-label" value="Query (GSIs)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-query-audit">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Health Check → DynamoDB (both tables) -->
+        <mxCell id="edge-health-dynamo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;dashed=1;" edge="1" source="lambda-health" target="dynamo-audit" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-health-dynamo-label" value="DescribeTable" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-health-dynamo">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Resource Handler → Audit Writer (inline call) -->
+        <mxCell id="edge-resource-writer" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;strokeColor=#ED7100;strokeWidth=2;" edge="1" source="lambda-resource" target="lambda-audit-writer" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-resource-writer-label" value="Inline audit write&#xa;(same invocation)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#ED7100;" vertex="1" connectable="0" parent="edge-resource-writer">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Lambda → CloudWatch Logs -->
+        <mxCell id="edge-lambda-logs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;dashed=1;strokeColor=#82B366;" edge="1" source="lambda-group" target="cw-logs" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-lambda-logs-label" value="Structured JSON Logs&#xa;+ EMF Metrics" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#82B366;" vertex="1" connectable="0" parent="edge-lambda-logs">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- API Gateway → CloudWatch Logs -->
+        <mxCell id="edge-apigw-logs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;dashed=1;strokeColor=#82B366;" edge="1" source="apigw" target="cw-logs" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="245" />
+              <mxPoint x="1100" y="594" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-apigw-logs-label" value="Access Logs" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#82B366;" vertex="1" connectable="0" parent="edge-apigw-logs">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CloudWatch Alarms → SNS -->
+        <mxCell id="edge-alarms-sns" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;" edge="1" source="cw-alarms" target="sns" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-alarms-sns-label" value="Alarm → Notify" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-alarms-sns">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- CloudWatch Logs → S3 Archive -->
+        <mxCell id="edge-logs-s3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;dashed=1;" edge="1" source="cw-logs" target="s3-archive" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="924" y="660" />
+              <mxPoint x="224" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-logs-s3-label" value="Export (daily)&#xa;→ Glacier after 30d" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;" vertex="1" connectable="0" parent="edge-logs-s3">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="140" y="200" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-solid" value="── Data flow" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="150" y="225" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-dashed" value="- - Logs / metrics" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="150" y="250" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-orange" value="── Inline (same Lambda)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#ED7100;" vertex="1" parent="1">
+          <mxGeometry x="150" y="275" width="130" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
