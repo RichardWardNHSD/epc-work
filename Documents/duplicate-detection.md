@@ -142,6 +142,47 @@ Template active at the same time are indistinguishable.
 | Same Template, non-overlapping periods | `Template-X` | 2025-01-01 → 2025-12-31 | 2026-01-01 → 2026-12-31 | ❌ No — successive periods |
 | Different Template, overlapping periods | `Template-Y` | 2026-01-01 → 2026-12-31 | 2026-01-01 → 2026-12-31 | ❌ No — different capability |
 
+### Endpoints with no period set
+
+An Endpoint with no `period` (neither `period.start` nor `period.end`) is treated as
+having an **unbounded time window** — it overlaps with every other period. This means:
+
+- If an Endpoint exists with the same parent Template and **no period**, any new Endpoint
+  with the same Template will be considered a duplicate regardless of what period the new
+  Endpoint specifies (because the existing unbounded window overlaps everything).
+- If a new Endpoint is submitted with **no period**, it will be considered a duplicate of
+  any existing Endpoint with the same parent Template (because the new unbounded window
+  overlaps everything).
+- Two Endpoints with the same parent Template and **both without a period** are duplicates.
+
+| Scenario | Template | Existing period | New period | Duplicate? |
+|----------|----------|----------------|------------|------------|
+| Existing has no period, new has a period | `Template-X` | (none) | 2026-01-01 → 2026-12-31 | ✅ Yes — unbounded overlaps everything |
+| Existing has a period, new has no period | `Template-X` | 2026-01-01 → 2026-12-31 | (none) | ✅ Yes — unbounded overlaps everything |
+| Both have no period | `Template-X` | (none) | (none) | ✅ Yes — both unbounded |
+| Existing has no period, new has different Template | `Template-Y` | (none) | 2026-01-01 → 2026-12-31 | ❌ No — different Template |
+
+> **Practical implication:** Because an Endpoint without a period overlaps everything,
+> there can only ever be **one** Endpoint per Template that has no period set. To create a
+> second Endpoint for the same Template, the existing one must either be given an end date
+> (closing its window) or be deleted/soft-deleted first.
+
+### Open-ended periods (start set, no end)
+
+An Endpoint with `period.start` set but no `period.end` is open-ended — it is valid from
+the start date indefinitely. For duplicate detection purposes, an open-ended period
+overlaps with any period that starts on or after its own start date:
+
+| Scenario | Template | Existing period | New period | Duplicate? |
+|----------|----------|----------------|------------|------------|
+| Open-ended overlaps new bounded period | `Template-X` | 2026-01-01 → (no end) | 2026-06-01 → 2026-12-31 | ✅ Yes |
+| Open-ended overlaps new open-ended | `Template-X` | 2026-01-01 → (no end) | 2026-06-01 → (no end) | ✅ Yes |
+| New starts after existing ended | `Template-X` | 2025-01-01 → 2025-12-31 | 2026-01-01 → (no end) | ❌ No — non-overlapping |
+
+> **To replace an open-ended Endpoint:** Set `period.end` on the existing Endpoint to
+> close its window, then create the new Endpoint with a `period.start` on or after that
+> end date.
+
 ### API enforcement
 
 The API checks for a period overlap against existing Endpoints with the same parent Template
