@@ -5390,13 +5390,12 @@
             },
             "EndUserOrganisationODS_HParam": {
                 "name": "NHSD-End-User-Organisation-ODS",
-                "description": "The ODS code of the requesting organisation. Used for ownership checks (authorisation) and visibility filtering (status/period/private address redaction). Must match the organisation claim in the bearer token.",
+                "description": "The ODS code of the requesting organisation, expressed as a FHIR token in the format `system|value` and URL-encoded. Used for ownership checks (authorisation) and visibility filtering (status/period/private address redaction). Must match the organisation claim in the bearer token.\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/Id/ods-organization-code|A1001`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2FId%2Fods-organization-code%7CA1001`\n",
                 "required": true,
                 "in": "header",
                 "schema": {
                     "type": "string",
-                    "pattern": "^[A-Za-z0-9]{1,10}$",
-                    "example": "A1001"
+                    "example": "https://fhir.nhs.uk/Id/ods-organization-code|A1001"
                 }
             },
             "RequestingPractitioner_HParam": {
