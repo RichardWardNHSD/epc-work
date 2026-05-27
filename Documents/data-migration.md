@@ -403,6 +403,14 @@ For each Endpoint in the source database:
 > the same parent Template and an overlapping period already exists. Handle `409` gracefully
 > by logging it as `skipped` and continuing.
 
+> **⚠️ Endpoints without a period:** An Endpoint submitted without a `period` is treated
+> as having an unbounded time window — it overlaps with every other period for the same
+> Template. This means only one Endpoint per Template can exist without a period set. If
+> the source database does not have period data for an Endpoint, the migration pipeline
+> should assign at minimum a `period.start` (e.g. the date the Endpoint was originally
+> created or activated) to avoid unintentionally blocking subsequent Endpoint creates for
+> the same Template. See [duplicate-detection.md](./duplicate-detection.md) for full rules.
+
 ### Step 2.1 — Create the Endpoint
 
 Call `POST /Endpoint` with the mapped payload.

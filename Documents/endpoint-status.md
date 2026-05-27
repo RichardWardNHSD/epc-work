@@ -89,8 +89,10 @@ are the two fields assigned by the user — all other fields are inherited from 
 Two Endpoints with the same parent Template and **overlapping periods** are considered
 duplicates. The API enforces this rule and returns `409 Conflict` if an Endpoint would
 overlap with an existing one. Non-overlapping periods represent valid succession — the
-same capability at different points in time. See [duplicate-detection.md](./duplicate-detection.md)
-for full rules.
+same capability at different points in time. An Endpoint with **no period set** is treated
+as unbounded — it overlaps with everything, meaning only one Endpoint per Template can
+exist without a period. See [duplicate-detection.md](./duplicate-detection.md) for full
+rules including no-period and open-ended scenarios.
 
 ---
 
