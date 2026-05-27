@@ -4628,8 +4628,8 @@
                 "tags": [
                     "Endpoint"
                 ],
-                "summary": "Delete a Specific Endpoint",
-                "description": "Delete a Specific Endpoint template.\n\nOnly the owner of an Endpoint can delete its template. \n",
+                "summary": "Delete a Specific Endpoint Template",
+                "description": "Permanently removes an Endpoint Template resource (hard delete). This operation cannot be undone.\n\n### Rules\n\n- **Ownership required:** The `NHSD-End-User-Organisation-ODS` header must match the `managingOrganization` of the Template. Only the owning organisation can delete it.\n- **No active child Endpoints:** A Template cannot be deleted if it has active child Endpoints. All child Endpoints must be deactivated (status set to `off` or `entered-in-error`) or deleted before the Template can be removed. If active children exist, the API returns `409 Conflict`.\n- **Irreversible:** Hard delete permanently removes the resource. Use only when the supplier product is fully decommissioned and the Template will never be needed again.\n- **Soft delete alternative:** If the Template may need to be reinstated in future, use `PUT /Endpoint/{id}/$template` to set `status` to `entered-in-error` instead. This retains the record and is reversible by setting status back to `active`.\n\n### Error responses\n\n| HTTP Status | Code | Scenario |\n|-------------|------|----------|\n| 200 | — | Template deleted successfully |\n| 403 | SEND_FORBIDDEN | Requesting organisation does not match `managingOrganization` |\n| 409 | PROXY_CONFLICT | One or more active Endpoints are derived from this Template |\n",
                 "operationId": "deleteEndpointTemplate",
                 "security": [
                     { "OAuth_CIS2": [] }
@@ -4637,6 +4637,9 @@
                 "responses": {
                     "200": {
                         "$ref": "#/components/responses/200-Delete"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/409-Conflict"
                     },
                     "4XX": {
                         "$ref": "#/components/responses/4XX-BARS"
