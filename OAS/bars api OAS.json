@@ -4313,7 +4313,7 @@
                     "HealthcareService"
                 ],
                 "summary": "Delete a Specific HealthcareService",
-                "description": "Delete a Specific HealthcareService",
+                "description": "Permanently removes a HealthcareService resource. This operation cannot be undone.\n\n### Rules\n\n- **Ownership required:** The `NHSD-End-User-Organisation-ODS` header must match the `providedBy` organisation of the HealthcareService. Only the providing organisation can delete it.\n- **Cascading impact:** Deleting a HealthcareService removes the association between the service and its Endpoints. The Endpoints themselves are not automatically deleted — they become unlinked and will no longer appear in searches by service identifier.\n- **Associated List:** The `current` List for this HealthcareService (if one exists) should be deleted or retired before or alongside the HealthcareService deletion.\n- **Deactivation preferred:** For most operational scenarios, deactivating the HealthcareService (setting `active: false` via `PUT`) is preferred over deletion. Deactivation preserves the record for audit purposes and allows reactivation. Deletion should be reserved for data correction (e.g. entered-in-error).\n- **Outstanding processes:** Deactivation or deletion must not prevent outstanding processes (e.g. BSA claims) from being resolved.\n\n### Error responses\n\n| HTTP Status | Code | Scenario |\n|-------------|------|----------|\n| 200 | — | HealthcareService deleted successfully |\n| 403 | SEND_FORBIDDEN | Requesting organisation does not match `providedBy` |\n",
                 "operationId": "deleteHealthcareService",
                 "security": [
                     { "OAuth_CIS2": [] }
@@ -4563,7 +4563,7 @@
                     "Endpoint"
                 ],
                 "summary": "Delete a Specific Endpoint",
-                "description": "Delete a Specific Endpoint.\n\nOnly the owner of an Endpoint can delete it. \n",
+                "description": "Permanently removes an Endpoint resource. This operation cannot be undone.\n\n### Rules\n\n- **Ownership required:** The `NHSD-End-User-Organisation-ODS` header must match the `managingOrganization` of the Endpoint's parent Template. Only the owning organisation can delete it.\n- **Soft delete preferred:** For most operational scenarios, setting `status` to `entered-in-error` or `off` via `PUT /Endpoint/{id}` is preferred over hard deletion. This preserves the record for audit purposes and allows reinstatement if needed.\n- **List cleanup:** If the Endpoint is referenced in a priority List (`/List`), it should be removed from the List before or alongside deletion. The API does not automatically remove deleted Endpoints from Lists.\n- **Template constraint:** Deleting all child Endpoints for a Template is a prerequisite for deleting the Template itself. If you are decommissioning a supplier product, delete all child Endpoints first, then delete the Template.\n- **Irreversible:** Hard delete permanently removes the resource. Use only when the Endpoint was created in error or is being permanently decommissioned with no audit retention requirement.\n\n### Error responses\n\n| HTTP Status | Code | Scenario |\n|-------------|------|----------|\n| 200 | — | Endpoint deleted successfully |\n| 403 | SEND_FORBIDDEN | Requesting organisation does not match `managingOrganization` of parent Template |\n",
                 "operationId": "deleteEndpoint",
                 "security": [
                     { "OAuth_CIS2": [] }
