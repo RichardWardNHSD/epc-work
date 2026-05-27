@@ -5532,22 +5532,26 @@
             },
             "HealthcareServiceIdentifier_QParam": {
                 "name": "HealthcareService.identifier",
-                "description": "The identifier of the HealthcareService.\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
+                "description": "The identifier of the HealthcareService. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/Id/dos-service-id|1000099999`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2FId%2Fdos-service-id%7C1000099999`\n",
                 "in": "query",
                 "required": false,
                 "allowEmptyValue": false,
+                "allowReserved": false,
                 "schema": {
-                    "$ref": "#/components/schemas/Service"
+                    "type": "string",
+                    "example": "https://fhir.nhs.uk/Id/dos-service-id|1000099999"
                 }
             },
             "HCProvidedBy_QParam": {
                 "name": "HealthcareService.providedBy",
-                "description": "The identifier of the organization that is managing the endpoint(s).\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
+                "description": "The identifier of the organisation providing the HealthcareService. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/Id/ods-organization-code|A1001`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2FId%2Fods-organization-code%7CA1001`\n",
                 "in": "query",
                 "required": false,
                 "allowEmptyValue": false,
+                "allowReserved": false,
                 "schema": {
-                    "$ref": "#/components/schemas/ODS"
+                    "type": "string",
+                    "example": "https://fhir.nhs.uk/Id/ods-organization-code|A1001"
                 }
             },
             "HealthcareServiceIdentifier_PParam": {
@@ -5562,12 +5566,14 @@
             },
             "EndpointIdentifier_QParam": {
                 "name": "Endpoint.identifier",
-                "description": "The identifier of the *type* of Endpoint, usually the identifier set by the organisation/supplier that created the Endpoint. \nIt is important to note that this is **not** the same as **Endpoint.id**, which is the unique identifier for the Endpoint resource. The Endpoint.identifier can be shared across multiple Endpoint resources.\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
+                "description": "The identifier of the *type* of Endpoint, usually the identifier set by the organisation/supplier that created the Endpoint. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\nNote: this is **not** the same as `Endpoint.id` (the unique resource id). `Endpoint.identifier` can be shared across multiple Endpoint resources.\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/id/product-id|SupplierProduct-v2024.12.12`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2Fid%2Fproduct-id%7CSupplierProduct-v2024.12.12`\n",
                 "in": "query",
                 "required": false,
                 "allowEmptyValue": false,
+                "allowReserved": false,
                 "schema": {
-                    "$ref": "#/components/schemas/EndpointIdentifier"
+                    "type": "string",
+                    "example": "https://fhir.nhs.uk/id/product-id|SupplierProduct-v2024.12.12"
                 }
             },
             "EndpointHas_Qparam": {
