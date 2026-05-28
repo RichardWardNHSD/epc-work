@@ -153,6 +153,73 @@ it issues. The migration team needs to:
 
 ---
 
+## Versioning: what happens when a supplier releases a new software version?
+
+This is a critical design question. The answer determines whether a new software version
+requires a new Template (heavy migration) or an in-place update (lightweight).
+
+### Two models
+
+| Model | Product ID changes on new version? | Impact on Templates | Impact on child Endpoints |
+|-------|-----------------------------------|--------------------|--------------------------| 
+| **Version-inclusive** (e.g. `PinnaclePharmOutcomes-v2024.12.12`) | Yes — new version = new Product ID | New Template must be created; old Template retired | All child Endpoints must be migrated from old Template to new Template (one by one) |
+| **Version-agnostic** (e.g. `PROD-12345` stays the same) | No — Product ID is stable across versions | Existing Template updated in place (`PUT /Endpoint/{id}/$template`) | No action needed — child Endpoints automatically inherit the updated Template fields at read time |
+
+### Why version-agnostic is the right model
+
+The Template design was built specifically to support the version-agnostic model. The
+core benefit of Templates is:
+
+> *"If the supplier changes their URL or upgrades their product, only the Template needs
+> updating — the change is immediately visible on every child Endpoint without any
+> further writes."*
+
+If Product ID changes on every version, this benefit is lost. A version upgrade would
+require:
+
+1. Creating a new Template with the new Product ID
+2. Creating new child Endpoints for every HealthcareService currently using the old Template
+3. Updating every HealthcareService's `endpoint[]` references
+4. Updating every List to reference the new Endpoints
+5. Retiring the old Template and its child Endpoints
+
+For a supplier like Sonar or Pharmoutcomes with hundreds of pharmacy services, this is
+an enormous operational burden — exactly the kind of manual, error-prone process the
+Endpoint Catalog was designed to eliminate.
+
+With a version-agnostic Product ID, a version upgrade is simply:
+
+1. Supplier calls `PUT /Endpoint/{id}/$template` with the new `address` (if the URL changed)
+2. Done — all child Endpoints immediately resolve the new address
+
+### What version-agnostic means in practice
+
+- **Product ID = the product**, not a specific release (e.g. "Sonar BaRS" not "Sonar BaRS v3.1.2")
+- **The Template's `address` field** is what changes when a supplier deploys a new version
+  (if the URL changes at all — many version upgrades don't change the URL)
+- **Version tracking** (if needed for audit or reporting) should be handled separately —
+  e.g. as a `meta.versionId` on the Template resource, or as an additional identifier
+  with a version-specific system
+- **Breaking changes** (where the new version is incompatible and requires a different
+  `connectionType` or `payloadType`) would legitimately require a new Template — but
+  this is a new *capability*, not just a new version of the same capability
+
+### Recommendation
+
+The Product ID should be **version-agnostic** — a stable identifier for the product that
+does not change across software releases. This aligns with:
+
+- The Template model's core design (single point of update)
+- The Digital Onboarding Service's model (you onboard a *product*, not a *version*)
+- The requirements (EPCFUNC-15: updating a Template cascades to all child Endpoints)
+
+The illustrative format `PinnaclePharmOutcomes-v2024.12.12` in the current documentation
+is misleading because it implies the version is part of the identifier. This should be
+updated to a version-free format once confirmed (e.g. `PinnaclePharmOutcomes` or
+`PROD-12345`).
+
+---
+
 ## Proposed approach: Product ID as a FHIR Identifier (system|value)
 
 The proposed approach is to treat the Product ID as a standard FHIR Identifier and pass
