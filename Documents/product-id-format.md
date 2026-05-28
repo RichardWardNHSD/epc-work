@@ -85,7 +85,7 @@ Once the format is confirmed, the following documents need updating:
 
 ## Current illustrative format (not confirmed)
 
-The documentation currently assumes:
+The documentation currently uses an illustrative format for the Product ID value:
 
 ```
 {ProductName}-v{Version}
@@ -106,12 +106,12 @@ Only the **value format** is unresolved.
 
 ---
 
-## Alternative: Product ID as a FHIR Identifier (system|value)
+## Proposed approach: Product ID as a FHIR Identifier (system|value)
 
-Rather than defining a bespoke format for the Product ID value, an alternative is to
-treat the Product ID as a standard FHIR Identifier and pass it as a `system|value` token
-wherever it's used — the same pattern used for ODS codes, DoS service IDs, and other
-identifiers throughout the API.
+The proposed approach is to treat the Product ID as a standard FHIR Identifier and pass
+it as a `system|value` token wherever it's used — the same pattern used for ODS codes,
+DoS service IDs, and other identifiers throughout the API. The EPC treats the value as
+an **opaque string** and does not parse, validate, or interpret its internal format.
 
 ### How it would work
 
@@ -157,8 +157,7 @@ This means:
   Whether it's `PROD-12345`, `PinnaclePharmOutcomes-v2024.12.12`, or a UUID doesn't
   matter to the catalog.
 - **Consistent with other identifiers** — ODS codes, DoS service IDs, and endpoint
-  identifiers all use the `system|value` pattern. Product ID would follow the same
-  convention.
+  identifiers all use the `system|value` pattern. Product ID follows the same convention.
 - **Decouples the EPC from the Digital Onboarding Service's format decisions** — if they
   change the format in future, the EPC doesn't need updating.
 - **Already partially implemented** — the resource schema already stores Product ID as
@@ -167,7 +166,7 @@ This means:
 
 ### What this means for the unresolved questions
 
-If we adopt this approach, several of the open questions become less critical:
+With this approach, several of the open questions become less critical for the EPC:
 
 | Question | Impact |
 |----------|--------|
