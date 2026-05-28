@@ -293,3 +293,86 @@ The **migration blocker** (question #3 — how to obtain Product IDs for existin
 remains regardless of this approach. The Digital Onboarding Service still needs to either
 issue Product IDs for existing suppliers or confirm that existing identifiers can be used.
 
+
+---
+
+## Product ID on HealthcareService — delegated authority
+
+### The concept
+
+The `authorisation.md` document proposes a **delegated authority** model where a supplier
+can write to a HealthcareService on behalf of the provider organisation. The mechanism
+relies on the supplier's Product ID being present as an identifier on the HealthcareService
+resource:
+
+```json
+{
+  "resourceType": "HealthcareService",
+  "identifier": [
+    { "system": "https://fhir.nhs.uk/Id/dos-service-id", "value": "2000099999" },
+    { "system": "https://fhir.nhs.uk/id/product-id", "value": "PROD-SONAR-001" }
+  ],
+  "providedBy": {
+    "identifier": {
+      "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+      "value": "FH123"
+    }
+  }
+}
+```
+
+The authorisation rule is:
+
+> A caller may write to a HealthcareService if EITHER:
+> 1. Their token ODS code matches `providedBy` (they ARE the provider), OR
+> 2. Their token Product ID matches a Product ID identifier on the HealthcareService
+>    (they are the supplier managing it on behalf of the provider)
+
+### How it would be established
+
+The Product ID gets onto the HealthcareService when the **supplier creates it on behalf
+of the provider**. In practice:
+
+1. Supplier onboards via the Digital Onboarding Service → receives a Product ID
+2. Supplier creates a HealthcareService for a pharmacy they serve, setting:
+   - `providedBy` = the pharmacy's ODS code (the pharmacy owns the service)
+   - `identifier[]` includes their own Product ID (establishes delegated authority)
+3. The supplier can now update the HealthcareService because their token's Product ID
+   matches one in the resource's `identifier[]`
+4. The pharmacy can also update it because their ODS code matches `providedBy`
+
+### Current gaps — this is not yet implemented
+
+This delegated authority model is documented as a design concept in `authorisation.md`
+but has several unresolved aspects:
+
+| # | Gap | Question |
+|---|-----|----------|
+| 1 | **HealthcareService schema** | The OAS and data model don't explicitly show a `product-id` identifier on HealthcareService. The schema needs updating if this is adopted. |
+| 2 | **Who adds the Product ID?** | Is it set at creation time only? Can it be added later? Can the provider add it (granting a supplier access)? Can the supplier add it themselves (self-granting)? |
+| 3 | **Who can remove it?** | If the pharmacy switches supplier, who removes the old Product ID and adds the new one? The old supplier shouldn't be able to block their own removal. |
+| 4 | **Multiple suppliers** | A HealthcareService may have multiple suppliers (e.g. one for BaRS, one for ITK). Does it carry multiple Product ID identifiers? If so, each supplier can only modify resources related to their own product — but the HealthcareService itself is shared. |
+| 5 | **Duplicate detection impact** | HealthcareService uniqueness is defined as `identifier.system` + `identifier.value`. If Product ID is in `identifier[]`, does a second HealthcareService with the same DoS service ID but a different Product ID count as a duplicate? (It should — the DoS ID is the identity, not the Product ID.) |
+| 6 | **Migration** | Existing HealthcareServices in the BaRS database don't have Product IDs. During migration, should the supplier's Product ID be added? If so, how is the supplier-to-service mapping obtained? |
+| 7 | **Data migration document** | `data-migration.md` doesn't describe adding a Product ID to HealthcareServices during Step 3. This needs updating if delegated authority is adopted. |
+
+### Design options
+
+| Option | How it works | Pros | Cons |
+|--------|-------------|------|------|
+| **A — Product ID in `identifier[]`** | Supplier's Product ID stored as an additional identifier on the HealthcareService | Simple to query; standard FHIR pattern; visible in the resource | Pollutes the identifier array with an authorisation concern; affects duplicate detection logic |
+| **B — Product ID in an extension** | A custom extension (e.g. `managingProduct`) holds the Product ID separately from `identifier[]` | Clean separation of identity (DoS ID) from authorisation (Product ID); no impact on duplicate detection | Non-standard; requires extension definition; less discoverable |
+| **C — Derived from linked Endpoints** | No Product ID on the HealthcareService itself; delegated authority is inferred from the supplier owning a Template that has child Endpoints linked to this service | No schema change needed; authority is implicit from the relationship | Complex to evaluate at runtime; doesn't cover the case where a supplier creates the HealthcareService before any Endpoints exist |
+
+### Recommendation
+
+This needs a design decision. The authorisation document proposes Option A but it hasn't
+been validated against the duplicate detection rules or the migration process. The key
+question is:
+
+> **Should the Product ID on a HealthcareService be treated as an identity (part of
+> `identifier[]`) or as an authorisation grant (separate field/extension)?**
+
+If it's an identity, it affects duplicate detection. If it's an authorisation grant, it
+should be stored separately. This distinction matters and should be discussed with the
+team before implementation.
