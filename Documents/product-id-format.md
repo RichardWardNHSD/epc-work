@@ -220,6 +220,107 @@ updated to a version-free format once confirmed (e.g. `PinnaclePharmOutcomes` or
 
 ---
 
+## What happens when a supplier releases a new software version?
+
+### Requirements V1.8 position
+
+The requirements document (Scenario 2, Section 2.3.2) acknowledges that suppliers may
+have "solution version differences to support breaking changes" and states there will be
+"multiple templates (one for each connection type and version of the deployed solution)."
+
+However, the requirements define Product ID as identifying "the specific software product
+assured by NHS England" — not a specific version of that product. The document does not
+explicitly state whether a new version results in a new Product ID.
+
+### Guidance by upgrade type
+
+Not all version upgrades are equal. The impact on the Endpoint Catalog depends on whether
+the upgrade is **non-breaking** or **breaking**:
+
+#### Non-breaking version upgrade (most common)
+
+A supplier deploys a new version of their software that is backwards-compatible — same
+connection type, same payload type, same (or updated) URL.
+
+| What changes | Action in the EPC | Product ID changes? |
+|-------------|-------------------|-------------------|
+| Internal software version only (no URL change) | Nothing — the EPC is unaware of internal versions | No |
+| URL changes (e.g. new base path) | `PUT /Endpoint/{id}/$template` to update `address` | No |
+| URL changes + name update | `PUT /Endpoint/{id}/$template` to update `address` and `name` | No |
+
+**Result:** The existing Template is updated in place. All child Endpoints automatically
+inherit the new address at read time. No action needed on HealthcareServices, Lists, or
+child Endpoints. This is the Template model working as designed.
+
+#### Breaking version upgrade (new capability)
+
+A supplier deploys a new version that introduces a fundamentally different capability —
+a new connection type, a new payload type, or both. The old and new versions are
+incompatible and may need to coexist during a transition period.
+
+| What changes | Action in the EPC | Product ID changes? |
+|-------------|-------------------|-------------------|
+| New `connectionType` (e.g. ITK → FHIR REST) | Create a **new Template** with the new connection type | No — same product, new capability |
+| New `payloadType` (e.g. `bars` → `bars-v2`) | Create a **new Template** with the new payload type | No — same product, new capability |
+| Entirely new product (different supplier, different onboarding) | New Template with a **new Product ID** | Yes — this is a different product |
+
+**Result:** A new Template is created under the same Product ID (same supplier, same
+product, new capability). The old Template remains active for services that haven't
+migrated yet. Services migrate by switching their `HealthcareService.endpoint[]`
+reference from the old Endpoint (child of old Template) to a new Endpoint (child of
+new Template) via the DoS switch workflow.
+
+### The Product ID stays the same — the Template differentiates
+
+The key insight is that **Product ID identifies the supplier's product** while
+**`connectionType` + `payloadType` differentiate the capabilities** within that product.
+A supplier with one Product ID can have multiple Templates:
+
+```
+Product ID: PROD-SONAR-001 (Sonar BaRS product)
+├── Template-A: connectionType=hl7-fhir-rest, payloadType=bars      (current)
+├── Template-B: connectionType=hl7-fhir-rest, payloadType=bars-v2   (new version)
+└── Template-C: connectionType=ihe-xds, payloadType=xds-referral    (different protocol)
+```
+
+All three Templates share the same Product ID. The duplicate detection rule
+(`productId` + `connectionType` + `payloadType` must be unique among active Templates)
+ensures no two active Templates represent the same capability for the same product.
+
+### Implications for delegated authority
+
+If Product ID is version-agnostic and stable across releases, the delegated authority
+model (where a supplier's Product ID on a HealthcareService grants them write access)
+works cleanly:
+
+- **Non-breaking upgrade:** The supplier updates their Template. Their Product ID hasn't
+  changed, so their delegated authority over HealthcareServices is unaffected. No action
+  needed.
+- **Breaking upgrade (new Template):** The supplier creates a new Template under the same
+  Product ID. Their delegated authority is still valid — the Product ID on the
+  HealthcareService still matches their token. They can update the HealthcareService's
+  `endpoint[]` to reference the new Endpoint.
+- **Supplier switch (different product):** The new supplier has a different Product ID.
+  The HealthcareService's Product ID identifier must be updated from the old supplier's
+  to the new supplier's — this is the mechanism that transfers delegated authority.
+
+If Product ID were version-inclusive, every version upgrade would invalidate the
+supplier's delegated authority over all their HealthcareServices (because the token's
+Product ID would no longer match the resource's). This would require updating the
+Product ID on every HealthcareService on every release — an unacceptable operational
+burden.
+
+### Summary
+
+| Upgrade type | Product ID | Template | Child Endpoints | HealthcareService | Delegated authority |
+|-------------|-----------|----------|----------------|-------------------|-------------------|
+| Non-breaking (URL change) | Unchanged | Updated in place | Inherit automatically | No change | Unaffected |
+| Non-breaking (no URL change) | Unchanged | No change | No change | No change | Unaffected |
+| Breaking (new capability) | Unchanged | New Template created | New Endpoints created for migrating services | `endpoint[]` updated via DoS switch | Unaffected (same Product ID) |
+| Supplier switch | New Product ID | Different supplier's Template | Different supplier's Endpoints | `endpoint[]` updated + Product ID identifier updated | Transfers to new supplier |
+
+---
+
 ## Proposed approach: Product ID as a FHIR Identifier (system|value)
 
 The proposed approach is to treat the Product ID as a standard FHIR Identifier and pass
