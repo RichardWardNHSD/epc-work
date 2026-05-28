@@ -104,6 +104,53 @@ https://fhir.nhs.uk/id/product-id
 This system URI is confirmed (it's the NHS England standard for product identifiers).
 Only the **value format** is unresolved.
 
+## What the Digital Onboarding Service tells us
+
+The [Digital Onboarding Service](https://digital.nhs.uk/services/digital-onboarding-service)
+is the NHS England assurance process for organisations and suppliers integrating with
+NHS APIs. Key points relevant to Product ID:
+
+1. **Each API is assigned to one or more products, and each product is linked to an
+   organisation.** This confirms that a Product ID is a per-product, per-organisation
+   concept — not per-API or per-endpoint.
+
+2. **The onboarding process is product-centric.** An applicant registers their
+   organisation and then registers the product they want to onboard. The Product ID
+   is issued as part of this registration.
+
+3. **The Product ID is issued by the Digital Onboarding Service** during Step 2
+   ("Register your organisation and product"). It is not self-assigned by the supplier.
+
+4. **The service is the primary route for NHS API assurance.** Any supplier wanting to
+   use NHS APIs (including the Endpoint Catalog) must go through this process and will
+   receive a Product ID as an output.
+
+### Implications for the EPC
+
+- **Product IDs already exist** for any supplier that has been through the Digital
+  Onboarding process. The format is whatever the onboarding service issues — the EPC
+  does not need to define or validate it beyond treating it as an opaque string.
+- **For existing BaRS suppliers**, Product IDs should already have been issued during
+  their original BaRS onboarding. The migration team needs to obtain the mapping of
+  supplier name → Product ID from the Digital Onboarding Service's records.
+- **For new suppliers**, the Product ID will be issued as part of their onboarding
+  before they can interact with the EPC. This is a natural prerequisite — no additional
+  process is needed.
+- **The EPC's role is to store and match on the Product ID**, not to issue or validate
+  its format. This reinforces the proposed approach of treating it as an opaque
+  `system|value` identifier.
+
+### Remaining gap
+
+The Digital Onboarding Service page does not publish the format of the Product ID value
+it issues. The migration team needs to:
+
+1. Contact the Digital Onboarding Service (Shan Rahulan — shan.rahulan@nhs.net) to
+   obtain the list of Product IDs already issued to BaRS suppliers
+2. Confirm the format so that documentation examples can be updated
+3. Confirm whether a lookup API exists to resolve supplier name → Product ID
+   programmatically
+
 ---
 
 ## Proposed approach: Product ID as a FHIR Identifier (system|value)
