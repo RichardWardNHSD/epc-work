@@ -103,3 +103,80 @@ https://fhir.nhs.uk/id/product-id
 
 This system URI is confirmed (it's the NHS England standard for product identifiers).
 Only the **value format** is unresolved.
+
+---
+
+## Alternative: Product ID as a FHIR Identifier (system|value)
+
+Rather than defining a bespoke format for the Product ID value, an alternative is to
+treat the Product ID as a standard FHIR Identifier and pass it as a `system|value` token
+wherever it's used — the same pattern used for ODS codes, DoS service IDs, and other
+identifiers throughout the API.
+
+### How it would work
+
+The Product ID is already stored on resources as a FHIR Identifier:
+
+```json
+{
+  "identifier": [
+    {
+      "system": "https://fhir.nhs.uk/id/product-id",
+      "value": "PROD-12345"
+    }
+  ]
+}
+```
+
+When passed as a query parameter or header value, it would use the standard `system|value`
+token format (URL-encoded):
+
+```
+https://fhir.nhs.uk/id/product-id|PROD-12345
+```
+
+This means:
+- The **system** (`https://fhir.nhs.uk/id/product-id`) identifies what kind of identifier it is
+- The **value** (`PROD-12345`) is the opaque identifier issued by the Digital Onboarding Service
+- The format of the value itself doesn't matter to the EPC — it's just a string to match on
+
+### Where this applies
+
+| Usage | Current approach | Identifier approach |
+|-------|-----------------|-------------------|
+| Query parameter (`Endpoint.identifier`) | Already uses `system|value` format | No change needed — already works this way |
+| Token claim (Product ID in bearer token) | Assumed to be the value only | Could carry the full `system|value` or just the value (with system implied) |
+| Ownership check | Match token's Product ID against resource's `identifier[].value` | Match token's value against `identifier[].value` where `identifier[].system` = `https://fhir.nhs.uk/id/product-id` |
+| CSV input (migration/template creation) | `ProductId` column holds the value | No change — CSV holds the value; the system is always `https://fhir.nhs.uk/id/product-id` |
+| Duplicate detection | Match on `productId` value | Match on `identifier[].value` where system matches |
+
+### Advantages
+
+- **Format-agnostic** — the EPC doesn't need to know or validate the internal format of
+  the Product ID value. It's an opaque string issued by the Digital Onboarding Service.
+  Whether it's `PROD-12345`, `PinnaclePharmOutcomes-v2024.12.12`, or a UUID doesn't
+  matter to the catalog.
+- **Consistent with other identifiers** — ODS codes, DoS service IDs, and endpoint
+  identifiers all use the `system|value` pattern. Product ID would follow the same
+  convention.
+- **Decouples the EPC from the Digital Onboarding Service's format decisions** — if they
+  change the format in future, the EPC doesn't need updating.
+- **Already partially implemented** — the resource schema already stores Product ID as
+  a FHIR Identifier with system and value. The query parameter `Endpoint.identifier`
+  already accepts `system|value` tokens.
+
+### What this means for the unresolved questions
+
+If we adopt this approach, several of the open questions become less critical:
+
+| Question | Impact |
+|----------|--------|
+| What is the format? | **Reduced** — the EPC treats it as an opaque string; format is the Digital Onboarding Service's concern |
+| Does it include a version? | **Reduced** — the EPC doesn't parse or interpret the value; versioning is the issuer's concern |
+| Maximum length? | Still needed for DynamoDB key design, but can use a generous limit (e.g. 256 chars) |
+| Character restrictions? | Still needed for URL encoding safety, but standard URL-safe characters suffice |
+
+The **migration blocker** (question #3 — how to obtain Product IDs for existing suppliers)
+remains regardless of this approach. The Digital Onboarding Service still needs to either
+issue Product IDs for existing suppliers or confirm that existing identifiers can be used.
+
