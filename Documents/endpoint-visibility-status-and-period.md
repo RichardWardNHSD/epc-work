@@ -384,16 +384,52 @@ Without this, `_include` would leak Endpoints that the direct search would have 
 out — creating an inconsistency where the same Endpoint is visible via one path but not
 the other.
 
-### Differences that remain between the two patterns
+### Differences that remain between the two patterns — needs further discussion
 
-Even with visibility filtering applied to both, there are legitimate differences:
+Even with visibility filtering applied to both, there are significant behavioural
+differences that create an inconsistent consumer experience. These need to be discussed
+and resolved:
 
 | Aspect | Direct Endpoint search | HealthcareService with `_include` |
 |--------|----------------------|----------------------------------|
 | **Response contains** | Endpoints only | HealthcareService + Endpoints |
 | **ConnectionType/PayloadType filtering** | ✅ Supported as query parameters | ❌ Not supported — all active Endpoints are included regardless of type |
+| **Template resolution** | ✅ Lambda resolves and merges template fields | ⚠️ Must also resolve — but this is non-standard FHIR `_include` behaviour |
 | **Use case** | When you need filtered Endpoints only | When you need service metadata alongside all its active Endpoints |
 | **Consumer-side filtering needed?** | No — server filters by type | Yes — consumer must filter by `connectionType`/`payloadType` if they only want specific types |
+
+> **⚠️ Open problem — `_include` with template resolution is non-standard:**
+>
+> Standard FHIR `_include` returns referenced resources as-is from the database. In our
+> model, child Endpoints in the database hold only `status` and `period` — all other
+> fields (`connectionType`, `payloadType`, `address`, `name`, `header`) live on the
+> Template and are merged at read time by the Lambda.
+>
+> If `_include` returns bare (unresolved) Endpoints, the consumer gets resources with
+> no `connectionType`, no `address`, and no way to use them. If `_include` returns
+> fully-resolved Endpoints, we are deviating from standard FHIR `_include` semantics
+> (which don't involve server-side transformation of included resources).
+>
+> **This creates a design tension:**
+>
+> 1. **Return bare Endpoints** — standard FHIR behaviour, but useless to the consumer
+>    (they'd need to call `GET /Endpoint/{id}` for each one to get resolved fields)
+> 2. **Return fully-resolved Endpoints** — useful to the consumer, but non-standard
+>    and requires Lambda interception of the `_include` mechanism
+> 3. **Don't support `_include` at all** — force consumers to use `GET /Endpoint?_has:...`
+>    for Endpoints and `GET /HealthcareService/{id}` separately for service metadata
+>
+> Additionally, if we resolve templates on `_include` but cannot apply
+> `ConnectionType`/`PayloadType` filters (because those aren't valid parameters on a
+> HealthcareService search), consumers using `_include` get **all** active Endpoints
+> for the service and must filter client-side. This is a different contract from
+> `GET /Endpoint?_has:...&ConnectionType=X` where the server filters for them.
+>
+> **This needs an architecture decision.** The options and their trade-offs should be
+> discussed with the team before implementation. The decision affects:
+> - Whether the Lambda intercepts `_include` processing (complexity)
+> - What consumers can expect from each API pattern (documentation)
+> - Whether `_include` is even worth supporting given the limitations
 
 ### The managing organisation exception
 
