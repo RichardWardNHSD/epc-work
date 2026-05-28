@@ -467,16 +467,24 @@ its validity window.
 
 ### Scenario 4 — Supplier switch
 
-A supplier switch involves changing which Endpoint a HealthcareService is associated
-with. It is important to distinguish between **visibility** (which Endpoint is returned
-to consumers) and the **operational switch** (which Endpoint the HealthcareService
-references).
+Two Endpoints exist for the same HealthcareService with the same connection type but
+different parent Templates (different suppliers):
 
-#### How a supplier switch works operationally
+| Endpoint | Template | period.start | period.end | Status |
+|----------|----------|-------------|-----------|--------|
+| EP-001 (old supplier) | Template-A | 2024-01-01 | 2026-06-30 | `active` |
+| EP-002 (new supplier) | Template-B | 2026-07-01 | (none) | `active` |
 
-In the Template model, a multi-tenanted supplier has one Template with potentially many
-child Endpoints — one per HealthcareService that uses their product. When a pharmacy
-switches from Supplier A to Supplier B:
+On 2026-06-15, only EP-001 is returned. On 2026-07-01, only EP-002 is returned. The
+transition is seamless — no overlap, no gap.
+
+#### Further clarification — how a supplier switch works operationally
+
+The above illustrates the *visibility* outcome, but the operational mechanism is more
+nuanced. A supplier switch is an **association change** on the HealthcareService, not
+simply a period-based transition between two Endpoints.
+
+**How it works in practice:**
 
 1. **Before the switch:** The HealthcareService's `endpoint[]` references EP-001 (a child
    of Template-A, owned by Supplier A)
@@ -487,35 +495,28 @@ switches from Supplier A to Supplier B:
 3. **After the switch:** The HealthcareService now references EP-002. Consumers querying
    this service get EP-002's resolved address (from Template-B).
 
-The switch is an **association change** on the HealthcareService, not a period-based
-transition on the Endpoints themselves.
-
-#### What period means in this context
+**Key distinctions:**
 
 - **EP-001's period** defines when EP-001 is valid *as a resource* — not when it's
   associated with any particular HealthcareService. EP-001 may continue to be active
   and serve other HealthcareServices after this pharmacy switches away.
 - **EP-002's period** may have started long ago (it's been serving other pharmacies).
   Its period doesn't need to align with the switch date.
-- The **visibility rule** still applies: if a consumer queries the HealthcareService,
-  only Endpoints referenced in `endpoint[]` that pass the status + period checks are
-  returned.
+- **EP-002 does not need a future start date** — it is likely already active and in use
+  by other services. The switch is about changing which Endpoint the HealthcareService
+  points to, not about activating a new Endpoint.
 
-#### Overlap check — when does it apply?
+**Overlap check — does it apply here?**
 
-The duplicate detection overlap check applies at the **Endpoint-per-Template** level:
+No. The duplicate detection overlap check applies at the **Endpoint-per-Template** level:
 two Endpoints with the *same parent Template* and overlapping periods are duplicates.
+EP-001 and EP-002 have **different parent Templates** (different suppliers), so the
+overlap check does not apply between them — they represent different capabilities and
+can have any period relationship.
 
-In a supplier switch, EP-001 and EP-002 have **different parent Templates** (different
-suppliers). The overlap check does not apply between them — they represent different
-capabilities and can have any period relationship (overlapping, identical, or
-non-overlapping).
-
-The overlap check would apply if, for example, a supplier tried to create a second
-Endpoint from the same Template with an overlapping period — that would be a duplicate
-regardless of which HealthcareServices reference it.
-
-#### Summary
+The overlap check would apply if a supplier tried to create a second Endpoint from the
+*same* Template with an overlapping period — that would be a duplicate regardless of
+which HealthcareServices reference it.
 
 | Aspect | Detail |
 |--------|--------|
