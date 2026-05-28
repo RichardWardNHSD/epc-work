@@ -465,18 +465,65 @@ An Endpoint has `status: active`, `period.start: 2025-06-01`, no `period.end`. A
 queries on 2026-05-22. The Endpoint **is returned** — it is open-ended and still within
 its validity window.
 
-### Scenario 4 — Supplier switch with non-overlapping periods
+### Scenario 4 — Supplier switch
 
-Two Endpoints exist for the same HealthcareService with the same connection type but
-different parent Templates (different suppliers):
+A supplier switch involves changing which Endpoint a HealthcareService is associated
+with. It is important to distinguish between **visibility** (which Endpoint is returned
+to consumers) and the **operational switch** (which Endpoint the HealthcareService
+references).
 
-| Endpoint | Template | period.start | period.end | Status |
-|----------|----------|-------------|-----------|--------|
-| EP-001 (old supplier) | Template-A | 2024-01-01 | 2026-06-30 | `active` |
-| EP-002 (new supplier) | Template-B | 2026-07-01 | (none) | `active` |
+#### How a supplier switch works operationally
 
-On 2026-06-15, only EP-001 is returned. On 2026-07-01, only EP-002 is returned. The
-transition is seamless — no overlap, no gap.
+In the Template model, a multi-tenanted supplier has one Template with potentially many
+child Endpoints — one per HealthcareService that uses their product. When a pharmacy
+switches from Supplier A to Supplier B:
+
+1. **Before the switch:** The HealthcareService's `endpoint[]` references EP-001 (a child
+   of Template-A, owned by Supplier A)
+2. **The switch operation:** The DoS workflow updates `HealthcareService.endpoint[]` —
+   removes the reference to EP-001 and adds a reference to EP-002 (a child of Template-B,
+   owned by Supplier B). EP-002 may already exist and be active, serving other
+   HealthcareServices.
+3. **After the switch:** The HealthcareService now references EP-002. Consumers querying
+   this service get EP-002's resolved address (from Template-B).
+
+The switch is an **association change** on the HealthcareService, not a period-based
+transition on the Endpoints themselves.
+
+#### What period means in this context
+
+- **EP-001's period** defines when EP-001 is valid *as a resource* — not when it's
+  associated with any particular HealthcareService. EP-001 may continue to be active
+  and serve other HealthcareServices after this pharmacy switches away.
+- **EP-002's period** may have started long ago (it's been serving other pharmacies).
+  Its period doesn't need to align with the switch date.
+- The **visibility rule** still applies: if a consumer queries the HealthcareService,
+  only Endpoints referenced in `endpoint[]` that pass the status + period checks are
+  returned.
+
+#### Overlap check — when does it apply?
+
+The duplicate detection overlap check applies at the **Endpoint-per-Template** level:
+two Endpoints with the *same parent Template* and overlapping periods are duplicates.
+
+In a supplier switch, EP-001 and EP-002 have **different parent Templates** (different
+suppliers). The overlap check does not apply between them — they represent different
+capabilities and can have any period relationship (overlapping, identical, or
+non-overlapping).
+
+The overlap check would apply if, for example, a supplier tried to create a second
+Endpoint from the same Template with an overlapping period — that would be a duplicate
+regardless of which HealthcareServices reference it.
+
+#### Summary
+
+| Aspect | Detail |
+|--------|--------|
+| What triggers the switch | DoS workflow updates `HealthcareService.endpoint[]` |
+| Does EP-002 need a future start date? | No — it may already be active and serving other services |
+| Does EP-001 need an end date? | Not necessarily — it may continue serving other HealthcareServices |
+| Does the overlap check fire? | No — EP-001 and EP-002 have different Templates |
+| What controls visibility? | The `endpoint[]` reference on the HealthcareService + the standard status/period checks on whichever Endpoint is referenced |
 
 ### Scenario 5 — Status overrides period
 
