@@ -64,3 +64,55 @@ from across the Endpoint Catalog documentation. Extracted on 28 May 2026.
 | 55 | Endpoint Templates — Pros and Cons | Summary (Key open question) | Whether the Lambda should automatically apply List order on `GET /HealthcareService` and `GET /Endpoint` responses, eliminating the two-step consumer pattern. | Not assigned | | Open |
 | 56 | Endpoint Templates — Pros and Cons | Cons (Con 2) | ProductId format is unresolved — this is a hard blocker for data migration. | Not assigned | | Open |
 | 57 | DUEC Endpoints | Overview (warning) | The connectionType and payloadType codes used for DUEC have not been confirmed with the DUEC programme. Needs review and validation before implementation. | DUEC team | | Open |
+
+---
+
+## Decisions Made
+
+The following design decisions have been documented and adopted across the Endpoint
+Catalog documentation.
+
+| # | Source Document | Section | Decision | Rationale |
+|---|---|---|---|---|
+| 1 | Duplicate Detection in the Endpoint Catalog | Templates | A Template is a duplicate only if another **active** Template exists with the same `productId` + `connectionType` + `payloadType`; non-active Templates do not block creation. | A withdrawn Template should not prevent a legitimate replacement. |
+| 2 | Duplicate Detection in the Endpoint Catalog | Endpoints | An Endpoint is a duplicate if another Endpoint exists with the same parent Template and an overlapping `period`. | The combination of *which template* and *when* defines identity. |
+| 3 | Duplicate Detection in the Endpoint Catalog | Endpoints (no period) | An Endpoint with no `period` is treated as unbounded — overlaps everything; only one per Template can exist without a period. | Prevents ambiguity from unbounded Endpoints conflicting with everything. |
+| 4 | Duplicate Detection in the Endpoint Catalog | HealthcareServices | A HealthcareService is a duplicate if another exists with the same `identifier.system` + `identifier.value`. | System and value together form the identity. |
+| 5 | Duplicate Detection in the Endpoint Catalog | Lists | Only one `current` List per HealthcareService; historical (`retired`) Lists are permitted. | Only one active ordering should exist per service. |
+| 6 | Duplicate Detection in the Endpoint Catalog | HealthcareService endpoint array | `HealthcareService.endpoint[]` must not contain repeated references; rejected with `422`. | Repeated references are meaningless. |
+| 7 | Duplicate Detection in the Endpoint Catalog | API responses | All duplicate detection is enforced server-side; callers do not pre-check — API returns `409 Conflict`. | Simplifies clients and guarantees consistency. |
+| 8 | Authentication and Authorisation | Access modes | Two access modes: application-restricted (signed JWT) for system-to-system, and user-restricted (CIS2) for admin operations. | Automated lookups don't need a human; admin changes need individual identity for audit. |
+| 9 | Authentication and Authorisation | Ownership model | Authorisation is based on resource ownership via ODS code match; mismatch → `403 Forbidden`. | Prevents cross-organisation modification. |
+| 10 | Authentication and Authorisation | ODS spoofing protection | API cross-checks `NHSD-End-User-Organisation-ODS` header against the bearer token ODS claim before any resource check. | Prevents identity spoofing. |
+| 11 | Authentication and Authorisation | Ownership by resource type | Templates/Endpoints owned by supplier (`managingOrganization`); HealthcareServices owned by provider (`providedBy`); Lists inherit from their HealthcareService. | Reflects real-world ownership split. |
+| 12 | Authentication and Authorisation | Delegated authority | Suppliers may write to a HealthcareService if their Product ID matches one on the resource, even without matching `providedBy`. | Suppliers manage services on behalf of providers. |
+| 13 | Authentication and Authorisation | Product ID + ODS | Product ID and ODS code together form the ownership key. | Prevents one supplier modifying another's resources within the same organisation. |
+| 14 | Endpoint Header Attribute | Privacy rule | Template's `header` field governs address visibility in merged responses (`public` = visible to all, `private` = owner only). | Child Endpoint inherits address from Template, so Template's setting governs. |
+| 15 | Endpoint Visibility: Status and Period | Combined visibility rule | Endpoint available only when own status is `active`, Template status is `active`, AND current time is within `period`. | Both checks must pass; more restrictive status takes precedence. |
+| 16 | Endpoint Visibility: Status and Period | Consumer filtering | Consumers only see Endpoints passing all visibility checks; managing organisation sees all. | Consumers trust results are usable; owners need full lifecycle visibility. |
+| 17 | Endpoint Visibility: Status and Period | Templates have no period | Templates are configuration artefacts without time-bounded validity. | They represent reusable protocol definitions, not service instances. |
+| 18 | Endpoint Visibility: Status and Period | Visibility via `_include` | Visibility filtering MUST apply to Endpoints returned via `_include` on `GET /HealthcareService`. | Prevents inconsistency between API paths. |
+| 19 | Filtering Endpoints by Connection Type and Payload Type | Template model | `connectionType`, `payloadType`, and `address` live on the Template; Lambda resolves the join server-side. | Single source of truth; eliminates duplication across child Endpoints. |
+| 20 | Filtering Endpoints by Connection Type and Payload Type | `_include` cannot filter | `ConnectionType`/`PayloadType` cannot be applied as filters on `GET /HealthcareService?_include=...`. | They are Endpoint properties, not HealthcareService properties; FHIR `_include` has no filter mechanism. |
+| 21 | Endpoint Ordering — Options Comparison (Condensed) | Recommendation | Use FHIR List resource (Option A) for PoC; priority extension (Option C) is not recommended. | Option C breaks when Endpoints are shared across multiple services (can't have per-service priority on a single resource). |
+| 22 | Endpoint Ordering — Full Options Document | Ordering mechanism | Priority is `List.entry[]` array position — index 0 is highest; consumers MUST use List order, not Bundle order. | Bundle entry order is unreliable due to pagination and intermediary reordering. |
+| 23 | Endpoint Ordering — Full Options Document | Auto-creation | API always creates a List when a HealthcareService is created, populated from `endpoint[]` order. | Guarantees every service always has exactly one associated List. |
+| 24 | BaRS OAS Alignment, Authentication, and API Routing | OAS separation | Remove EPC write operations from BaRS OAS; EPC OAS is authoritative for catalog operations. | Avoids duplicate specs that risk drift. |
+| 25 | BaRS OAS Alignment, Authentication, and API Routing | Routing | BaRS Proxy runs inside Apigee; EPC paths route to AWS backend; Proxy calls EPC internally for resolution. | Clean separation of messaging (Proxy) and catalog management (EPC). |
+| 26 | BaRS OAS Alignment, Authentication, and API Routing | Token validation split | Apigee validates token (signature, expiry); backend enforces ODS match, RBAC, and ownership. | Separates infrastructure security from business authorisation. |
+| 27 | Disaster Recovery | DR strategy | Single-region (eu-west-2) with PITR and on-demand backups; multi-region evaluated at production readiness if classified Gold. | Serverless provides multi-AZ resilience; multi-region only justified for Tier 1. |
+| 28 | Disaster Recovery | PITR and deletion protection | Point-in-Time Recovery and deletion protection enabled on all DynamoDB tables from day one — non-negotiable. | Covers accidental deletes and corruption with < 5 min RPO. |
+| 29 | Disaster Recovery | Infrastructure-as-code | Terraform is source of truth; manual console changes prohibited in production. | Ensures reproducibility and prevents drift. |
+| 30 | Resilience and Availability | Availability target | 99.9% availability, zero planned maintenance windows, P95 ≤ 150ms. | Serverless allows zero-downtime deploys; composite AWS SLA makes 99.9% achievable. |
+| 31 | Resilience and Availability | Provisioned concurrency | Strongly recommended for Lambda given 150ms P95 target — cold starts would breach it. | Cold starts are the primary latency risk. |
+| 32 | Resilience and Availability | Idempotency | `POST` uses `X-Request-Id` as idempotency key (5-min window); `PATCH` uses `If-Match` (ETag). | Allows safe retries without duplicates or lost updates. |
+| 33 | Resilience and Availability | DynamoDB capacity | On-demand (PAY_PER_REQUEST) billing — scales automatically. | Eliminates throttling from under-provisioned capacity. |
+| 34 | Data Migration to the Endpoint Catalog | Migration sequence | Templates → Endpoints → HealthcareServices → Validation; each step depends on IDs from the previous. | Resource types have parent-child dependencies. |
+| 35 | Data Migration to the Endpoint Catalog | Idempotent migration | No pre-check for duplicates; API returns `409` and migration logs and continues. | Makes migration naturally re-runnable. |
+| 36 | Data Migration to the Endpoint Catalog | Static values for BaRS | All existing Templates use fixed `connectionType: hl7-fhir-rest` and `payloadType: bars`. | Existing database is exclusively BaRS endpoints. |
+| 37 | Managing Endpoint Templates | Template identity | Templates distinguished by `environmentType: staging` (internal, never returned); `$template` action scopes operations. | Allows Templates and Endpoints to coexist as FHIR Endpoint resources. |
+| 38 | Managing Endpoint Templates | Deletion constraint | Template cannot be deleted if it has active child Endpoints — `409 Conflict`. | Prevents orphaning active Endpoints. |
+| 39 | Managing Endpoint Templates | Creation process | Templates created via CSV → S3 → Lambda → API pipeline by the run/maintain team. | Separates supplier onboarding from service configuration; supports bulk. |
+| 40 | Interim Support Process — Direct AWS Access vs API Access | Recommendation | Option 3 (CSV → Apigee API calls) — no write path should bypass API authorisation and audit. | Preserves CSV workflow while ensuring full auth, validation, and audit. |
+| 41 | DUEC Endpoints | Tiered communication | DUEC uses three connection methods in preference order: FHIR REST → ITK3 → Secure email, expressed via a List. | Explicit failover semantics for urgent care reliability. |
+| 42 | Endpoint Templates — Pros and Cons | Template design | Child Endpoints hold only `status`, `period`, and template reference; all other fields resolved at read time from Template. | Single point of update; one Template change propagates to all children instantly. |
