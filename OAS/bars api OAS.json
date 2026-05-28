@@ -6618,7 +6618,7 @@
                                         "identifier": [
                                             {
                                                 "system": "http://fhir.nhs.uk/Id/dos-service-id",
-                                                "value": "111111111"
+                                                "value": "222222222"
                                             },
                                             {
                                                 "system": "http://fhir.nhs.uk/Id/product-id",
@@ -6634,10 +6634,10 @@
                                                 }
                                             }
                                         ],
-                                        "name": "Example Healthcare Service",
+                                        "name": "Example Healthcare Service 2",
                                         "endpoint": [
                                             {
-                                                "reference": "Endpoint/4e958d43-ad80-40c9-85ff-2be003d1ea86"
+                                                "reference": "Endpoint/91607239-b002-470a-8709-6b25bd50fdd1"
                                             }
                                         ]
                                     }
