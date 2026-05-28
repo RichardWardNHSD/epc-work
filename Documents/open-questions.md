@@ -18,9 +18,9 @@ from across the Endpoint Catalog documentation. Extracted on 28 May 2026.
 | 9 | BaRS OAS Alignment, Authentication, and API Routing | Open Questions | Should `/metadata` return a combined capability statement or separate ones per service? Depends on whether BaRS and EPC share a base URL. | Architecture | | Open |
 | 10 | BaRS OAS Alignment, Authentication, and API Routing | Open Questions | How does the BaRS Proxy's internal EPC call authenticate? Service account credentials or internal Apigee policy? | Platform team | | Open |
 | 11 | BaRS OAS Alignment, Authentication, and API Routing | Open Questions | Are the `X-Request-Id` and `X-Correlation-Id` headers sufficient, or do the EPC-specific definitions need to be added separately? | Architecture | | Open |
-| 12 | Managing Endpoint Templates | Step 1 — Gather the required data | Product Id format is under investigation and has not yet been confirmed. The format (e.g. `PinnaclePharmOutcomes-v2024.12.12`) is illustrative only. | Not assigned | | Open |
+| 12 | Managing Endpoint Templates | Step 1 — Gather the required data | Product Id format is under investigation and has not yet been confirmed. See [product-id-format.md](./product-id-format.md) for full analysis. | Digital Onboarding Service | | Open |
 | 13 | Data Migration to the Endpoint Catalog | Overview (warning) | Document is incomplete — source database details including database name, table names, table structures, and field mappings have not yet been documented. A database schema review is needed. | Not assigned | | Open |
-| 14 | Data Migration to the Endpoint Catalog | Step 1 — Migrate Templates | Product Id construction mechanism not yet defined. Existing database holds only supplier name, not a versioned product identifier. Must be resolved before Step 1 can be executed. | Not assigned | | Open |
+| 14 | Data Migration to the Endpoint Catalog | Step 1 — Migrate Templates | Product Id construction mechanism not yet defined. Existing database holds only supplier name, not a versioned product identifier. See [product-id-format.md](./product-id-format.md). | Digital Onboarding Service | | Open |
 | 15 | Disaster Recovery | Open Actions | Confirm RPO/RTO targets with service owner. | Tech lead | | Open |
 | 16 | Disaster Recovery | Open Actions | Confirm service tier classification (Gold/Silver). | Product owner | | Open |
 | 17 | Disaster Recovery | Open Actions | Decide on multi-region requirement. | Architecture review | | Open |
@@ -62,7 +62,7 @@ from across the Endpoint Catalog documentation. Extracted on 28 May 2026.
 | 53 | Observability — ODIN-First Approach | Prerequisites and open items | Confirm trace sampling strategy for production volume. | EPC team | | Open |
 | 54 | Resilience and Availability | Service Level Target | Confirm the availability target with the service owner. If classified as Gold/Tier 1, a 99.95% target may be required, necessitating multi-region deployment. | Not assigned | | Open |
 | 55 | Endpoint Templates — Pros and Cons | Summary (Key open question) | Whether the Lambda should automatically apply List order on `GET /HealthcareService` and `GET /Endpoint` responses, eliminating the two-step consumer pattern. | Not assigned | | Open |
-| 56 | Endpoint Templates — Pros and Cons | Cons (Con 2) | ProductId format is unresolved — this is a hard blocker for data migration. | Not assigned | | Open |
+| 56 | Endpoint Templates — Pros and Cons | Cons (Con 2) | ProductId format is unresolved — this is a hard blocker for data migration. See [product-id-format.md](./product-id-format.md). | Digital Onboarding Service | | Open |
 | 57 | DUEC Endpoints | Overview (warning) | The connectionType and payloadType codes used for DUEC have not been confirmed with the DUEC programme. Needs review and validation before implementation. | DUEC team | | Open |
 
 ---
