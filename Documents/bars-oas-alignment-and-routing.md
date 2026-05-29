@@ -277,37 +277,22 @@ All of the above, plus:
 | `/DocumentReference*` | BaRS Proxy (inside Apigee) | App-restricted | Manage documents |
 | `/Slot` | BaRS Proxy (inside Apigee) | App-restricted | Query slots |
 | `/MessageDefinition` | BaRS Proxy (inside Apigee) | App-restricted | Get message definitions |
+| `/metadata` | BaRS Proxy (inside Apigee) | App-restricted | Capability statement (forwarded to receiving system) |
 | `/Endpoint*` | EPC backend (AWS) | App-restricted or CIS2 | Manage endpoints/templates |
 | `/HealthcareService*` | EPC backend (AWS) | App-restricted or CIS2 | Manage healthcare services |
 | `/List*` | EPC backend (AWS) | App-restricted or CIS2 | Manage endpoint ordering |
-| `/metadata` | **⚠️ See below** | App-restricted | Capability statement |
 
-### `/metadata` routing — open design question
+### `/metadata` routing — resolved
 
-The `/metadata` endpoint returns a FHIR `CapabilityStatement` describing what the API
-supports. In the current architecture this is problematic because:
+`/metadata` is a BaRS Proxy operation, not an EPC operation. When a sender calls
+`GET /metadata`, the BaRS Proxy forwards the request to the **receiving system**
+(identified by the `NHSD-Target-Identifier` header) and returns that system's
+CapabilityStatement. This tells the sender what the target receiver supports
+(which message definitions, which interactions, which FHIR version).
 
-- The **BaRS Proxy** has its own capabilities (messaging, appointments, slots, documents)
-- The **EPC backend** has its own capabilities (endpoints, templates, healthcare services, lists)
-- A single `/metadata` response needs to describe **both** — consumers expect one
-  CapabilityStatement from one base URL
-
-With split routing (BaRS paths → Apigee, EPC paths → AWS), neither backend alone can
-produce a complete CapabilityStatement. Three options:
-
-| Option | How it works | Pros | Cons |
-|--------|-------------|------|------|
-| **A — API layer (Apigee) handles `/metadata`** | Apigee intercepts `/metadata` and returns a pre-configured or dynamically assembled CapabilityStatement covering both BaRS and EPC capabilities | Single source of truth; consumer sees one complete response; no routing ambiguity | Apigee must maintain the CapabilityStatement content (or assemble it from both backends); adds logic to the API layer |
-| **B — EPC backend handles `/metadata`** | Route to EPC; EPC returns a combined statement | Simple routing rule | EPC would need to know about BaRS capabilities it doesn't own; tight coupling |
-| **C — Separate CapabilityStatements per service** | BaRS Proxy returns its own at `/booking-and-referral/FHIR/R4/metadata`; EPC returns its own at `/endpoint-catalog/FHIR/R4/metadata` | Clean separation; each service owns its own capabilities | Consumers must call two endpoints; breaks the "single API" illusion |
-
-**Recommendation:** Option A (API layer handles it) is the cleanest approach if the two
-services share a single base URL. Apigee already acts as the routing layer — it can also
-serve the combined CapabilityStatement. If the services are separated to different base
-URLs (per the server URL decision), Option C becomes natural and no special handling is
-needed.
-
-This is recorded as open question #3 below and needs an architecture decision.
+The EPC does not have its own `/metadata` endpoint exposed through this API. The EPC's
+capabilities are defined by the OAS specification itself — consumers discover what the
+EPC supports by reading the API documentation, not by calling `/metadata`.
 
 ---
 
@@ -357,6 +342,6 @@ the external token validation flow again. The external consumer never sees this 
 |---|----------|-----|
 | 1 | Should the BaRS OAS retain `GET /Endpoint` (read-only consumer lookup) or should all EPC operations be removed? | Architecture |
 | 2 | What Apigee header names are used to forward token claims to the backend? (e.g. `NHSD-Client-Id`, `NHSD-User-Id`) | Platform team |
-| 3 | Should `/metadata` return a combined capability statement or separate ones per service? Depends on whether BaRS and EPC share a base URL. See [/metadata routing](#metadata-routing--open-design-question) for options. | Architecture |
+| 3 | ~~Should `/metadata` return a combined capability statement or separate ones per service?~~ **Resolved** — `/metadata` routes to the BaRS Proxy which forwards to the receiving system. The EPC does not expose `/metadata`. | Architecture |
 | 4 | How does the BaRS Proxy's internal EPC call authenticate? Service account credentials or internal Apigee policy? | Platform team |
 | 5 | Are the `X-Request-Id` and `X-Correlation-Id` headers (already defined as `RequestId_HParam` and `CorrelationId_HParam` in the BaRS OAS) sufficient, or do the EPC-specific definitions need to be added separately? | Architecture |
