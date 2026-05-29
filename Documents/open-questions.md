@@ -10,7 +10,6 @@ from across the Endpoint Catalog documentation. Extracted on 28 May 2026.
 | 1 | Authentication and Authorisation | Open questions | Is CIS2 available to non-NHS users (e.g. private supplier staff)? If not, what's the auth path for suppliers? | Security / CIS2 team | | Open |
 | 2 | Authentication and Authorisation | Open questions | Should write operations be restricted to user-restricted mode only, or should some writes be permitted via app-restricted (for supplier automation)? | Product / Architecture | | Open |
 | 3 | Authentication and Authorisation | Open questions | How are EPC-specific roles (Endpoint Admin, HS Admin, etc.) mapped to CIS2 role assertions? Custom role codes or existing CIS2 roles? | IOPS / CIS2 team | | Open |
-| 4 | Authentication and Authorisation | Open questions | Is the admin UI a separate application or part of the Digital Onboarding Service? | Product | | Open |
 | 5 | Authentication and Authorisation | Open questions | Should Product ID be the primary ownership key instead of (or in addition to) ODS code? | Architecture | | Open |
 | 6 | Authentication and Authorisation | Authorisation (Note) | The `header: private` requirement is currently under discussion and may be struck from the specification. Decision needed on whether private endpoint address redaction will remain. | Not assigned | | Open |
 | 7 | BaRS OAS Alignment, Authentication, and API Routing | Open Questions | Should the BaRS OAS retain `GET /Endpoint` (read-only consumer lookup) or should all EPC operations be removed? | Architecture | | Open |
