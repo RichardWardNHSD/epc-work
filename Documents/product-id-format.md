@@ -104,7 +104,11 @@ https://fhir.nhs.uk/id/product-id
 This system URI is confirmed (it's the NHS England standard for product identifiers).
 Only the **value format** is unresolved.
 
-## What the Digital Onboarding Service tells us
+## Where the Product ID value comes from
+
+The Product ID value could come from one of two sources:
+
+### Option 1 — Issued by the Digital Onboarding Service (preferred)
 
 The [Digital Onboarding Service](https://digital.nhs.uk/services/digital-onboarding-service)
 is the NHS England assurance process for organisations and suppliers integrating with
@@ -124,6 +128,58 @@ NHS APIs. Key points relevant to Product ID:
 4. **The service is the primary route for NHS API assurance.** Any supplier wanting to
    use NHS APIs (including the Endpoint Catalog) must go through this process and will
    receive a Product ID as an output.
+
+This is the preferred source because it provides a centrally managed, unique, and
+authoritative identifier with a clear issuance process.
+
+### Option 2 — Concatenation of supplier name, software name, and version
+
+If a formally issued Product ID is not available (e.g. for legacy suppliers who
+pre-date the Digital Onboarding Service, or during an interim period before onboarding
+is complete), the Product ID value could be constructed as a concatenation:
+
+```
+{SupplierName}-{SoftwareName}-v{Version}
+```
+
+Examples:
+- `Sonar-PharmacyBaRS-v2024.12.12`
+- `Pharmoutcomes-CPCS-v3.1.0`
+- `MedRec-PharmacyFirst-v2025.01`
+
+This approach has significant drawbacks:
+- **No central authority** — the format is self-assigned, risking inconsistency
+- **Version in the identifier** — contradicts the version-agnostic recommendation
+  (see [Versioning](#versioning-what-happens-when-a-supplier-releases-a-new-software-version)
+  above); every version upgrade would change the Product ID
+- **No uniqueness guarantee** — two suppliers could independently construct the same string
+- **Migration complexity** — the existing database only has supplier name, not a
+  standardised concatenation
+
+### Why the FHIR Identifier approach handles both
+
+Regardless of whether the Product ID value comes from the Digital Onboarding Service
+or is a constructed concatenation, the EPC treats it the same way: as an **opaque string**
+stored in a FHIR Identifier with system `https://fhir.nhs.uk/id/product-id`.
+
+The EPC does not parse, validate, or interpret the value's internal format. It simply
+stores it and matches on it. This means:
+
+- If the Digital Onboarding Service issues `PROD-12345`, the EPC stores and matches on
+  `PROD-12345`
+- If a legacy migration uses `Sonar-PharmacyBaRS-v2024.12.12`, the EPC stores and
+  matches on that string
+- The EPC doesn't care which source produced the value — it's just an identifier
+
+This decoupling is the key advantage of the Identifier approach. The EPC is insulated
+from the decision about where Product IDs come from and what format they take.
+
+### Recommendation
+
+Use Digital Onboarding Service-issued Product IDs wherever possible. Fall back to
+constructed concatenations only for legacy data migration where no formal ID exists.
+In either case, the EPC treats the value as opaque and the `system|value` Identifier
+pattern applies consistently.
 
 ### Implications for the EPC
 
