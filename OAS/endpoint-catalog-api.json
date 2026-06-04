@@ -1272,7 +1272,7 @@
             "name": "_include",
             "in": "query",
             "required": false,
-            "description": "Include referenced Endpoint resources in the response Bundle.",
+            "description": "Include referenced Endpoint resources in the response Bundle. Note: No visibility filtering (status, period, or HealthcareService.active) is applied to the Endpoints returned via this _include. The /List resource is intended for Endpoint administration, not consumer routing — administrators need to see all Endpoints regardless of their operational state.",
             "schema": {
               "type": "string",
               "enum": [
