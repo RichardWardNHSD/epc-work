@@ -4185,17 +4185,6 @@
                     },
                     {
                         "$ref": "#/components/parameters/HealthcareServiceIdentifier_QParam"
-                    },
-                    {
-                        "name": "_include",
-                        "in": "query",
-                        "required": false,
-                        "description": "Include related Endpoint resources in the response Bundle. Use `HealthcareService:endpoint` to return all Endpoint resources referenced by the matching HealthcareService.",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["HealthcareService:endpoint"],
-                            "example": "HealthcareService:endpoint"
-                        }
                     }
                 ],
                 "responses": {

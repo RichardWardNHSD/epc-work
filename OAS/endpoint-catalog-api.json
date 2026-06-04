@@ -647,19 +647,6 @@
             "$ref": "#/components/parameters/HealthcareServiceIdentifier_QParam"
           },
           {
-            "name": "_include",
-            "in": "query",
-            "required": false,
-            "description": "Include related Endpoint resources in the response Bundle. Use HealthcareService:endpoint to return all Endpoint resources referenced by the matching HealthcareService resources.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "HealthcareService:endpoint"
-              ]
-            },
-            "example": "HealthcareService:endpoint"
-          },
-          {
             "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
           },
           {
@@ -1829,7 +1816,7 @@
         "name": "_id",
         "in": "query",
         "required": false,
-        "description": "Filter by the HealthcareService resource id (UUID).\n\nUsed with _include=HealthcareService:endpoint to retrieve a specific HealthcareService and all its associated Endpoint resources in a single request (ADR-114 Option 1).\n\nExample:\nGET /HealthcareService?_id=9f2c6f12-1a6d-4d9c-a111-123456789abc&_include=HealthcareService:endpoint",
+        "description": "Filter by the HealthcareService resource id (UUID).\n\nReturns the specific HealthcareService matching the given id.\n\nTo retrieve the Endpoints associated with a HealthcareService, use GET /Endpoint with the _has:HealthcareService:endpoint:_id parameter.\n\nExample:\nGET /HealthcareService?_id=9f2c6f12-1a6d-4d9c-a111-123456789abc",
         "schema": {
           "type": "string",
           "format": "uuid",
