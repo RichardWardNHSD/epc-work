@@ -634,7 +634,7 @@
           "HealthcareService"
         ],
         "summary": "Get the HealthcareService for an identifier",
-        "description": "Get the HealthcareService for an identifier",
+        "description": "Get the HealthcareService for an identifier.\n\n**Note:** `_include=HealthcareService:endpoint` is not supported on this endpoint. Endpoints in the Endpoint Catalogue are stored as lightweight child resources (holding only status and period) with all other fields inherited from a parent Template at read time. Returning fully-resolved Endpoints via `_include` would require non-standard server-side transformation that deviates from FHIR `_include` semantics, and would not support the visibility filtering (status, template status, period, HealthcareService.active) or ConnectionType/PayloadType filtering that consumers require.\n\nTo retrieve Endpoints for a HealthcareService, use:\n```\nGET /Endpoint?_has:HealthcareService:endpoint:_id={id}\n```\nThis returns fully-resolved, visibility-filtered Endpoint resources with ConnectionType and PayloadType filtering support.",
         "operationId": "findHealthcareServiceByOrg",
         "parameters": [
           {
