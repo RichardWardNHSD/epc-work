@@ -361,30 +361,38 @@ appointments service:
 ### The combined rule — consumers see only usable Endpoints
 
 When a consumer searches for Endpoints (e.g. `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}`),
-the API applies **both status-based and period-based filtering** to ensure only genuinely
+the API applies **status-based, period-based, and service-level filtering** to ensure only genuinely
 usable Endpoints are returned:
 
 > An Endpoint SHALL only be returned in consumer search results if:
 >
-> 1. The Endpoint `status` is `active`
-> 2. The parent Template `status` is `active`
-> 3. The current date/time falls within the Endpoint's `period`:
+> 1. The associated `HealthcareService.active` is `true`
+> 2. The Endpoint `status` is `active`
+> 3. The parent Template `status` is `active`
+> 4. The current date/time falls within the Endpoint's `period`:
 >    - If `period.start` is set, it must be ≤ now
 >    - If `period.end` is set, it must be ≥ now
-> 4. If no `period` is set on the Endpoint, the period check is skipped (the Endpoint is
+> 5. If no `period` is set on the Endpoint, the period check is skipped (the Endpoint is
 >    considered always-valid from a time perspective)
 
 This means consumers can trust that every Endpoint in a search response is genuinely
-available for use — they do not need to perform their own status or period filtering.
+available for use — they do not need to perform their own status, period, or service-level
+filtering.
 
 ### Filtering summary
 
 | Check | What is evaluated | Effect if failed |
 |-------|-------------------|-----------------|
+| HealthcareService active | `HealthcareService.active == true` | Excluded — service is deactivated; all its Endpoints are unavailable |
 | Endpoint status | `status == active` | Excluded from results |
 | Template status | Parent template `status == active` | Excluded from results |
 | Period start | `period.start <= now` (if set) | Excluded — not yet valid |
 | Period end | `period.end >= now` (if set) | Excluded — expired |
+
+> **Evaluation order:** The `HealthcareService.active` check is performed first. If the
+> service is inactive, none of its Endpoints are evaluated further — this is a short-circuit.
+> If the service is active, Endpoint-level checks (status, template status, period) are
+> applied individually to each Endpoint.
 
 ### Exception — managing organisation sees all
 
@@ -403,8 +411,17 @@ In this case, the API returns **all** Endpoints regardless of status or period, 
 
 | Requester | Filtering applied? | What is returned |
 |-----------|-------------------|------------------|
-| Any organisation (consumer) | Yes — status AND period | Only Endpoints where Endpoint status is `active`, Template status is `active`, AND current time is within `period` |
+| Any organisation (consumer) | Yes — HealthcareService active, status, AND period | Only Endpoints where HealthcareService is `active`, Endpoint status is `active`, Template status is `active`, AND current time is within `period` |
 | Managing organisation (owner) | No | All Endpoints regardless of status or period |
+
+> **Note on the managing organisation exception and HealthcareService.active:**
+> The managing organisation bypass applies to Endpoint-level and Template-level status/period
+> checks. However, if the `HealthcareService.active` flag is `false`, the owner of the
+> *Endpoint* (the supplier) still sees their Endpoints — but consumers querying via the
+> HealthcareService will not. The HealthcareService owner (provider) controls service-level
+> visibility independently of the Endpoint owner (supplier). See the
+> [HealthcareService status section](#healthcareservice-status-and-its-effect-on-visibility)
+> for details on who controls this flag.
 
 ### Examples
 
