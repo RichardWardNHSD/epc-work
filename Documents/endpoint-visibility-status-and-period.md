@@ -241,6 +241,121 @@ The more restrictive status takes precedence:
 
 ---
 
+## HealthcareService status and its effect on visibility
+
+### Overview
+
+The `HealthcareService` resource also carries a boolean `active` field (`HealthcareService.active`)
+that indicates whether the service itself is operationally available. This is a separate concern
+from Endpoint status — a HealthcareService can be deactivated even while its Endpoints remain
+technically `active`.
+
+When a HealthcareService is **inactive** (`active: false`), all of its associated Endpoints are
+considered unavailable regardless of their own status or period.
+
+This is reflected in the decision flowchart above:
+
+```
+  ┌─────────────────────────┐
+  │ Has HealthcareService   │─── Yes ──► NOT AVAILABLE
+  │ AND it is inactive?     │     (parent service deactivated)
+  └─────────┬───────────────┘
+            │ No
+```
+
+### How HealthcareService.active affects filtering
+
+| HealthcareService.active | Endpoint status | Template status | Period valid | Result |
+|---|---|---|---|---|
+| `true` | `active` | `active` | Yes | **Available** |
+| `true` | `active` | `active` | No (expired) | **Not available** (period) |
+| `false` | `active` | `active` | Yes | **Not available** (service inactive) |
+| `false` | `active` | `active` | N/A | **Not available** (service inactive — Endpoint checks skipped) |
+
+When a HealthcareService is inactive:
+- Consumer queries that resolve Endpoints via the service (e.g., `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}`) return **no Endpoints** — the service-level deactivation overrides everything below it.
+- The HealthcareService itself may still be returned in `GET /HealthcareService` queries (it exists in the catalogue), but its Endpoints are not usable.
+- If using `_include=HealthcareService:endpoint`, the HealthcareService is returned but **no Endpoints are included** in the response.
+
+### When HealthcareService.active is set to false
+
+A HealthcareService is deactivated (`active: false`) when:
+
+- The service is temporarily closed (e.g., seasonal clinic, service under review)
+- The provider has ceased operating the service
+- A service is being migrated between providers and needs to be hidden during transition
+- An administrative decision has been made to suspend the service regardless of technical endpoint status
+
+### HealthcareService status is not affected by delegated authority
+
+The `HealthcareService.active` field is controlled by the **service owner** (the organisation
+identified in `HealthcareService.providedBy`) and is **not subject to delegated authority**.
+
+This is an important distinction:
+
+| Concept | Who controls it | What it affects |
+|---|---|---|
+| **Endpoint status** | The managing organisation of the Template (supplier) | Whether a specific technical connection is usable |
+| **Template status** | The managing organisation of the Template (supplier) | Whether all child Endpoints under that Template are usable |
+| **HealthcareService.active** | The service owner (provider organisation) | Whether the service as a whole is available, regardless of endpoint status |
+
+**Delegated authority** allows a supplier to manage Templates and Endpoints on behalf of a
+provider — creating, updating, and changing status of the technical connection artefacts. But
+delegated authority does **not** extend to `HealthcareService.active`. The decision to activate
+or deactivate a healthcare service is a provider-level operational decision, not a technical
+infrastructure decision.
+
+In practice:
+
+- A **supplier** (with delegated authority) can set an Endpoint to `suspended` during
+  maintenance — this is a technical infrastructure action.
+- A **supplier** (with delegated authority) **cannot** set `HealthcareService.active` to
+  `false` — this would be deactivating the provider's service, which is an operational
+  decision only the provider can make.
+- A **provider** (service owner) can set `HealthcareService.active` to `false` to take
+  their service offline regardless of what the supplier's Endpoints are doing.
+
+### Implications for authorisation
+
+| Operation | Who can perform it | Auth model |
+|---|---|---|
+| `PUT /Endpoint/{id}` (change status) | Managing organisation of the Template, or organisation with delegated authority | Ownership or delegation check |
+| `PUT /Endpoint/{id}/$template` (change Template status) | Managing organisation of the Template | Ownership check only |
+| `PUT /HealthcareService/{id}` (change `active`) | The organisation in `HealthcareService.providedBy` | Service ownership check — **delegation does not apply** |
+
+### Example
+
+A pharmacy chain (Supplier `S001`) has delegated authority to manage endpoints for a GP
+practice (Provider `P789`). The GP practice has a HealthcareService representing their
+appointments service:
+
+```json
+{
+  "resourceType": "HealthcareService",
+  "id": "hs-001",
+  "active": true,
+  "providedBy": {
+    "identifier": {
+      "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+      "value": "P789"
+    }
+  },
+  "endpoint": [
+    { "reference": "Endpoint/ep-001" }
+  ]
+}
+```
+
+- **Supplier `S001`** can manage `Endpoint/ep-001` (change its status, update its period)
+  because they have delegated authority over the Template.
+- **Supplier `S001`** **cannot** set `HealthcareService/hs-001.active` to `false` — that
+  requires the request to come from `P789` (the provider).
+- **Provider `P789`** can set `HealthcareService/hs-001.active` to `false` at any time,
+  which immediately makes the service's Endpoints unavailable to consumers regardless of
+  what Supplier `S001` has configured.
+
+---
+
 ## Visibility in search results
 
 ### The combined rule — consumers see only usable Endpoints
