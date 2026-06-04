@@ -275,7 +275,6 @@ This is reflected in the decision flowchart above:
 When a HealthcareService is inactive:
 - Consumer queries that resolve Endpoints via the service (e.g., `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}`) return **no Endpoints** — the service-level deactivation overrides everything below it.
 - The HealthcareService itself may still be returned in `GET /HealthcareService` queries (it exists in the catalogue), but its Endpoints are not usable.
-- If using `_include=HealthcareService:endpoint`, the HealthcareService is returned but **no Endpoints are included** in the response.
 
 ### When HealthcareService.active is set to false
 
@@ -453,122 +452,28 @@ those outside their period window.
 
 ---
 
-## Visibility when using `_include` on GET /HealthcareService
+## Retrieving Endpoints for a HealthcareService
 
-### Two ways to retrieve Endpoints for a service
+`_include=HealthcareService:endpoint` is **not supported** on `GET /HealthcareService`.
 
-There are two API patterns for retrieving Endpoints associated with a HealthcareService.
-They differ in how they work internally, but the **visibility rules must apply equally
-to both**:
+The `GET /Endpoint` search provides visibility filtering (status, period,
+HealthcareService.active) and supports filtering by `connectionType` and `payloadType`,
+which cannot be applied through `_include`.
 
-| Pattern | Request | What it returns |
-|---------|---------|-----------------|
-| **Direct Endpoint search** | `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}` | A Bundle containing only Endpoint resources (fully resolved with template fields) |
-| **HealthcareService with `_include`** | `GET /HealthcareService?_id={id}&_include=HealthcareService:endpoint` | A Bundle containing the HealthcareService (mode: `match`) plus its Endpoints (mode: `include`) |
+To retrieve Endpoints for a HealthcareService, use:
 
-### How they differ internally
+```http
+GET /Endpoint?_has:HealthcareService:endpoint:_id={id}
+```
 
-**Direct Endpoint search (`GET /Endpoint?_has:...`):**
+This returns fully-resolved, visibility-filtered Endpoint resources. Consumers can add
+`connectionType` and `payloadType` query parameters to narrow results further.
 
-1. The Lambda fetches all child Endpoints for the HealthcareService
-2. Fetches the parent Template for each Endpoint
-3. Applies visibility filtering — excludes Endpoints where status is not `active`,
-   Template status is not `active`, or current time is outside `period`
-4. Applies `ConnectionType`/`PayloadType` filters (if specified)
-5. Merges each passing Endpoint with its Template fields (`connectionType`, `payloadType`,
-   `address`, `name`, `header`)
-6. Returns fully-resolved Endpoint resources in the Bundle
-
-**HealthcareService with `_include` (`GET /HealthcareService?_id=...&_include=HealthcareService:endpoint`):**
-
-1. The Lambda fetches the HealthcareService resource
-2. Follows the references in `HealthcareService.endpoint[]` to fetch each child Endpoint
-3. Fetches the parent Template for each Endpoint
-4. **Applies the same visibility filtering** — excludes Endpoints where status is not
-   `active`, Template status is not `active`, or current time is outside `period`
-5. Merges each passing Endpoint with its Template fields
-6. Returns the HealthcareService (mode: `match`) plus the filtered, fully-resolved
-   Endpoints (mode: `include`) in the Bundle
-
-### The key rule
-
-> **Visibility filtering MUST be applied to Endpoints returned via `_include` on
-> `GET /HealthcareService`, using the same rules as `GET /Endpoint` searches.**
->
-> A consumer must be able to trust that every Endpoint in a response — whether returned
-> directly or via `_include` — is genuinely available for use. The API must not return
-> suspended, expired, or otherwise unavailable Endpoints through either path.
-
-### What this means for the implementation
-
-The `_include` path cannot be handled as a simple database-level join that blindly
-appends all referenced Endpoints. The Lambda must intercept the `_include` processing
-and apply:
-
-1. Status check (Endpoint `status == active`)
-2. Template status check (parent Template `status == active`)
-3. Period check (`period.start` ≤ now, `period.end` ≥ now, if set)
-4. Template resolution (merge fields from Template into the response)
-5. Private address redaction (omit `address` if `header == private` and requester is
-   not the owner)
-
-Without this, `_include` would leak Endpoints that the direct search would have filtered
-out — creating an inconsistency where the same Endpoint is visible via one path but not
-the other.
-
-### Differences that remain between the two patterns — needs further discussion
-
-Even with visibility filtering applied to both, there are significant behavioural
-differences that create an inconsistent consumer experience. These need to be discussed
-and resolved:
-
-| Aspect | Direct Endpoint search | HealthcareService with `_include` |
-|--------|----------------------|----------------------------------|
-| **Response contains** | Endpoints only | HealthcareService + Endpoints |
-| **ConnectionType/PayloadType filtering** | ✅ Supported as query parameters | ❌ Not supported — all active Endpoints are included regardless of type |
-| **Template resolution** | ✅ Lambda resolves and merges template fields | ⚠️ Must also resolve — but this is non-standard FHIR `_include` behaviour |
-| **Use case** | When you need filtered Endpoints only | When you need service metadata alongside all its active Endpoints |
-| **Consumer-side filtering needed?** | No — server filters by type | Yes — consumer must filter by `connectionType`/`payloadType` if they only want specific types |
-
-> **⚠️ Open problem — `_include` with template resolution is non-standard:**
->
-> Standard FHIR `_include` returns referenced resources as-is from the database. In our
-> model, child Endpoints in the database hold only `status` and `period` — all other
-> fields (`connectionType`, `payloadType`, `address`, `name`, `header`) live on the
-> Template and are merged at read time by the Lambda.
->
-> If `_include` returns bare (unresolved) Endpoints, the consumer gets resources with
-> no `connectionType`, no `address`, and no way to use them. If `_include` returns
-> fully-resolved Endpoints, we are deviating from standard FHIR `_include` semantics
-> (which don't involve server-side transformation of included resources).
->
-> **This creates a design tension:**
->
-> 1. **Return bare Endpoints** — standard FHIR behaviour, but useless to the consumer
->    (they'd need to call `GET /Endpoint/{id}` for each one to get resolved fields)
-> 2. **Return fully-resolved Endpoints** — useful to the consumer, but non-standard
->    and requires Lambda interception of the `_include` mechanism
-> 3. **Don't support `_include` at all** — force consumers to use `GET /Endpoint?_has:...`
->    for Endpoints and `GET /HealthcareService/{id}` separately for service metadata
->
-> Additionally, if we resolve templates on `_include` but cannot apply
-> `ConnectionType`/`PayloadType` filters (because those aren't valid parameters on a
-> HealthcareService search), consumers using `_include` get **all** active Endpoints
-> for the service and must filter client-side. This is a different contract from
-> `GET /Endpoint?_has:...&ConnectionType=X` where the server filters for them.
->
-> **This needs an architecture decision.** The options and their trade-offs should be
-> discussed with the team before implementation. The decision affects:
-> - Whether the Lambda intercepts `_include` processing (complexity)
-> - What consumers can expect from each API pattern (documentation)
-> - Whether `_include` is even worth supporting given the limitations
-
-### The managing organisation exception
-
-The managing organisation exception applies equally to both patterns. When the requester's
-ODS code matches the `managingOrganization` of the Template, **all** Endpoints are
-returned regardless of status or period — via both `GET /Endpoint` and
-`GET /HealthcareService?_include=HealthcareService:endpoint`.
+> **Note on `_include=List:item` (GET /List):** The `/List` resource *does* support
+> `_include` for referenced Endpoints. However, no visibility filtering is applied to
+> Endpoints returned via `/List` — this is intentional because `/List` is an
+> administration resource for managing Endpoint priority ordering, not a consumer-facing
+> query. Administrators need to see all Endpoints regardless of operational state.
 
 ---
 
