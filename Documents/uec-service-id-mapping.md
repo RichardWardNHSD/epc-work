@@ -270,19 +270,140 @@ With the full resource including the new identifier in the `identifier[]` array.
 
 ### Bulk migration
 
-If the UEC team is assigning IDs to many services at once, the run/maintain team can
-process this as a CSV batch (same pattern as endpoint onboarding):
+The UEC team is assigning IDs to many services at once. The update will be applied as a
+batch operation by the run/maintain team, following the same CSV-driven pattern used for
+endpoint onboarding and other bulk data operations.
 
-| dos-service-id | uec-service-id |
+#### Input format
+
+The UEC team provides a CSV mapping file containing the existing DoS service ID and the
+corresponding new UEC service ID:
+
+```csv
+dos-service-id,uec-service-id
+2000072489,UEC-NEW-12345
+2000073917,UEC-NEW-12346
+2000081230,UEC-NEW-12347
+2000093816,UEC-NEW-12348
+...
+```
+
+#### Process
+
+The batch follows the established pattern: CSV → S3 → Lambda → API.
+
+```
+┌──────────────┐     ┌─────────┐     ┌──────────────┐     ┌─────────────┐
+│  UEC team    │────▶│   S3    │────▶│ Batch Lambda │────▶│  EPC API    │
+│  provides    │     │  bucket │     │              │     │  (via       │
+│  CSV         │     └─────────┘     │  For each    │     │   Apigee)   │
+└──────────────┘                     │  row:        │     └─────────────┘
+                                     │  1. GET HS   │
+                                     │  2. Add ID   │
+                                     │  3. PUT HS   │
+                                     └──────────────┘
+```
+
+**Step by step:**
+
+1. **UEC team provides the CSV** — delivered via agreed channel (email, shared S3 bucket,
+   or service desk ticket) to the run/maintain team.
+
+2. **Run/maintain team uploads to S3** — the CSV is placed in the designated batch input
+   bucket. This triggers the batch Lambda (or is triggered manually).
+
+3. **Batch Lambda processes each row:**
+
+   For each `dos-service-id` → `uec-service-id` pair:
+
+   a. **GET** the existing HealthcareService by identifier:
+      ```
+      GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|{dos-service-id}
+      ```
+
+   b. **Validate** the response — confirm exactly one HealthcareService is returned.
+      If zero results: log an error, skip the row, continue.
+      If multiple results: log an error, skip the row, continue.
+
+   c. **Check** whether the UEC identifier already exists on the resource (idempotency).
+      If the identifier is already present with the correct value: log as "already applied",
+      skip the row, continue.
+
+   d. **Add** the UEC identifier to the `identifier[]` array:
+      ```json
+      {
+        "system": "https://fhir.nhs.uk/Id/uec-service-id",
+        "value": "UEC-NEW-12345"
+      }
+      ```
+
+   e. **PUT** the updated HealthcareService back:
+      ```
+      PUT /HealthcareService/{id}
+      NHSD-End-User-Organisation-ODS: {providedBy ODS code}
+      ```
+
+   f. **Log** the outcome: success, already-applied, not-found, error.
+
+4. **Output report** — The Lambda produces a results CSV/log indicating the outcome for
+   each row:
+
+   ```csv
+   dos-service-id,uec-service-id,status,detail
+   2000072489,UEC-NEW-12345,success,identifier added
+   2000073917,UEC-NEW-12346,success,identifier added
+   2000081230,UEC-NEW-12347,already-applied,identifier already present
+   2000093816,UEC-NEW-12348,not-found,no HealthcareService found for DoS ID
+   ```
+
+5. **Run/maintain team reviews** — any failures are investigated and re-run or resolved
+   manually.
+
+#### Authorisation
+
+The batch Lambda authenticates using the run/maintain team's service account
+(application-restricted, signed JWT). The `NHSD-End-User-Organisation-ODS` header must
+match the `providedBy` ODS code on each HealthcareService being updated.
+
+For services provided by different organisations, the Lambda will need either:
+- A **System Admin** token (can write to any resource regardless of ODS), or
+- To submit each update with the correct `providedBy` ODS code in the header, matching
+  the service owner — which requires the service account to have cross-organisation write
+  permissions, or the batch to be scoped to one provider at a time.
+
+**Recommended approach:** Use a System Admin service account for the batch, with full
+audit trail capturing that the update was performed by the run/maintain team on behalf
+of the UEC programme.
+
+#### Idempotency
+
+The batch is designed to be **re-runnable**:
+- If a row has already been applied (UEC identifier already present), it is skipped
+- If a row fails mid-batch, the batch can be re-run from the start — already-applied rows
+  are no-ops
+- The PUT operation itself is idempotent (same content, same outcome)
+
+#### Error handling
+
+| Scenario | Behaviour |
 |---|---|
-| 2000072489 | UEC-NEW-12345 |
-| 2000073917 | UEC-NEW-12346 |
-| ... | ... |
+| DoS ID not found in EPC | Log error, skip row, continue batch |
+| Multiple HealthcareServices found for same DoS ID | Log error, skip row, continue (shouldn't happen — duplicate detection prevents this) |
+| UEC ID already present on the resource | Log "already applied", skip row, continue |
+| PUT returns 403 (auth failure) | Log error, skip row, continue — review auth setup |
+| PUT returns 409 (conflict) | Log error, skip row, continue — concurrent modification |
+| PUT returns 5xx (server error) | Log error, mark for retry |
+| UEC ID already exists on a *different* HealthcareService | Log error, skip row — this is a data quality issue in the input CSV |
 
-The batch Lambda would:
-1. Look up each HealthcareService by `dos-service-id`
-2. Add the `uec-service-id` identifier to the existing `identifier[]` array
-3. PUT the updated resource back
+#### Volume and timing
+
+| Aspect | Detail |
+|---|---|
+| Expected volume | TBD — depends on how many services the UEC team is assigning IDs to |
+| Batch frequency | One-off initial load + incremental updates as new services are assigned |
+| Rate limiting | The batch Lambda should respect API rate limits; include a small delay between requests if volume is high |
+| Environment | Apply to INT first for validation, then to PROD |
+| Rollback | If the batch needs to be undone, a reverse batch can strip the UEC identifier from each affected HealthcareService |
 
 ### Impact on duplicate detection
 
