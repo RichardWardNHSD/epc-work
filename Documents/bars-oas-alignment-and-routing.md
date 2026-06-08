@@ -13,116 +13,72 @@ This document covers three related topics:
 
 ## 1. BaRS OAS Alignment with the Endpoint Catalog API
 
-### Current state
+### Completed — OAS Split
 
-The BaRS OAS currently includes both BaRS messaging operations AND
-Endpoint Catalog operations in a single specification:
+The BaRS OAS and EPC OAS have been **separated into two independent specifications**.
+This was completed in June 2026.
 
-**BaRS messaging operations (routed via BaRS Proxy):**
+**Before (single combined spec):** The BaRS OAS contained both messaging operations
+and Endpoint Catalog operations in one file, leading to confusion over routing,
+authentication, and ownership.
 
-| Path | Methods | Purpose |
-|------|---------|---------|
-| `/$process-message` | POST | Send a BaRS message |
-| `/Appointment` | GET, POST | Manage appointments |
-| `/Appointment/{id}` | GET, PUT, PATCH, DELETE | Manage a specific appointment |
-| `/DocumentReference` | GET, POST | Manage documents |
-| `/DocumentReference/{id}` | GET, PUT, DELETE | Manage a specific document |
-| `/ServiceRequest` | GET, POST | Manage service requests |
-| `/ServiceRequest/{id}` | GET, PUT, PATCH, DELETE | Manage a specific service request |
-| `/Slot` | GET | Query available slots |
-| `/MessageDefinition` | GET | Get message definitions |
-| `/metadata` | GET | Capability statement |
+**After (two separate specs):**
 
-**Endpoint Catalog operations (routed direct to EPC):**
+| Specification | File | Covers | Auth model |
+|---|---|---|---|
+| **BaRS API** | `bars api OAS.json` | Messaging operations only (`/$process-message`, `/Appointment`, `/ServiceRequest`, `/DocumentReference`, `/Slot`, `/MessageDefinition`, `/metadata`) | Application-restricted (OAuth signed JWT) |
+| **Endpoint Catalog API** | `endpoint-catalog-api.json` | Catalogue management (`/Endpoint`, `/HealthcareService`, `/List`, `/metadata`) | Application-restricted + CIS2 user-restricted |
 
-| Path | Methods | Purpose |
-|------|---------|---------|
-| `/Endpoint` | GET, POST | Search/create endpoints |
-| `/Endpoint/$template` | GET, POST | Search/create templates |
-| `/Endpoint/{id}` | GET, PUT, DELETE | Manage a specific endpoint |
-| `/Endpoint/{id}/$template` | PUT, DELETE | Manage a specific template |
-| `/HealthcareService` | GET, POST | Search/create healthcare services |
-| `/HealthcareService/{id}` | GET, PUT, DELETE | Manage a specific healthcare service |
+### What was done
 
-### Changes needed to align with the EPC OAS
-
-The BaRS OAS needs the following updates to align with the standalone EPC OAS
-(`endpoint-catalog-api.json`):
-
-#### Missing paths
-
-| Path | Methods | Purpose |
-|------|---------|---------|
-| `/List` | POST, GET | Create and search endpoint priority ordering lists |
-| `/List/{id}` | GET, PUT, DELETE | Read, update, and delete a specific ordering list |
-
-These are entirely absent from the BaRS OAS and must be added.
-
-#### Security scheme changes
-
-| Aspect | BaRS OAS (current) | EPC OAS (target) | Action |
-|--------|-------------------|------------------|--------|
-| Schemes defined | `OAuth_Token` (single) | `OAuth_AppRestricted` + `OAuth_CIS2` (dual) | Replace single scheme with two schemes |
-| Global security | `[{"OAuth_Token": []}]` | `[{"OAuth_AppRestricted": []}, {"OAuth_CIS2": []}]` | Update to show both modes |
-
-#### Missing parameters (component-level)
-
-These parameters exist in the EPC OAS but not in the BaRS OAS:
-
-| Parameter | Type | Purpose |
-|-----------|------|---------|
-| `NHSD-End-User-Organisation-ODS` | Header (required) | ODS code of the requesting organisation — used for authorisation |
-| `RequestingOrganisationODS_HParam` | Header | ODS code parameter (component reference) |
-| `ServiceId_QParam` | Query | Service ID search parameter for HealthcareService |
-
-> **Note:** `X-Request-Id` and `X-Correlation-Id` are already defined in the BaRS OAS as
-> `RequestId_HParam` and `CorrelationId_HParam`. These do not need to be added — but the
-> EPC operations in the BaRS OAS need to reference them (they currently don't).
-
-
-#### Server configuration
-
-| Aspect | BaRS OAS (current) | EPC OAS (target) | Action |
-|--------|-------------------|------------------|--------|
-| Sandbox | `https://sandbox.api.service.nhs.uk/booking-and-referral/FHIR/R4` | `https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4` | Different base path — EPC has its own |
-| Integration | Labelled "Production" (wrong) | `https://int.api.service.nhs.uk/endpoint-catalog/FHIR/R4` | Fix label + different base path |
-| Production | Labelled "Integration Server" (wrong) | `https://api.service.nhs.uk/endpoint-catalog/FHIR/R4` | Fix label + different base path |
-
-Note: The BaRS OAS uses `/booking-and-referral/FHIR/R4` as the base path. The EPC OAS
-uses `/endpoint-catalog/FHIR/R4`. These are different API products on the NHS England API
-Platform with different base URLs. The BaRS OAS server entries for EPC operations should
-either point to the EPC base URL or be removed (if EPC operations are separated out per
-Option C).
-
-#### Summary of all changes required
-
-| # | Change | Impact |
+| # | Change | Status |
 |---|--------|--------|
-| 1 | Add `/List` and `/List/{id}` paths with POST, GET, PUT, DELETE | New paths |
-| 2 | Replace `OAuth_Token` with `OAuth_AppRestricted` + `OAuth_CIS2` | Security scheme |
-| 3 | Add `NHSD-End-User-Organisation-ODS` parameter definition | New component |
-| 4 | Add `RequestingOrganisationODS_HParam` parameter definition | New component |
-| 5 | Add `ServiceId_QParam` parameter definition | New component |
-| 6 | Add `NHSD-End-User-Organisation-ODS` to every EPC operation (15 operations) | Per-operation params |
-| 7 | Add `RequestId_HParam` and `CorrelationId_HParam` refs to every EPC operation (already defined, just not referenced) | Per-operation params |
-| 8 | Add `ConnectionType_QParam` and `PayloadType_QParam` to `GET /Endpoint` | Query params |
-| 9 | Add `ServiceId_QParam` and `_include` to `GET /HealthcareService` | Query params |
-| 10 | Fix server description labels (Production/Integration are swapped) | Server config |
-| 11 | Consider separate server entries for EPC base URL vs BaRS base URL | Server config |
+| 1 | Removed all EPC paths from BaRS OAS (`/Endpoint*`, `/HealthcareService*`, `/List*`) | ✅ Done |
+| 2 | Removed EPC-only tags (`Endpoint`, `HealthcareService`, `List`) | ✅ Done |
+| 3 | Removed EPC-only parameters (11 parameters) | ✅ Done |
+| 4 | Removed EPC-only responses (14 responses) | ✅ Done |
+| 5 | Removed EPC-only schemas (15 schemas) | ✅ Done |
+| 6 | Removed EPC-only request bodies (4 request bodies) | ✅ Done |
+| 7 | Removed `OAuth_Token` (legacy) and `OAuth_CIS2` from BaRS OAS — BaRS is app-restricted only | ✅ Done |
+| 8 | Fixed server label swap (INT/PROD descriptions were reversed) | ✅ Done |
+| 9 | Rewrote EPC `/metadata` to return the catalogue's own CapabilityStatement | ✅ Done |
+| 10 | Removed `_include=HealthcareService:endpoint` from both specs | ✅ Done |
+| 11 | Validated both specs — no broken `$ref` links, both are self-contained | ✅ Done |
 
-### Recommendation
+### Final state — BaRS OAS
 
-Rather than maintaining EPC operations in both the BaRS OAS and the standalone EPC OAS,
-the BaRS OAS should **reference** the EPC operations or the two specs should be clearly
-separated:
+| Aspect | Value |
+|---|---|
+| Paths | 10 (messaging only) |
+| Tags | 7 |
+| Parameters | 21 |
+| Responses | 2 (`4XX-BARS`, `5XX-BARS`) |
+| Schemas | 18 |
+| Request bodies | 5 |
+| Security schemes | 1 (`OAuth_AppRestricted`) |
+| Servers | 3 (Sandbox, Integration, Production — correctly labelled) |
+| `$ref` links | 221 (all resolve) |
 
-- **Option A:** Remove EPC paths from the BaRS OAS entirely. The BaRS OAS covers only
-  messaging operations. The EPC OAS is the authoritative spec for catalog operations.
-  Consumers use two separate API specs.
+### Final state — EPC OAS
 
-- **Option B:** Keep EPC paths in the BaRS OAS but ensure they are identical to the
-  standalone EPC OAS. Any change to the EPC OAS must be reflected in the BaRS OAS.
-  Risk of drift.
+| Aspect | Value |
+|---|---|
+| Paths | 9 (catalogue + metadata) |
+| Tags | 4 |
+| Security schemes | 2 (`OAuth_AppRestricted`, `OAuth_CIS2`) |
+| Servers | 3 (standalone path — target state) |
+| `$ref` links | 200 (all resolve) |
+| Self-contained | Yes — no external dependencies |
+
+### Outcome — Option A adopted
+
+The recommendation from this document was **Option A**: remove EPC paths from the BaRS
+OAS entirely. The EPC OAS is the authoritative specification for catalogue operations.
+Consumers use two separate API specs.
+
+This eliminates the drift risk from Option B (maintaining both) and makes ownership clear:
+- BaRS team owns the BaRS OAS (messaging)
+- EPC team owns the EPC OAS (catalogue)
 
 ---
 
@@ -171,9 +127,11 @@ user-restricted access provides:
 
 ### Impact on the OAS
 
-The EPC OAS already defines both security schemes (`OAuth_AppRestricted` and `OAuth_CIS2`).
-The BaRS OAS needs to be updated to reflect that EPC write operations require CIS2 — or
-those operations should be removed from the BaRS OAS entirely (per Option C above).
+The EPC OAS defines both security schemes (`OAuth_AppRestricted` and `OAuth_CIS2`).
+The BaRS OAS has been updated to contain only `OAuth_AppRestricted` — CIS2 is not
+relevant to BaRS messaging operations.
+
+This separation is now complete. CIS2 authentication is an EPC concern only.
 
 ---
 
@@ -284,15 +242,15 @@ All of the above, plus:
 
 ### `/metadata` routing — resolved
 
-`/metadata` is a BaRS Proxy operation, not an EPC operation. When a sender calls
-`GET /metadata`, the BaRS Proxy forwards the request to the **receiving system**
-(identified by the `NHSD-Target-Identifier` header) and returns that system's
-CapabilityStatement. This tells the sender what the target receiver supports
-(which message definitions, which interactions, which FHIR version).
+There are now **two separate `/metadata` endpoints** on two separate API products:
 
-The EPC does not have its own `/metadata` endpoint exposed through this API. The EPC's
-capabilities are defined by the OAS specification itself — consumers discover what the
-EPC supports by reading the API documentation, not by calling `/metadata`.
+| API | `/metadata` behaviour |
+|---|---|
+| **BaRS API** (`/booking-and-referral/FHIR/R4/metadata`) | BaRS Proxy forwards the request to the **receiving system** (identified by `NHSD-Target-Identifier` header) and returns that system's CapabilityStatement. |
+| **EPC API** (`/endpoint-catalog/FHIR/R4/metadata`) | Returns the **EPC's own CapabilityStatement** describing the catalogue's supported resources, interactions, and search parameters. No `NHSD-Target-Identifier` needed. |
+
+This is a clean separation — BaRS `/metadata` is about the receiver, EPC `/metadata` is
+about the catalogue itself.
 
 ---
 
@@ -327,21 +285,22 @@ the external token validation flow again. The external consumer never sees this 
 
 ## Summary
 
-| Topic | Decision |
-|-------|----------|
-| BaRS OAS alignment | Remove EPC write operations from BaRS OAS; keep only `GET /Endpoint` for consumer lookup. EPC OAS is authoritative for catalog operations. |
-| User authentication | CIS2 user-restricted access required for all EPC write operations. App-restricted sufficient for reads and automated supplier writes. |
-| Routing | BaRS Proxy runs inside Apigee; EPC paths route to AWS backend. Proxy calls EPC internally for endpoint resolution. |
-| Token validation | Apigee validates token and extracts claims; backend enforces ODS match, RBAC, and ownership. |
+| Topic | Decision | Status |
+|-------|----------|--------|
+| BaRS OAS alignment | All EPC operations removed from BaRS OAS. EPC OAS (`endpoint-catalog-api.json`) is the authoritative spec for catalogue operations. | ✅ Complete |
+| User authentication | CIS2 user-restricted access required for all EPC write operations. App-restricted sufficient for reads and automated supplier writes. BaRS OAS contains only app-restricted. | ✅ Complete (EPC OAS); CIS2 implementation pending |
+| Routing | BaRS Proxy runs inside Apigee; EPC paths route to AWS backend. Proxy calls EPC internally for endpoint resolution. | ✅ Documented |
+| Token validation | Apigee validates token and extracts claims; backend enforces ODS match, RBAC, and ownership. | ✅ Documented |
+| `/metadata` | BaRS `/metadata` forwards to receiver. EPC `/metadata` returns its own CapabilityStatement. | ✅ Complete |
 
 ---
 
 ## Open Questions
 
-| # | Question | For |
-|---|----------|-----|
-| 1 | Should the BaRS OAS retain `GET /Endpoint` (read-only consumer lookup) or should all EPC operations be removed? | Architecture |
-| 2 | What Apigee header names are used to forward token claims to the backend? (e.g. `NHSD-Client-Id`, `NHSD-User-Id`) | Platform team |
-| 3 | ~~Should `/metadata` return a combined capability statement or separate ones per service?~~ **Resolved** — `/metadata` routes to the BaRS Proxy which forwards to the receiving system. The EPC does not expose `/metadata`. | Architecture |
-| 4 | How does the BaRS Proxy's internal EPC call authenticate? Service account credentials or internal Apigee policy? | Platform team |
-| 5 | Are the `X-Request-Id` and `X-Correlation-Id` headers (already defined as `RequestId_HParam` and `CorrelationId_HParam` in the BaRS OAS) sufficient, or do the EPC-specific definitions need to be added separately? | Architecture |
+| # | Question | For | Status |
+|---|----------|-----|--------|
+| 1 | ~~Should the BaRS OAS retain `GET /Endpoint` (read-only consumer lookup) or should all EPC operations be removed?~~ | Architecture | ✅ **Resolved** — All EPC operations removed. BaRS OAS is messaging-only. |
+| 2 | What Apigee header names are used to forward token claims to the backend? (e.g. `NHSD-Client-Id`, `NHSD-User-Id`) | Platform team | Open |
+| 3 | ~~Should `/metadata` return a combined capability statement or separate ones per service?~~ | Architecture | ✅ **Resolved** — Two separate `/metadata` endpoints on two separate APIs. |
+| 4 | How does the BaRS Proxy's internal EPC call authenticate? Service account credentials or internal Apigee policy? | Platform team | Open |
+| 5 | ~~Are the `X-Request-Id` and `X-Correlation-Id` headers sufficient, or do the EPC-specific definitions need to be added separately?~~ | Architecture | ✅ **Resolved** — Existing headers are sufficient. EPC OAS defines its own copies. |
