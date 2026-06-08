@@ -48,15 +48,6 @@
             "name": "DocumentReference"
         },
         {
-            "name": "Endpoint"
-        },
-        {
-            "name": "HealthcareService"
-        },
-        {
-            "name": "List"
-        },
-        {
             "name": "Message"
         },
         {
@@ -4141,705 +4132,6 @@
                 },
                 "description": "Delete a single document pointer that you created. \n"
             }
-        },
-        "/HealthcareService": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "HealthcareService"
-                ],
-                "summary": "Get the HealthcareService for an identifier",
-                "description": "Get the HealthcareService for an identifier.\n\n**Note:** `_include=HealthcareService:endpoint` is not supported on this endpoint. The `GET /Endpoint` search provides visibility filtering (status, period, HealthcareService.active) and supports filtering by `connectionType` and `payloadType`, which cannot be applied through `_include`.\n\nTo retrieve Endpoints for a HealthcareService, use:\n```\nGET /Endpoint?_has:HealthcareService:endpoint:_id={id}\n```",
-                "operationId": "findHealthcareServiceByOrg",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "parameters": [
-                    {
-                        "name": "_id",
-                        "in": "query",
-                        "required": false,
-                        "description": "The FHIR resource id (UUID) of the HealthcareService.",
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "example": "9f2c6f12-1a6d-4d9c-a111-123456789abc"
-                        }
-                    },
-                    {
-                        "$ref": "#/components/parameters/HCProvidedBy_QParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/HealthcareServiceIdentifier_QParam"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-HealthcareServiceBundle"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "HealthcareService"
-                ],
-                "summary": "Create a HealthcareService",
-                "description": "Create a single HealthcareService resource.  \n",
-                "operationId": "createHealthcareService",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicHealthcareService"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/409-Conflict"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/422-UnprocessableEntity"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                },
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/HealthcareService"
-                }
-            }
-        },
-        "/HealthcareService/{id}": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/HealthcareServiceIdentifier_PParam"
-                },
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "HealthcareService"
-                ],
-                "summary": "Get a specific HealthcareService",
-                "description": "Read operation for a Specific HealthcareService",
-                "operationId": "getHealthcareService",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicHealthcareService"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "HealthcareService"
-                ],
-                "summary": "Update a Specific HealthcareService",
-                "description": "Creates a new current version for an existing resource [(update)](https://www.hl7.org/fhir/http.html#update) or creates an initial version if no resource already exists for the given id [(new)](https://www.hl7.org/fhir/http.html#upsert).",
-                "operationId": "replaceHealthcareService",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicHealthcareService"
-                    },
-                    "201": {
-                        "$ref": "#/components/responses/201-AtomicHealthcareService"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "HealthcareService"
-                ],
-                "summary": "Delete a Specific HealthcareService",
-                "description": "Permanently removes a HealthcareService resource. This operation cannot be undone.\n\n### Rules\n\n- **Ownership required:** The `NHSD-End-User-Organisation-ODS` header must match the `providedBy` organisation of the HealthcareService. Only the providing organisation can delete it.\n- **Cascading impact:** Deleting a HealthcareService removes the association between the service and its Endpoints. The Endpoints themselves are not automatically deleted — they become unlinked and will no longer appear in searches by service identifier.\n- **Associated List:** The `current` List for this HealthcareService (if one exists) should be deleted or retired before or alongside the HealthcareService deletion.\n- **Soft delete preferred:** For most operational scenarios, deactivating the HealthcareService (setting `active: false` via `PUT`) is preferred over hard deletion. This preserves the record for audit purposes and allows reactivation. Hard deletion should be reserved for data correction (e.g. entered-in-error).\n- **Outstanding processes:** Deactivation or deletion must not prevent outstanding processes (e.g. BSA claims) from being resolved.\n\n### Error responses\n\n| HTTP Status | Code | Scenario |\n|-------------|------|----------|\n| 200 | — | HealthcareService deleted successfully |\n| 403 | SEND_FORBIDDEN | Requesting organisation does not match `providedBy` |\n",
-                "operationId": "deleteHealthcareService",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-Delete"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            }
-        },
-        "/Endpoint": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Get the Endpoints based on an Organization, HealthcareService and Endpoint identifiers",
-                "description": "Get the Endpoint for an identifier, its address will be omitted if it the Endpoint.header set to private unless the requestor is the owner.",
-                "operationId": "findEndpointByOrg",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/EndpointHas_Qparam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/EndpointIdentifier_QParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/ConnectionType_QParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PayloadType_QParam"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-EndpointBundle"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Create an Endpoint",
-                "description": "Create a single Endpoint resource.  \n",
-                "operationId": "createEndpoint",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicEndpoint"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/409-Conflict"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                },
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/Endpoint"
-                }
-            }
-        },
-        "/Endpoint/$template": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Get the Endpoint template based on an Organization, Endpoint, ConnectionType and PayloadType identifiers",
-                "description": "Get the Endpoint template for an identifier. Its address will be omitted if the Endpoint.header is set to private, unless the requestor is the owner.",
-                "operationId": "getEndpointTemplate",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/EndpointIdentifier_QParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/ConnectionType_QParam"
-                    },
-                    {
-                        "$ref": "#/components/parameters/PayloadType_QParam"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-EndpointTemplate"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Create an Endpoint template",
-                "description": "Create a single Endpoint template resource.  \n",
-                "operationId": "createEndpointTemplate",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-EndpointTemplate"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/409-Conflict"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                },
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/EndpointTemplate"
-                }
-            }
-        },
-        "/Endpoint/{id}": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/EndpointIdentifier_PParam"
-                },
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Get a Specific Endpoint",
-                "description": "Read operation for a specific Endpoint",
-                "operationId": "getEndpoint",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicEndpoint"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Update a Specific Endpoint",
-                "description": "Creates a new current version for an existing resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).\n\nOnly the owner of an Endpoint can modify it. \n",
-                "operationId": "replaceEndpoint",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicEndpoint"
-                    },
-                    "201": {
-                        "$ref": "#/components/responses/201-AtomicEndpoint"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Delete a Specific Endpoint",
-                "description": "Permanently removes an Endpoint resource. This operation cannot be undone.\n\n### Rules\n\n- **Ownership required:** The `NHSD-End-User-Organisation-ODS` header must match the `managingOrganization` of the Endpoint's parent Template. Only the owning organisation can delete it.\n- **Soft delete preferred:** For most operational scenarios, setting `status` to `entered-in-error` or `off` via `PUT /Endpoint/{id}` is preferred over hard deletion. This preserves the record for audit purposes and allows reinstatement if needed.\n- **List cleanup:** If the Endpoint is referenced in a priority List (`/List`), it should be removed from the List before or alongside deletion. The API does not automatically remove deleted Endpoints from Lists.\n- **Template constraint:** Deleting all child Endpoints for a Template is a prerequisite for deleting the Template itself. If you are decommissioning a supplier product, delete all child Endpoints first, then delete the Template.\n- **Irreversible:** Hard delete permanently removes the resource. Use only when the Endpoint was created in error or is being permanently decommissioned with no audit retention requirement.\n\n### Error responses\n\n| HTTP Status | Code | Scenario |\n|-------------|------|----------|\n| 200 | — | Endpoint deleted successfully |\n| 403 | SEND_FORBIDDEN | Requesting organisation does not match `managingOrganization` of parent Template |\n",
-                "operationId": "deleteEndpoint",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-Delete"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            }
-        },
-        "/Endpoint/{id}/$template": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/EndpointIdentifier_PParam"
-                },
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "put": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Update a Specific Endpoint template",
-                "description": "Creates a new current version for an existing resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).\n\nOnly the owner of an Endpoint can modify its template. \n",
-                "operationId": "replaceEndpointTemplate",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-EndpointTemplate"
-                    },
-                    "201": {
-                        "$ref": "#/components/responses/201-EndpointTemplate"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Endpoint"
-                ],
-                "summary": "Delete a Specific Endpoint Template",
-                "description": "Permanently removes an Endpoint Template resource (hard delete). This operation cannot be undone.\n\n### Rules\n\n- **Ownership required:** The `NHSD-End-User-Organisation-ODS` header must match the `managingOrganization` of the Template. Only the owning organisation can delete it.\n- **No active child Endpoints:** A Template cannot be deleted if it has active child Endpoints. All child Endpoints must be deactivated (status set to `off` or `entered-in-error`) or deleted before the Template can be removed. If active children exist, the API returns `409 Conflict`.\n- **Irreversible:** Hard delete permanently removes the resource. Use only when the supplier product is fully decommissioned and the Template will never be needed again.\n- **Soft delete preferred:** For most operational scenarios, use `PUT /Endpoint/{id}/$template` to set `status` to `entered-in-error` or `off` instead of hard deleting. This retains the record for audit purposes and is reversible by setting status back to `active`.\n\n### Error responses\n\n| HTTP Status | Code | Scenario |\n|-------------|------|----------|\n| 200 | — | Template deleted successfully |\n| 403 | SEND_FORBIDDEN | Requesting organisation does not match `managingOrganization` |\n| 409 | PROXY_CONFLICT | One or more active Endpoints are derived from this Template |\n",
-                "operationId": "deleteEndpointTemplate",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-Delete"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/409-Conflict"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            }
-        },
-        "/List": {
-            "parameters": [
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "List"
-                ],
-                "summary": "Search for endpoint priority lists",
-                "description": "Search for List resources. Use `subject` to find the priority-ordered Endpoint list for a specific HealthcareService. Use `_include=List:item` to return the referenced Endpoint resources inline.",
-                "operationId": "findList",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "parameters": [
-                    {
-                        "name": "subject",
-                        "in": "query",
-                        "required": false,
-                        "description": "Filter lists by HealthcareService reference. Use the relative reference format `HealthcareService/{id}`.",
-                        "schema": {
-                            "type": "string",
-                            "example": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc"
-                        }
-                    },
-                    {
-                        "name": "status",
-                        "in": "query",
-                        "required": false,
-                        "description": "Filter by list status.",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["current", "retired", "entered-in-error"],
-                            "example": "current"
-                        }
-                    },
-                    {
-                        "name": "_include",
-                        "in": "query",
-                        "required": false,
-                        "description": "Include referenced Endpoint resources in the response Bundle. Note: No visibility filtering (status, period, or HealthcareService.active) is applied to the Endpoints returned via this _include. The /List resource is intended for Endpoint administration, not consumer routing — administrators need to see all Endpoints regardless of their operational state.",
-                        "schema": {
-                            "type": "string",
-                            "enum": ["List:item"],
-                            "example": "List:item"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-ListBundle"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "List"
-                ],
-                "summary": "Create a priority-ordered Endpoint list for a HealthcareService",
-                "description": "Create a FHIR R4 List resource representing the priority-ordered set of Endpoints for a HealthcareService. Priority is determined by array position — index 0 is the highest priority. Only one `current` list should exist per HealthcareService.",
-                "operationId": "createList",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/FhirList"
-                },
-                "responses": {
-                    "201": {
-                        "$ref": "#/components/responses/201-AtomicList"
-                    },
-                    "409": {
-                        "$ref": "#/components/responses/409-Conflict"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            }
-        },
-        "/List/{id}": {
-            "parameters": [
-                {
-                    "name": "id",
-                    "description": "The logical id of the List resource.",
-                    "in": "path",
-                    "required": true,
-                    "allowEmptyValue": false,
-                    "schema": {
-                        "type": "string",
-                        "format": "uuid",
-                        "example": "f7d3e2a1-0000-0000-0000-000000000099"
-                    }
-                },
-                {
-                    "$ref": "#/components/parameters/RequestId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/CorrelationId_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/AcceptEPC_HParam"
-                },
-                {
-                    "$ref": "#/components/parameters/EndUserOrganisationODS_HParam"
-                }
-            ],
-            "get": {
-                "tags": [
-                    "List"
-                ],
-                "summary": "Get a specific List resource",
-                "description": "Read a specific FHIR R4 List resource by its logical id.",
-                "operationId": "getList",
-                "security": [
-                    { "OAuth_AppRestricted": [] },
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicList"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "List"
-                ],
-                "summary": "Update a specific List resource",
-                "description": "Creates a new current version for an existing List resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).",
-                "operationId": "replaceList",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/FhirList"
-                },
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-AtomicList"
-                    },
-                    "201": {
-                        "$ref": "#/components/responses/201-AtomicList"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "List"
-                ],
-                "summary": "Delete a specific List resource",
-                "description": "Delete a specific FHIR R4 List resource by its logical id.",
-                "operationId": "deleteList",
-                "security": [
-                    { "OAuth_CIS2": [] }
-                ],
-                "responses": {
-                    "200": {
-                        "$ref": "#/components/responses/200-Delete"
-                    },
-                    "4XX": {
-                        "$ref": "#/components/responses/4XX-BARS"
-                    },
-                    "5XX": {
-                        "$ref": "#/components/responses/5XX-BARS"
-                    }
-                }
-            }
         }
     },
     "components": {
@@ -5380,16 +4672,6 @@
                     "$ref": "#/components/schemas/RequestingOrganisation"
                 }
             },
-            "EndUserOrganisationODS_HParam": {
-                "name": "NHSD-End-User-Organisation-ODS",
-                "description": "The ODS code of the requesting organisation, expressed as a FHIR token in the format `system|value` and URL-encoded. Used for ownership checks (authorisation) and visibility filtering (status/period/private address redaction). Must match the organisation claim in the bearer token.\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/Id/ods-organization-code|A1001`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2FId%2Fods-organization-code%7CA1001`\n",
-                "required": true,
-                "in": "header",
-                "schema": {
-                    "type": "string",
-                    "example": "https://fhir.nhs.uk/Id/ods-organization-code|A1001"
-                }
-            },
             "RequestingPractitioner_HParam": {
                 "name": "NHSD-Requesting-Practitioner",
                 "description": "Requesting Practitioner described in an object based on a FHIR 'PractitionerRole' resource (Standard Base64 encoded JSON).\n\nThis item is not mandatory, however if the information is available it must be included in the request. Only in the event that it is not available, should it be omitted.\n\nThe example given shows a General Practitioner and their SDS Role profile Id.\n\n\n**Example object before encoding** \n```json\n{\n  \"resourceType\": \"PractitionerRole\",\n  \"identifier\": [\n    {\n      \"system\": \"https://fhir.nhs.uk/Id/sds-role-profile-id\",\n      \"value\": \"100334993514\"\n    }\n  ],\n  \"code\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://snomed.info/sct\",\n          \"code\": \"62247001\",\n          \"display\": \"General practitioner\"\n        }\n      ]\n    }\n  ]\n}\n",
@@ -5431,38 +4713,6 @@
                     "example": "application/fhir+json; version=1.4.0"
                 }
             },
-            "AcceptEPC_HParam": {
-                "name": "Accept",
-                "description": "The Accept header must specify the type of content the requester can process.",
-                "in": "header",
-                "required": true,
-                "schema": {
-                    "type": "string",
-                    "example": "application/fhir+json;"
-                }
-            },
-            "ConnectionType_QParam": {
-                "name": "ConnectionType",
-                "description": "Filter by the technical protocol of the endpoint connection. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\n**Example (before URL encoding):**\n`http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest`\n\n**Example (URL encoded):**\n`http%3A%2F%2Fterminology.hl7.org%2FCodeSystem%2Fendpoint-connection-type%7Chl7-fhir-rest`\n",
-                "in": "query",
-                "required": false,
-                "allowReserved": false,
-                "schema": {
-                    "type": "string",
-                    "example": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest"
-                }
-            },
-            "PayloadType_QParam": {
-                "name": "PayloadType",
-                "description": "Filter by the message standard / payload type of the endpoint. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\n**Example (before URL encoding):**\n`http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars`\n\n**Example (URL encoded):**\n`http%3A%2F%2Fterminology.hl7.org%2FCodeSystem%2Fendpoint-payload-type-epc%7Cbars`\n",
-                "in": "query",
-                "required": false,
-                "allowReserved": false,
-                "schema": {
-                    "type": "string",
-                    "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars"
-                }
-            },
             "use-context_HParam": {
                 "name": "use-context",
                 "description": "This header is for usage statistics for the BaRS Proxy for NHS England.",
@@ -5471,16 +4721,6 @@
                 "schema": {
                     "type": "string",
                     "example": "a4t2|validation|servicerequest-response|new\n"
-                }
-            },
-            "subject_QParam": {
-                "name": "subject:identifier",
-                "description": "The Url encoded patient's NHS number. The primary identifier of a patient across systems, unique to NHS England and Wales. \nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n\n|Type           |Expression|\n|-------             | --------|\n|[token](https://hl7.org/implement/standards/FHIR/search.html#token) |Appointment.participant.actor:identifier |\n\n**Example before encoding**\n*https://fhir.nhs.uk/Id/nhs-number|4857773456*\n",
-                "required": true,
-                "in": "query",
-                "schema": {
-                    "type": "string",
-                    "example": "https%3A%2F%2Ffhir.nhs.uk%2FId%2Fnhs-number%7C4857773456"
                 }
             },
             "custodian_QParam": {
@@ -5521,70 +4761,13 @@
                     "$ref": "#/components/schemas/NextPageToken"
                 }
             },
-            "HealthcareServiceIdentifier_QParam": {
-                "name": "HealthcareService.identifier",
-                "description": "The identifier of the HealthcareService. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/Id/dos-service-id|1000099999`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2FId%2Fdos-service-id%7C1000099999`\n",
+            "subject_QParam": {
+                "name": "subject",
                 "in": "query",
                 "required": false,
-                "allowEmptyValue": false,
-                "allowReserved": false,
+                "description": "Filter by subject reference.",
                 "schema": {
-                    "type": "string",
-                    "example": "https://fhir.nhs.uk/Id/dos-service-id|1000099999"
-                }
-            },
-            "HCProvidedBy_QParam": {
-                "name": "HealthcareService.providedBy",
-                "description": "The identifier of the organisation providing the HealthcareService. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/Id/ods-organization-code|A1001`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2FId%2Fods-organization-code%7CA1001`\n",
-                "in": "query",
-                "required": false,
-                "allowEmptyValue": false,
-                "allowReserved": false,
-                "schema": {
-                    "type": "string",
-                    "example": "https://fhir.nhs.uk/Id/ods-organization-code|A1001"
-                }
-            },
-            "HealthcareServiceIdentifier_PParam": {
-                "name": "id",
-                "description": "The identifier of the HealthcareService.",
-                "in": "path",
-                "required": true,
-                "allowEmptyValue": false,
-                "schema": {
-                    "$ref": "#/components/schemas/GUID"
-                }
-            },
-            "EndpointIdentifier_QParam": {
-                "name": "Endpoint.identifier",
-                "description": "The identifier of the *type* of Endpoint, usually the identifier set by the organisation/supplier that created the Endpoint. Value is a FHIR token in the format `system|code` and must be URL-encoded (the `|` character is encoded as `%7C`).\n\nNote: this is **not** the same as `Endpoint.id` (the unique resource id). `Endpoint.identifier` can be shared across multiple Endpoint resources.\n\n**Example (before URL encoding):**\n`https://fhir.nhs.uk/id/product-id|SupplierProduct-v2024.12.12`\n\n**Example (URL encoded):**\n`https%3A%2F%2Ffhir.nhs.uk%2Fid%2Fproduct-id%7CSupplierProduct-v2024.12.12`\n",
-                "in": "query",
-                "required": false,
-                "allowEmptyValue": false,
-                "allowReserved": false,
-                "schema": {
-                    "type": "string",
-                    "example": "https://fhir.nhs.uk/id/product-id|SupplierProduct-v2024.12.12"
-                }
-            },
-            "EndpointHas_Qparam": {
-                "name": "_has",
-                "description": "The healthcareService you want the Endpoints returned for.\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n\n|HealthcareService Property| Example|\n|-------             | --------|\n|HealthcareService.Identifier| `_has:HealthcareService.Identifier=https://fhir.nhs.uk/Id/dos-service-id\\|1000099999`|\n|HealthcareService.Id| `_has:HealthcareService.Id=95852b93-d1ab-4c51-8e7d-c24cf9b257a9`|\n",
-                "in": "query",
-                "required": false,
-                "allowEmptyValue": false,
-                "schema": {
-                    "$ref": "#/components/schemas/Has"
-                }
-            },
-            "EndpointIdentifier_PParam": {
-                "name": "id",
-                "description": "The unique identifier of the endpoint.",
-                "in": "path",
-                "required": true,
-                "allowEmptyValue": false,
-                "schema": {
-                    "$ref": "#/components/schemas/GUID"
+                    "type": "string"
                 }
             }
         },
@@ -5617,8 +4800,22 @@
                     }
                 },
                 "headers": {
-                    "X-Correlation-Id": {"description": "The X-Correlation-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"}},
-                    "X-Request-Id": {"description": "The X-Request-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"}}
+                    "X-Correlation-Id": {
+                        "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                        }
+                    },
+                    "X-Request-Id": {
+                        "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                        }
+                    }
                 }
             },
             "422-UnprocessableEntity": {
@@ -5649,8 +4846,22 @@
                     }
                 },
                 "headers": {
-                    "X-Correlation-Id": {"description": "The X-Correlation-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"}},
-                    "X-Request-Id": {"description": "The X-Request-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"}}
+                    "X-Correlation-Id": {
+                        "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                        }
+                    },
+                    "X-Request-Id": {
+                        "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                        }
+                    }
                 }
             },
             "4XX-BARS": {
@@ -5821,29 +5032,70 @@
                             "id": "f7d3e2a1-0000-0000-0000-000000000099",
                             "meta": {
                                 "lastUpdated": "2026-05-06T10:00:01+00:00",
-                                "profile": ["https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"]
+                                "profile": [
+                                    "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                                ]
                             },
                             "status": "current",
                             "mode": "working",
                             "title": "Anytown UTC \u2014 Endpoint Priority Order",
                             "code": {
-                                "coding": [{"system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code", "code": "endpoint-priority", "display": "Endpoint Priority Order"}]
+                                "coding": [
+                                    {
+                                        "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
+                                        "code": "endpoint-priority",
+                                        "display": "Endpoint Priority Order"
+                                    }
+                                ]
                             },
-                            "subject": {"reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc", "display": "Anytown UTC"},
+                            "subject": {
+                                "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
+                                "display": "Anytown UTC"
+                            },
                             "date": "2026-05-06T10:00:00+00:00",
                             "orderedBy": {
-                                "coding": [{"system": "http://terminology.hl7.org/CodeSystem/list-order", "code": "priority", "display": "Sorted by Priority"}]
+                                "coding": [
+                                    {
+                                        "system": "http://terminology.hl7.org/CodeSystem/list-order",
+                                        "code": "priority",
+                                        "display": "Sorted by Priority"
+                                    }
+                                ]
                             },
                             "entry": [
-                                {"item": {"reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001", "display": "Primary Endpoint"}},
-                                {"item": {"reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002", "display": "Secondary Endpoint"}}
+                                {
+                                    "item": {
+                                        "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001",
+                                        "display": "Primary Endpoint"
+                                    }
+                                },
+                                {
+                                    "item": {
+                                        "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002",
+                                        "display": "Secondary Endpoint"
+                                    }
+                                }
                             ]
                         }
                     }
                 },
                 "headers": {
-                    "X-Correlation-Id": {"description": "The X-Correlation-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"}},
-                    "X-Request-Id": {"description": "The X-Request-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"}}
+                    "X-Correlation-Id": {
+                        "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                        }
+                    },
+                    "X-Request-Id": {
+                        "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                        }
+                    }
                 }
             },
             "201-AtomicList": {
@@ -5858,29 +5110,70 @@
                             "id": "f7d3e2a1-0000-0000-0000-000000000099",
                             "meta": {
                                 "lastUpdated": "2026-05-06T10:00:01+00:00",
-                                "profile": ["https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"]
+                                "profile": [
+                                    "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                                ]
                             },
                             "status": "current",
                             "mode": "working",
                             "title": "Anytown UTC \u2014 Endpoint Priority Order",
                             "code": {
-                                "coding": [{"system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code", "code": "endpoint-priority", "display": "Endpoint Priority Order"}]
+                                "coding": [
+                                    {
+                                        "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
+                                        "code": "endpoint-priority",
+                                        "display": "Endpoint Priority Order"
+                                    }
+                                ]
                             },
-                            "subject": {"reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc", "display": "Anytown UTC"},
+                            "subject": {
+                                "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
+                                "display": "Anytown UTC"
+                            },
                             "date": "2026-05-06T10:00:00+00:00",
                             "orderedBy": {
-                                "coding": [{"system": "http://terminology.hl7.org/CodeSystem/list-order", "code": "priority", "display": "Sorted by Priority"}]
+                                "coding": [
+                                    {
+                                        "system": "http://terminology.hl7.org/CodeSystem/list-order",
+                                        "code": "priority",
+                                        "display": "Sorted by Priority"
+                                    }
+                                ]
                             },
                             "entry": [
-                                {"item": {"reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001", "display": "Primary Endpoint"}},
-                                {"item": {"reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002", "display": "Secondary Endpoint"}}
+                                {
+                                    "item": {
+                                        "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001",
+                                        "display": "Primary Endpoint"
+                                    }
+                                },
+                                {
+                                    "item": {
+                                        "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002",
+                                        "display": "Secondary Endpoint"
+                                    }
+                                }
                             ]
                         }
                     }
                 },
                 "headers": {
-                    "X-Correlation-Id": {"description": "The X-Correlation-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"}},
-                    "X-Request-Id": {"description": "The X-Request-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"}}
+                    "X-Correlation-Id": {
+                        "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                        }
+                    },
+                    "X-Request-Id": {
+                        "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                        }
+                    }
                 }
             },
             "200-ListBundle": {
@@ -5902,22 +5195,55 @@
                                         "status": "current",
                                         "mode": "working",
                                         "title": "Anytown UTC \u2014 Endpoint Priority Order",
-                                        "subject": {"reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc"},
-                                        "orderedBy": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/list-order", "code": "priority"}]},
+                                        "subject": {
+                                            "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc"
+                                        },
+                                        "orderedBy": {
+                                            "coding": [
+                                                {
+                                                    "system": "http://terminology.hl7.org/CodeSystem/list-order",
+                                                    "code": "priority"
+                                                }
+                                            ]
+                                        },
                                         "entry": [
-                                            {"item": {"reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001"}},
-                                            {"item": {"reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002"}}
+                                            {
+                                                "item": {
+                                                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001"
+                                                }
+                                            },
+                                            {
+                                                "item": {
+                                                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002"
+                                                }
+                                            }
                                         ]
                                     },
-                                    "search": {"mode": "match"}
+                                    "search": {
+                                        "mode": "match"
+                                    }
                                 }
                             ]
                         }
                     }
                 },
                 "headers": {
-                    "X-Correlation-Id": {"description": "The X-Correlation-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"}},
-                    "X-Request-Id": {"description": "The X-Request-Id from the request header, if supplied, mirrored back.", "schema": {"type": "string", "format": "uuid", "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"}}
+                    "X-Correlation-Id": {
+                        "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                        }
+                    },
+                    "X-Request-Id": {
+                        "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                        }
+                    }
                 }
             },
             "200-AtomicEndpoint": {
@@ -7211,7 +6537,10 @@
                     "header": {
                         "type": "string",
                         "description": "Controls address visibility. If set to `private`, the `address` field is redacted from responses unless the requesting organisation is the owner.",
-                        "enum": ["public", "private"],
+                        "enum": [
+                            "public",
+                            "private"
+                        ],
                         "example": "public"
                     },
                     "period": {
@@ -10512,21 +9841,70 @@
             },
             "FhirList": {
                 "type": "object",
-                "description": "A FHIR R4 List resource representing a priority-ordered collection of Endpoint resources for a specific HealthcareService. The `subject` references the owning HealthcareService. Each `entry[].item` references an Endpoint resource. Priority is determined by array position — index 0 is the highest priority. `orderedBy` must be set to `priority`.",
-                "required": ["resourceType", "status", "mode", "subject", "entry"],
+                "description": "A FHIR R4 List resource representing a priority-ordered collection of Endpoint resources for a specific HealthcareService. The `subject` references the owning HealthcareService. Each `entry[].item` references an Endpoint resource. Priority is determined by array position \u2014 index 0 is the highest priority. `orderedBy` must be set to `priority`.",
+                "required": [
+                    "resourceType",
+                    "status",
+                    "mode",
+                    "subject",
+                    "entry"
+                ],
                 "properties": {
-                    "resourceType": {"type": "string", "enum": ["List"], "example": "List"},
-                    "id": {"type": "string", "format": "uuid", "example": "f7d3e2a1-0000-0000-0000-000000000099"},
+                    "resourceType": {
+                        "type": "string",
+                        "enum": [
+                            "List"
+                        ],
+                        "example": "List"
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "f7d3e2a1-0000-0000-0000-000000000099"
+                    },
                     "meta": {
                         "type": "object",
                         "properties": {
-                            "lastUpdated": {"type": "string", "format": "date-time", "example": "2026-05-06T10:00:01+00:00"},
-                            "profile": {"type": "array", "items": {"type": "string", "format": "url", "example": "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"}}
+                            "lastUpdated": {
+                                "type": "string",
+                                "format": "date-time",
+                                "example": "2026-05-06T10:00:01+00:00"
+                            },
+                            "profile": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "url",
+                                    "example": "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                                }
+                            }
                         }
                     },
-                    "status": {"type": "string", "description": "Indicates the current state of this list.", "enum": ["current", "retired", "entered-in-error"], "example": "current"},
-                    "mode": {"type": "string", "description": "How this list was prepared. Use `working` for a list maintained over time.", "enum": ["working", "snapshot", "changes"], "example": "working"},
-                    "title": {"type": "string", "description": "A human-readable label for the list.", "example": "Anytown UTC — Endpoint Priority Order"},
+                    "status": {
+                        "type": "string",
+                        "description": "Indicates the current state of this list.",
+                        "enum": [
+                            "current",
+                            "retired",
+                            "entered-in-error"
+                        ],
+                        "example": "current"
+                    },
+                    "mode": {
+                        "type": "string",
+                        "description": "How this list was prepared. Use `working` for a list maintained over time.",
+                        "enum": [
+                            "working",
+                            "snapshot",
+                            "changes"
+                        ],
+                        "example": "working"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "A human-readable label for the list.",
+                        "example": "Anytown UTC \u2014 Endpoint Priority Order"
+                    },
                     "code": {
                         "type": "object",
                         "description": "Classifies the purpose of the list.",
@@ -10536,9 +9914,19 @@
                                 "items": {
                                     "type": "object",
                                     "properties": {
-                                        "system": {"type": "string", "format": "url", "example": "https://fhir.nhs.uk/CodeSystem/EPC-list-code"},
-                                        "code": {"type": "string", "example": "endpoint-priority"},
-                                        "display": {"type": "string", "example": "Endpoint Priority Order"}
+                                        "system": {
+                                            "type": "string",
+                                            "format": "url",
+                                            "example": "https://fhir.nhs.uk/CodeSystem/EPC-list-code"
+                                        },
+                                        "code": {
+                                            "type": "string",
+                                            "example": "endpoint-priority"
+                                        },
+                                        "display": {
+                                            "type": "string",
+                                            "example": "Endpoint Priority Order"
+                                        }
                                     }
                                 }
                             }
@@ -10547,13 +9935,28 @@
                     "subject": {
                         "type": "object",
                         "description": "The HealthcareService this list belongs to.",
-                        "required": ["reference"],
+                        "required": [
+                            "reference"
+                        ],
                         "properties": {
-                            "reference": {"type": "string", "description": "Relative reference to the HealthcareService, e.g. `HealthcareService/{id}`.", "example": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc"},
-                            "display": {"type": "string", "description": "Plain text name of the HealthcareService.", "example": "Anytown UTC"}
+                            "reference": {
+                                "type": "string",
+                                "description": "Relative reference to the HealthcareService, e.g. `HealthcareService/{id}`.",
+                                "example": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc"
+                            },
+                            "display": {
+                                "type": "string",
+                                "description": "Plain text name of the HealthcareService.",
+                                "example": "Anytown UTC"
+                            }
                         }
                     },
-                    "date": {"type": "string", "format": "date-time", "description": "When the list was last changed.", "example": "2026-05-06T10:00:00+00:00"},
+                    "date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When the list was last changed.",
+                        "example": "2026-05-06T10:00:00+00:00"
+                    },
                     "orderedBy": {
                         "type": "object",
                         "description": "Declares the ordering semantics. Must be `priority`.",
@@ -10563,9 +9966,19 @@
                                 "items": {
                                     "type": "object",
                                     "properties": {
-                                        "system": {"type": "string", "format": "url", "example": "http://terminology.hl7.org/CodeSystem/list-order"},
-                                        "code": {"type": "string", "example": "priority"},
-                                        "display": {"type": "string", "example": "Sorted by Priority"}
+                                        "system": {
+                                            "type": "string",
+                                            "format": "url",
+                                            "example": "http://terminology.hl7.org/CodeSystem/list-order"
+                                        },
+                                        "code": {
+                                            "type": "string",
+                                            "example": "priority"
+                                        },
+                                        "display": {
+                                            "type": "string",
+                                            "example": "Sorted by Priority"
+                                        }
                                     }
                                 }
                             }
@@ -10573,19 +9986,31 @@
                     },
                     "entry": {
                         "type": "array",
-                        "description": "The ordered list of Endpoint references. Array position determines priority — index 0 is the highest priority.",
+                        "description": "The ordered list of Endpoint references. Array position determines priority \u2014 index 0 is the highest priority.",
                         "minItems": 1,
                         "items": {
                             "type": "object",
-                            "required": ["item"],
+                            "required": [
+                                "item"
+                            ],
                             "properties": {
                                 "item": {
                                     "type": "object",
                                     "description": "A reference to an Endpoint resource.",
-                                    "required": ["reference"],
+                                    "required": [
+                                        "reference"
+                                    ],
                                     "properties": {
-                                        "reference": {"type": "string", "description": "Relative reference to an Endpoint resource, e.g. `Endpoint/{id}`.", "example": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001"},
-                                        "display": {"type": "string", "description": "Plain text name of the Endpoint.", "example": "Primary Endpoint"}
+                                        "reference": {
+                                            "type": "string",
+                                            "description": "Relative reference to an Endpoint resource, e.g. `Endpoint/{id}`.",
+                                            "example": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001"
+                                        },
+                                        "display": {
+                                            "type": "string",
+                                            "description": "Plain text name of the Endpoint.",
+                                            "example": "Primary Endpoint"
+                                        }
                                     }
                                 }
                             }
