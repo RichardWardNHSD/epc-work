@@ -70,15 +70,15 @@ authentication, and ownership.
 | `$ref` links | 200 (all resolve) |
 | Self-contained | Yes — no external dependencies |
 
-### Outcome — Option A adopted
+### Decision
 
-The recommendation from this document was **Option A**: remove EPC paths from the BaRS
-OAS entirely. The EPC OAS is the authoritative specification for catalogue operations.
-Consumers use two separate API specs.
+The BaRS API and Endpoint Catalogue API are maintained as **two separate specifications**
+with clear ownership boundaries:
 
-This eliminates the drift risk from Option B (maintaining both) and makes ownership clear:
-- BaRS team owns the BaRS OAS (messaging)
-- EPC team owns the EPC OAS (catalogue)
+- **BaRS team** owns the BaRS OAS — messaging operations only
+- **EPC team** owns the EPC OAS — catalogue management operations
+
+Consumers use two separate API specs. There is no duplication between them.
 
 ---
 
