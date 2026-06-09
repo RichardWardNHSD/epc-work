@@ -1355,16 +1355,6 @@
           "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
         }
       },
-      "Accept_HParam": {
-        "name": "Accept",
-        "description": "The Accept header indicating the desired response format. Must be application/fhir+json for this API.",
-        "in": "header",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "example": "application/fhir+json; version=1.4.0"
-        }
-      },
       "AcceptEPC_HParam": {
         "name": "Accept",
         "description": "The Accept header must specify the type of content the requester can process.",
@@ -2970,13 +2960,6 @@
         },
         "additionalProperties": false
       },
-      "TargetIdentifier": {
-        "title": "Identifier",
-        "type": "string",
-        "format": "byte",
-        "example": "eyJzeXN0ZW0iOiJodHRwczovL2ZoaXIubmhzLnVrL0lkL2Rvcy1zZXJ2aWNlLWlkIiwidmFsdWUiOiIyMDAwMDExMTQ3In0=",
-        "description": "Identifier"
-      },
       "Endpoint": {
         "type": "object",
         "properties": {
@@ -3910,34 +3893,6 @@
       "EndpointIdentifier": {
         "type": "string",
         "example": "https://fhir.nhs.uk/Id/EndpointSystem|EndpointValue"
-      },
-      "Has": {
-        "type": "string",
-        "enum": [
-          "HealthcareService.Identifier",
-          "HealthcareService.Id"
-        ]
-      },
-      "RequestingOrganisation": {
-        "title": "NHSD-End-User-Organisation",
-        "description": "Requesting Organization described in an object based on a FHIR 'Organization' resource (Standard Base64 encoded JSON).\n\nIn this example an ODS code and the Organisation name is provided. Other identifiers are permitted if required.",
-        "type": "string",
-        "format": "byte",
-        "example": "eyJyZXNvdXJjZVR5cGUiOiJPcmdhbml6YXRpb24iLCJpZGVudGlmaWVyIjpbeyJ2YWx1ZSI6IkExMDAxIiwic3lzdGVtIjoiaHR0cHM6Ly9maGlyLm5ocy51ay9JZC9vZHMtb3JnYW5pemF0aW9uLWNvZGUifV0sIm5hbWUiOiJNeSBzZXJ2aWNlIHByb3ZpZGVyIG5hbWUifQo="
-      },
-      "RequestingPractitioner": {
-        "title": "NHSD-Requesting-Practitioner",
-        "description": "Requesting Practitioner described in an object based on a FHIR 'PractitionerRole' resource (Standard Base64 encoded JSON).\n\nThis item is not mandatory, however if the information is available it must be included in the request. Only in the event that it is not available, should it be omitted.\n\nThe example below shows a General Practitioner and their SDS Role profile Id.\nThe Base64 encoded example below shows a General Practitioner and their SDS Role profile Id.\n",
-        "type": "string",
-        "format": "byte",
-        "example": "eyJyZXNvdXJjZVR5cGUiOiJzdHJpbmciLCJpZGVudGlmaWVyIjpbeyJ2YWx1ZSI6InN0cmluZyIsInN5c3RlbSI6InN0cmluZyJ9XSwiY29kZSI6W3siY29kaW5nIjpbeyJzeXN0ZW0iOiJzdHJpbmciLCJjb2RlIjoic3RyaW5nIiwiZGlzcGxheSI6InN0cmluZyJ9XX1dfQo="
-      },
-      "RequestingSoftware": {
-        "title": "NHSD-Requesting-software",
-        "type": "string",
-        "format": "byte",
-        "description": "Requesting Software described in an object based on a FHIR 'Device' resource (Standard Base64 encoded JSON).\n\nThe identifier used here, though arbitrary, should be consistent across instances of a product. The name and version of the product should also be accurate and consistent.",
-        "example": "eyJyZXNvdXJjZVR5cGUiOiJEZXZpY2UiLCJpZGVudGlmaWVyIjpbeyJzeXN0ZW0iOiJodHRwczovL2NvbnN1bWVyc3VwcGxpZXIuY29tL0lkL2RldmljZS1pZGVudGlmaWVyIiwidmFsdWUiOiJTVVBQLUFQUC0xIn1dLCJkZXZpY2VOYW1lIjp7Im5hbWUiOiJTdXBwbGllciBwcm9kdWN0IG5hbWUiLCJ0eXBlIjoibWFudWZhY3R1cmVyLW5hbWUifSwidmVyc2lvbiI6eyJ2YWx1ZSI6IjEuMC4wIn19Cg=="
       },
       "FhirList": {
         "type": "object",
