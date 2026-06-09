@@ -13,9 +13,7 @@
     "license": {
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-    },
-    "x-current-base-path": "/booking-and-referral/FHIR/R4",
-    "x-current-base-path-note": "The EPC currently shares the BaRS API base path. The /endpoint-catalog/FHIR/R4 path in this spec is the target state for when the EPC becomes a standalone API product."
+    }
   },
   "servers": [
     {
@@ -60,7 +58,7 @@
           "Metadata"
         ],
         "summary": "Get the Endpoint Catalogue API capability statement",
-        "description": "Returns the CapabilityStatement for the Endpoint Catalogue API itself.\n\nThis describes the resources, interactions, and search parameters supported by this API. Consumers can use this to programmatically discover what the API supports.\n\nUnlike the BaRS Proxy (which forwards /metadata requests to a target receiving system), the EPC /metadata endpoint returns the catalogue's own capabilities directly.\n\nNo NHSD-Target-Identifier header is required \u2014 this is not a proxied request.",
+        "description": "Returns the CapabilityStatement for the Endpoint Catalogue API.\n\nThis describes the resources, interactions, and search parameters supported by this API. Consumers can use this to programmatically discover what the API supports.\n\nNo NHSD-Target-Identifier header is required.",
         "operationId": "getMetadata",
         "parameters": [
           {
@@ -93,7 +91,7 @@
                   "publisher": "NHS England",
                   "contact": [
                     {
-                      "name": "BaRS / Endpoint Catalogue Team",
+                      "name": "Endpoint Catalogue Team",
                       "telecom": [
                         {
                           "system": "email",
@@ -259,10 +257,10 @@
             }
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         }
       }
@@ -314,10 +312,10 @@
             "$ref": "#/components/responses/200-HealthcareServiceBundle"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         }
       },
@@ -333,10 +331,10 @@
             "$ref": "#/components/responses/200-AtomicHealthcareService"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "requestBody": {
@@ -385,10 +383,10 @@
             "$ref": "#/components/responses/200-AtomicHealthcareService"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -418,10 +416,10 @@
             "$ref": "#/components/responses/201-AtomicHealthcareService"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -448,10 +446,10 @@
             "$ref": "#/components/responses/200-Delete"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -517,10 +515,10 @@
             "$ref": "#/components/responses/200-EndpointBundle"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         }
       },
@@ -536,10 +534,10 @@
             "$ref": "#/components/responses/200-AtomicEndpoint"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "requestBody": {
@@ -605,10 +603,10 @@
             "$ref": "#/components/responses/200-EndpointTemplate"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         }
       },
@@ -624,10 +622,10 @@
             "$ref": "#/components/responses/200-EndpointTemplate"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "requestBody": {
@@ -676,10 +674,10 @@
             "$ref": "#/components/responses/200-AtomicEndpoint"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -709,10 +707,10 @@
             "$ref": "#/components/responses/201-AtomicEndpoint"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -739,10 +737,10 @@
             "$ref": "#/components/responses/200-Delete"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -791,10 +789,10 @@
             "$ref": "#/components/responses/201-EndpointTemplate"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -821,10 +819,10 @@
             "$ref": "#/components/responses/200-Delete"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -870,10 +868,10 @@
             "$ref": "#/components/responses/201-AtomicList"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -949,10 +947,10 @@
             "$ref": "#/components/responses/200-ListBundle"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         }
       }
@@ -994,10 +992,10 @@
             "$ref": "#/components/responses/200-AtomicList"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -1030,10 +1028,10 @@
             "$ref": "#/components/responses/201-AtomicList"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -1060,10 +1058,10 @@
             "$ref": "#/components/responses/200-Delete"
           },
           "4XX": {
-            "$ref": "#/components/responses/4XX-BARS"
+            "$ref": "#/components/responses/4XX"
           },
           "5XX": {
-            "$ref": "#/components/responses/5XX-BARS"
+            "$ref": "#/components/responses/5XX"
           }
         },
         "parameters": [
@@ -1359,7 +1357,7 @@
       },
       "Accept_HParam": {
         "name": "Accept",
-        "description": "The Accept header must also contain version of BaRS Core the Sender is expecting to interoperate on.",
+        "description": "The Accept header indicating the desired response format. Must be application/fhir+json for this API.",
         "in": "header",
         "required": true,
         "schema": {
@@ -1387,7 +1385,7 @@
       },
       "PayloadType_QParam": {
         "name": "PayloadType",
-        "description": "Defines the specific message standard used (e.g., BaRS).\n\n**Example object before encoding** \n```json\n\"payloadType\": [\n  {\n    \"coding\": [\n      {\n      \"system\": \"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc\",\n      \"code\": \"bars\",\n      \"display\": \"BaRS\"\n      }\n    ]\n  }\n]\n",
+        "description": "Filter by the message standard or payload type supported by the Endpoint. Matches against Endpoint.payloadType.coding.code.\n\n**Example object before encoding** \n```json\n\"payloadType\": [\n  {\n    \"coding\": [\n      {\n      \"system\": \"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc\",\n      \"code\": \"bars\",\n      \"display\": \"BaRS\"\n      }\n    ]\n  }\n]\n```\n",
         "in": "query",
         "schema": {
           "$ref": "#/components/schemas/PayloadType"
@@ -1508,110 +1506,6 @@
       }
     },
     "responses": {
-      "4XX-BARS": {
-        "description": "Below are examples of potential HTTP status codes and their associated error codes, which could be returned in the event of a fault. \nGuidance on error handling within BaRS can be found [here](https://simplifier.net/guide/nhsbookingandreferralstandard/Home/Core/1.4.0/Error-Handling).\n\n| HTTP status | Error code                 | Description |\n| ----------- | -------------------------- | --------------------------------------------- |\n| 400         | SEND_BAD_REQUEST           | The API was unable to process the request. |\n| 400         | REC_BAD_REQUEST            | The Receiver has responded stating the message was malformed. |\n| 401         | SEND_UNAUTHORIZED          | The API deemed you unauthorized to make this request. |\n| 401         | REC_UNAUTHORIZED           | The receiver deemed you unauthorized to make request. |\n| 403         | SEND_FORBIDDEN             | Missing or Expired Token. |\n| 404         | PROXY_NOT_FOUND            | No related people exist for given NHS number. |\n| 404         | REC_NOT_FOUND              | Patient record for given NHS number has been invalidated and not superseded by another NHS number. |\n| 405         | SEND_METHOD_NOT_ALLOWED    | HTTP Verb is not correct for this scenario.|\n| 405         | REC_METHOD_NOT_ALLOWED     | Receiver does not allow this.|\n| 405         | PROXY_METHOD_NOT_ALLOWED   | Proxy does not allow this.|\n| 406         | SEND_NOT_ACCEPTABLE        | Senders message had an incorrect content type defined for a response.|\n| 408         | REC_TIMEOUT                | The downstream domain processing has not completed within the configured timeout period. |\n| 409         | SEND_CONFLICT              |  |\n| 409         | REC_CONFLICT               |  |\n| 409         | PROXY_CONFLICT             |  |\n| 422         | SEND_UNPROCESSABLE_ENTITY  | Message was not malformed but deemed unprocessable. |\n| 422         | REC_UNPROCESSABLE_ENTITY   | Message was not malformed but deemed unprocessable. |         \n| 422         | PROXY_UNPROCESSABLE_ENTITY | Message was not malformed but deemed unprocessable. |         \n| 429         | SEND_TOO_MANY_REQUESTS     | The user has sent too many requests in a given amount of time|\n| 429         | REC_TOO_MANY_REQUESTS      | The user has sent too many requests in a given amount of time|\n",
-        "content": {
-          "application/fhir+json": {
-            "schema": {
-              "$ref": "#/components/schemas/OperationalOutcome"
-            },
-            "example": {
-              "resourceType": "OperationOutcome",
-              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
-              "meta": {
-                "profile": [
-                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
-                ]
-              },
-              "issue": [
-                {
-                  "severity": "error",
-                  "code": "invariant",
-                  "details": {
-                    "coding": [
-                      {
-                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
-                        "code": "REC_BAD_REQUEST"
-                      }
-                    ]
-                  },
-                  "diagnostics": "Attempts to Validate the message have failed."
-                }
-              ]
-            }
-          }
-        },
-        "headers": {
-          "X-Correlation-Id": {
-            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
-            }
-          },
-          "X-Request-Id": {
-            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
-            }
-          }
-        }
-      },
-      "5XX-BARS": {
-        "description": "Below are examples of potential HTTP status codes and their associated error codes, which could be returned in the event of a fault. \nGuidance on error handling within BaRS can be found [here](https://simplifier.net/guide/nhsbookingandreferralstandard/Home/Core/1.4.0/Error-Handling).\n\n| HTTP status | Error code                 | Description |\n| ----------- | -------------------------- | --------------------------------------------- |\n| 500         | REC_SERVER_ERROR           | The receiver server has encountered an Error processing the request. |\n| 500         | PROXY_SERVER_ERROR         | Proxy Error. |\n| 501         | SEND_NOT_IMPLEMENTED       | The Request was not recognized. |\n| 501         | REC_NOT_IMPLEMENTED        | The Receiver did not recognize the request. |\n| 501         | PROXY_NOT_IMPLEMENTED      | The Proxy did not recognize the request. |\n| 503         | REC_UNAVAILABLE            | The Receiver was unavailable to service the request.|\n| 503         | PROXY_UNAVAILABLE          | The Proxy was unavailable to service the request. |\n",
-        "content": {
-          "application/fhir+json": {
-            "schema": {
-              "$ref": "#/components/schemas/OperationalOutcome"
-            },
-            "example": {
-              "resourceType": "OperationOutcome",
-              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
-              "meta": {
-                "profile": [
-                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
-                ]
-              },
-              "issue": [
-                {
-                  "severity": "error",
-                  "code": "exception",
-                  "details": {
-                    "coding": [
-                      {
-                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
-                        "code": "REC_SERVER_ERROR"
-                      }
-                    ]
-                  },
-                  "diagnostics": "Too many requests have been made by this source in a given amount of time: <further diagnostics information, error message/error text>"
-                }
-              ]
-            }
-          }
-        },
-        "headers": {
-          "X-Correlation-Id": {
-            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
-            }
-          },
-          "X-Request-Id": {
-            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
-            }
-          }
-        }
-      },
       "200-Delete": {
         "description": "The resource was successfully delete.",
         "content": {
@@ -2130,12 +2024,12 @@
               "link": [
                 {
                   "relation": "self",
-                  "url": "https://sandbox.api.service.nhs.uk/booking-and-referral/FHIR/R4/Endpoint?organization=org-123"
+                  "url": "https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4/Endpoint?organization=org-123"
                 }
               ],
               "entry": [
                 {
-                  "fullUrl": "https://sandbox.api.service.nhs.uk/booking-and-referral/FHIR/R4/Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                  "fullUrl": "https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4/Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
                   "resource": {
                     "resourceType": "Endpoint",
                     "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
@@ -2195,7 +2089,7 @@
                   }
                 },
                 {
-                  "fullUrl": "https://sandbox.api.service.nhs.uk/booking-and-referral/FHIR/R4/Endpoint/c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                  "fullUrl": "https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4/Endpoint/c3f6145e-1a26-4345-b3f2-dccbcba62049",
                   "resource": {
                     "resourceType": "Endpoint",
                     "id": "c3f6145e-1a26-4345-b3f2-dccbcba62049",
@@ -2293,12 +2187,12 @@
               "link": [
                 {
                   "relation": "self",
-                  "url": "https://sandbox.api.service.nhs.uk/booking-and-referral/FHIR/R4/HealthcareService?organization=org-123"
+                  "url": "https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4/HealthcareService?organization=org-123"
                 }
               ],
               "entry": [
                 {
-                  "fullUrl": "https://sandbox.api.service.nhs.uk/booking-and-referral/FHIR/R4/HealthcareService/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                  "fullUrl": "https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4/HealthcareService/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
                   "resource": {
                     "resourceType": "HealthcareService",
                     "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
@@ -2337,7 +2231,7 @@
                   }
                 },
                 {
-                  "fullUrl": "https://sandbox.api.service.nhs.uk/booking-and-referral/FHIR/R4/HealthcareService/c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                  "fullUrl": "https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4/HealthcareService/c3f6145e-1a26-4345-b3f2-dccbcba62049",
                   "resource": {
                     "resourceType": "HealthcareService",
                     "id": "c3f6145e-1a26-4345-b3f2-dccbcba62049",
@@ -2669,6 +2563,110 @@
             }
           }
         }
+      },
+      "4XX": {
+        "description": "Client error. The request could not be processed due to an issue with the request itself.\n\n| HTTP status | Error code | Description |\n| ----------- | ---------- | ----------- |\n| 400 | BAD_REQUEST | The request is malformed or missing required fields |\n| 401 | UNAUTHORIZED | Missing or invalid bearer token |\n| 403 | FORBIDDEN | The authenticated caller is not authorised for this operation |\n| 404 | NOT_FOUND | The requested resource does not exist |\n| 409 | CONFLICT | A duplicate resource exists or a conflict was detected |\n| 422 | UNPROCESSABLE_ENTITY | The request body failed validation |\n| 429 | TOO_MANY_REQUESTS | Rate limit exceeded |",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+              "meta": {
+                "profile": [
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                ]
+              },
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "invariant",
+                  "details": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+                        "code": "REC_BAD_REQUEST"
+                      }
+                    ]
+                  },
+                  "diagnostics": "Attempts to Validate the message have failed."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "5XX": {
+        "description": "Server error. The request could not be processed due to an issue on the server.\n\n| HTTP status | Error code | Description |\n| ----------- | ---------- | ----------- |\n| 500 | INTERNAL_SERVER_ERROR | An unexpected error occurred |\n| 502 | BAD_GATEWAY | The upstream service returned an invalid response |\n| 503 | SERVICE_UNAVAILABLE | The service is temporarily unavailable |\n| 504 | GATEWAY_TIMEOUT | The upstream service did not respond in time |",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+              "meta": {
+                "profile": [
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                ]
+              },
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "exception",
+                  "details": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+                        "code": "REC_SERVER_ERROR"
+                      }
+                    ]
+                  },
+                  "diagnostics": "Too many requests have been made by this source in a given amount of time: <further diagnostics information, error message/error text>"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
       }
     },
     "schemas": {
@@ -2681,16 +2679,16 @@
           },
           "id": {
             "type": "string",
-            "example": "BaRS-FHIR-Server"
+            "example": "endpoint-catalog-api"
           },
           "url": {
             "type": "string",
-            "example": "https://int.api.service.nhs.uk/booking-and-referral/FHIR/R4",
+            "example": "https://int.api.service.nhs.uk/endpoint-catalog/FHIR/R4",
             "format": "url"
           },
           "name": {
             "type": "string",
-            "example": "BaRS FHIR Server CapabilityStatement"
+            "example": "Endpoint Catalogue API CapabilityStatement"
           },
           "status": {
             "type": "string",
@@ -2751,7 +2749,7 @@
             "properties": {
               "name": {
                 "type": "string",
-                "example": "BaRS API"
+                "example": "Endpoint Catalogue API"
               },
               "version": {
                 "type": "string",
@@ -2765,11 +2763,11 @@
             "properties": {
               "description": {
                 "type": "string",
-                "example": "BaRS FHIR Server"
+                "example": "Endpoint Catalogue API \u2014 FHIR R4 service discovery"
               },
               "url": {
                 "type": "string",
-                "example": "https://int.api.service.nhs.uk/booking-and-referral/FHIR/R4",
+                "example": "https://int.api.service.nhs.uk/endpoint-catalog/FHIR/R4",
                 "format": "url"
               }
             },
@@ -2944,7 +2942,7 @@
                       "address": {
                         "type": "string",
                         "format": "url",
-                        "example": "https://int.api.service.nhs.uk/booking-and-referral/FHIR/R4"
+                        "example": "https://int.api.service.nhs.uk/endpoint-catalog/FHIR/R4"
                       }
                     }
                   }
@@ -2960,7 +2958,7 @@
                       },
                       "definition": {
                         "type": "string",
-                        "example": "MessageDefinition/bars-message-booking-request"
+                        "example": "MessageDefinition/example-message-definition"
                       }
                     }
                   }
@@ -3922,7 +3920,7 @@
       },
       "RequestingOrganisation": {
         "title": "NHSD-End-User-Organisation",
-        "description": "Requesting Organization described in an object based on a FHIR 'Organization' resource (Standard Base64 encoded JSON).\nDifferent BaRS Applications may have different standards and requirements for the Access Control which these headers are used for. \n\nIn this example an ODS code and the Organisation name is provided. Other identifiers are permitted if required. \n",
+        "description": "Requesting Organization described in an object based on a FHIR 'Organization' resource (Standard Base64 encoded JSON).\n\nIn this example an ODS code and the Organisation name is provided. Other identifiers are permitted if required.",
         "type": "string",
         "format": "byte",
         "example": "eyJyZXNvdXJjZVR5cGUiOiJPcmdhbml6YXRpb24iLCJpZGVudGlmaWVyIjpbeyJ2YWx1ZSI6IkExMDAxIiwic3lzdGVtIjoiaHR0cHM6Ly9maGlyLm5ocy51ay9JZC9vZHMtb3JnYW5pemF0aW9uLWNvZGUifV0sIm5hbWUiOiJNeSBzZXJ2aWNlIHByb3ZpZGVyIG5hbWUifQo="
@@ -3938,7 +3936,7 @@
         "title": "NHSD-Requesting-software",
         "type": "string",
         "format": "byte",
-        "description": "Requesting Software described in an object based on a FHIR 'Device' resource (Standard Base64 encoded JSON).\nDifferent BaRS Applications may have different standards and requirements for the Access Control which these headers are used for. \n\nThe identifier used here, though arbitrary, should be consistent across instances of a product, the name and version of the product should also be accurate and consistent.\n",
+        "description": "Requesting Software described in an object based on a FHIR 'Device' resource (Standard Base64 encoded JSON).\n\nThe identifier used here, though arbitrary, should be consistent across instances of a product. The name and version of the product should also be accurate and consistent.",
         "example": "eyJyZXNvdXJjZVR5cGUiOiJEZXZpY2UiLCJpZGVudGlmaWVyIjpbeyJzeXN0ZW0iOiJodHRwczovL2NvbnN1bWVyc3VwcGxpZXIuY29tL0lkL2RldmljZS1pZGVudGlmaWVyIiwidmFsdWUiOiJTVVBQLUFQUC0xIn1dLCJkZXZpY2VOYW1lIjp7Im5hbWUiOiJTdXBwbGllciBwcm9kdWN0IG5hbWUiLCJ0eXBlIjoibWFudWZhY3R1cmVyLW5hbWUifSwidmVyc2lvbiI6eyJ2YWx1ZSI6IjEuMC4wIn19Cg=="
       },
       "FhirList": {
