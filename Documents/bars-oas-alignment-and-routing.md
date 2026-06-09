@@ -140,146 +140,141 @@ This separation is now complete. CIS2 authentication is an EPC concern only.
 
 ### Architecture
 
-The BaRS Proxy is hosted **inside Apigee** (as an Apigee proxy policy/target), not as a
-separate AWS-hosted service. The Endpoint Catalog API is a separate backend service
-(AWS API Gateway + Lambda + DynamoDB). Apigee routes requests to one or the other based
-on the path.
+The BaRS Proxy and the EPC are **completely separate API products** on the NHS API
+Platform. The BaRS API has no role in hosting, routing, or managing EPC operations —
+it is purely a **consumer** of the EPC for endpoint resolution.
 
-**Simplified view:**
+See the architecture diagram: [epc-architecture-routing.drawio](./epc-architecture-routing.drawio)
 
-- Consumer sends request to Apigee
-- Apigee validates the token and extracts claims
-- If the path is a BaRS messaging operation → BaRS Proxy (inside Apigee) handles it
-- If the path is an EPC catalog operation → Apigee routes to the EPC backend (AWS)
+**Key architectural points:**
 
-The BaRS Proxy resolves target endpoints by calling the EPC API internally (within Apigee)
-before forwarding messages to backend receivers.
+1. The **BaRS Proxy** and the **EPC Proxy** are separate Apigee proxies, each with their
+   own authentication, routing, and policy configuration.
+2. The BaRS Proxy consumes the EPC (via a GET call) to resolve target endpoints when
+   routing messages. This is a client call — the BaRS Proxy is a consumer of the EPC,
+   not an owner or host.
+3. The EPC has its own **dedicated Apigee proxy** (EPC Proxy) that handles authentication
+   for external callers (suppliers, admin tools).
+4. The EPC backend (AWS API Gateway + Lambda + DynamoDB) is the same regardless of
+   whether the caller is the BaRS Proxy or an external Endpoint Supplier.
 
----
+### Actors
 
-### What Apigee does vs what the EPC backend does
-
-#### Apigee layer (API Platform)
-
-| Responsibility | Detail |
-|---|---|
-| **Token validation** | Validates the bearer token (signature, expiry, audience). Rejects invalid/expired tokens with 401. |
-| **Token claim extraction** | Extracts claims from the token and passes them to the backend as verified headers or context variables |
-| **Routing** | Routes to BaRS Proxy (internal Apigee policy) or EPC backend (external AWS) based on path |
-| **Rate limiting** | Applies throttling policies per application |
-| **Audit logging** | Logs all requests to Splunk (gateway-level audit) |
-| **BaRS Proxy execution** | For messaging paths, executes the proxy logic (endpoint resolution + forwarding) within Apigee |
-
-#### EPC Backend (AWS Lambda)
-
-| Responsibility | Detail |
-|---|---|
-| **ODS validation** | Cross-checks `NHSD-End-User-Organisation-ODS` header against the ODS claim forwarded by Apigee |
-| **RBAC enforcement** | Checks the user's role (from forwarded token claims) permits the requested operation |
-| **Ownership check** | Verifies the caller's ODS/Product ID matches the resource's owner |
-| **Business logic** | CRUD operations on DynamoDB |
-| **Audit record creation** | Writes application-level audit records (who changed what) |
-
----
-
-### Token claims: what Apigee extracts and forwards to the backend
-
-When Apigee validates the token, it extracts claims and forwards them to the EPC backend
-as trusted headers. The backend trusts these because they come from Apigee (internal),
-not from the external caller.
-
-#### Application-restricted token claims
-
-| Claim in token | Forwarded to backend as | Used by backend for |
+| Actor | Role | Connects to |
 |---|---|---|
-| `client_id` | `NHSD-Client-Id` header | Identifying the calling application |
-| `product_id` | `NHSD-Product-Id` header | Product ID ownership check on Templates/Endpoints |
-| `ods_code` | Validated against `NHSD-End-User-Organisation-ODS` header | ODS ownership check |
-| `scope` | `NHSD-Scope` header | Determining read/write permissions |
+| **Sender** | Submits BaRS messages (bookings, referrals) | BaRS Proxy |
+| **Receiver** | Receives BaRS messages from the Proxy | BaRS Proxy (outbound) |
+| **Endpoint Supplier** | Manages endpoints, templates, healthcare services | EPC Proxy |
+| **BaRS Proxy** | Routes messages to receivers; resolves endpoints | EPC Gateway (as a consumer) |
 
-#### User-restricted (CIS2) token claims — additional
+### Routing — Two Separate API Products
 
-All of the above, plus:
+| API Product | Base Path | Apigee Proxy | Backend | Purpose |
+|---|---|---|---|---|
+| **BaRS API** | `/booking-and-referral/FHIR/R4` | BaRS Proxy | Receiver systems (via mTLS) | Runtime messaging |
+| **Endpoint Catalog API** | `/endpoint-catalog/FHIR/R4` (target state) | EPC Proxy | AWS API Gateway → Lambda → DynamoDB | Catalogue management |
 
-| Claim in token | Forwarded to backend as | Used by backend for |
+> **Current state:** Both APIs currently share the `/booking-and-referral/FHIR/R4` base
+> path with Apigee routing internally based on path prefix. The target state is separate
+> base paths once the EPC is promoted to a standalone API product.
+
+### How the BaRS Proxy consumes the EPC
+
+The BaRS Proxy acts as a **consumer** of the EPC — it makes a GET request to resolve the
+target endpoint address before forwarding a message to the receiver.
+
+```
+1. Sender → BaRS Proxy:    POST /$process-message (with NHSD-Target-Identifier header)
+2. BaRS Proxy → EPC:       GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{value}
+3. EPC → BaRS Proxy:       Returns matching active Endpoint(s)
+4. BaRS Proxy extracts the `address` from the first active Endpoint
+5. BaRS Proxy → Receiver:  Forwards the original message to that address (via mTLS)
+```
+
+**Authentication for this internal call:**
+
+The BaRS Proxy authenticates to the EPC using **mTLS and/or an API key** — not via the
+external OAuth flow. The Apigee keystore holds the client certificate used for this
+connection. This is an internal platform-to-platform call; the external consumer (Sender)
+never sees or participates in it.
+
+### How Endpoint Suppliers access the EPC
+
+Endpoint Suppliers (and admin tools) access the EPC through the **EPC Proxy** in Apigee,
+which handles authentication:
+
+| Operation type | Auth path | Token type |
 |---|---|---|
-| `sub` (user UUID) | `NHSD-User-Id` header | Audit trail — who made the change |
-| `selected_roleid` | `NHSD-User-Role` header | RBAC enforcement — what operations are permitted |
-| `organisation.ods_code` | Validated against `NHSD-End-User-Organisation-ODS` | ODS ownership check + audit |
+| `GET` (reads, lookups) | App-restricted | Signed JWT → bearer token |
+| `POST`, `PUT`, `DELETE` (writes) | User-restricted (CIS2) | CIS2 login → bearer token |
+
+The EPC Proxy validates the token and injects trusted headers before forwarding to the
+EPC backend:
+
+**From app-restricted tokens:**
+- `NHSD-Client-Id` — identifies the calling application
+- `NHSD-Product-Id` — product ownership key
+- `NHSD-Scope` — read/write permissions
+
+**From CIS2 tokens (additional):**
+- `NHSD-User-Id` — individual user identity (for audit)
+- `NHSD-User-Role` — role assertion (for RBAC)
+
+### ODS header vs token validation
+
+The `NHSD-End-User-Organisation-ODS` header supplied by the consumer must match the ODS
+code in the bearer token claims. This prevents spoofing.
+
+**Open question:** Whether this validation is performed by Apigee (EPC Proxy layer) or by
+the EPC backend (Lambda). The diagram marks this as TBD. The recommendation is for Apigee
+to perform it since the token claims are already available at that layer.
 
 ---
 
-### The validation split: Apigee vs Backend
+### The EPC Backend (AWS)
 
-| Check | Performed by | Failure response |
-|---|---|---|
-| Token signature valid? | Apigee | 401 Unauthorized |
-| Token expired? | Apigee | 401 Unauthorized |
-| Token audience correct? | Apigee | 401 Unauthorized |
-| Application registered and not revoked? | Apigee | 401 Unauthorized |
-| Rate limit exceeded? | Apigee | 429 Too Many Requests |
-| ODS header matches ODS in token claims? | EPC Backend | 403 Forbidden (spoofing) |
-| User role permits this operation? (RBAC) | EPC Backend | 403 Forbidden (role) |
-| Caller ODS/Product ID matches resource owner? | EPC Backend | 403 Forbidden (ownership) |
-| Resource status allows this operation? | EPC Backend | 403 or 404 |
+The EPC backend is a serverless stack:
 
----
-
-### Routing rules
-
-| Path prefix | Handled by | Authentication | Purpose |
-|---|---|---|---|
-| `/$process-message` | BaRS Proxy (inside Apigee) | App-restricted | Send BaRS messages |
-| `/Appointment*` | BaRS Proxy (inside Apigee) | App-restricted | Manage appointments |
-| `/ServiceRequest*` | BaRS Proxy (inside Apigee) | App-restricted | Manage service requests |
-| `/DocumentReference*` | BaRS Proxy (inside Apigee) | App-restricted | Manage documents |
-| `/Slot` | BaRS Proxy (inside Apigee) | App-restricted | Query slots |
-| `/MessageDefinition` | BaRS Proxy (inside Apigee) | App-restricted | Get message definitions |
-| `/metadata` | BaRS Proxy (inside Apigee) | App-restricted | Capability statement (forwarded to receiving system) |
-| `/Endpoint*` | EPC backend (AWS) | App-restricted or CIS2 | Manage endpoints/templates |
-| `/HealthcareService*` | EPC backend (AWS) | App-restricted or CIS2 | Manage healthcare services |
-| `/List*` | EPC backend (AWS) | App-restricted or CIS2 | Manage endpoint ordering |
-
-### `/metadata` routing — resolved
-
-There are now **two separate `/metadata` endpoints** on two separate API products:
-
-| API | `/metadata` behaviour |
+| Component | Role |
 |---|---|
-| **BaRS API** (`/booking-and-referral/FHIR/R4/metadata`) | BaRS Proxy forwards the request to the **receiving system** (identified by `NHSD-Target-Identifier` header) and returns that system's CapabilityStatement. |
-| **EPC API** (`/endpoint-catalog/FHIR/R4/metadata`) | Returns the **EPC's own CapabilityStatement** describing the catalogue's supported resources, interactions, and search parameters. No `NHSD-Target-Identifier` needed. |
+| **EPC Keystore** | Holds the server certificate for mTLS termination |
+| **EPC Gateway** (AWS API Gateway) | Receives requests from Apigee (both BaRS Proxy and EPC Proxy paths), routes to Lambda |
+| **Lambda functions** | Business logic — CRUD, visibility filtering, template resolution, RBAC, ownership checks |
+| **DynamoDB** | Data store for Endpoints, Templates, HealthcareServices, Lists |
 
-This is a clean separation — BaRS `/metadata` is about the receiver, EPC `/metadata` is
-about the catalogue itself.
+### What the BaRS Proxy no longer does
 
----
+With this architecture, the BaRS Proxy has **no involvement** in EPC operations beyond
+consuming the GET endpoint for resolution:
 
-### The BaRS Proxy's internal EPC call
+| Responsibility | BaRS Proxy | EPC |
+|---|---|---|
+| Hosting EPC paths | ❌ No | ✅ Own API product |
+| Authenticating EPC consumers | ❌ No | ✅ Via EPC Proxy |
+| Authorising EPC writes | ❌ No | ✅ Lambda RBAC |
+| Storing endpoint data | ❌ No | ✅ DynamoDB |
+| Resolving endpoints for message routing | ✅ Yes (as consumer) | ✅ Serves the response |
 
-When the BaRS Proxy (inside Apigee) needs to resolve a target endpoint for routing:
+### S3 routing configuration — deprecated
 
-1. BaRS Proxy receives `POST /$process-message` with `NHSD-Target-Identifier` header
-2. Proxy decodes the target identifier to get the HealthcareService identifier
-3. Proxy calls `GET /Endpoint?HealthcareService.identifier={system}|{value}` on the EPC
-   (internal Apigee-to-AWS call using service credentials)
-4. EPC returns the matching active Endpoint(s)
-5. Proxy extracts the `address` from the first active Endpoint
-6. Proxy forwards the original message to that backend address
-
-This internal call uses Apigee's service-to-service credentials — it does not go through
-the external token validation flow again. The external consumer never sees this EPC lookup.
+The previous design included an S3-based routing configuration database used by the BaRS
+Proxy. This is now **deprecated** (marked with ✗ in the diagram). The BaRS Proxy resolves
+endpoints by calling the EPC API directly, not by reading from a local configuration store.
 
 ---
 
 ### Key distinction
 
 - **BaRS Proxy (inside Apigee)** — handles runtime messaging traffic. Receives BaRS
-  messages, resolves the target endpoint via an internal EPC call, forwards to the
-  backend receiver. Consumer-facing for messaging operations.
+  messages, resolves the target endpoint via a GET call to the EPC, forwards to the
+  backend receiver. The BaRS Proxy is a **consumer** of the EPC, nothing more.
 
-- **EPC API (AWS backend)** — handles catalog management. CRUD on endpoints, templates,
-  healthcare services, and ordering lists. Called directly by admin tools, supplier
-  systems, and DoS. Also called internally by the BaRS Proxy for endpoint resolution.
+- **EPC Proxy (inside Apigee)** — handles authentication and header injection for
+  external EPC consumers (suppliers, admin tools). Routes to the EPC backend.
+
+- **EPC Backend (AWS)** — handles catalog management. CRUD on endpoints, templates,
+  healthcare services, and ordering lists. Serves both internal consumers (BaRS Proxy)
+  and external consumers (via EPC Proxy).
 
 ---
 

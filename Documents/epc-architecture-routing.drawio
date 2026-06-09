@@ -1,0 +1,163 @@
+<mxfile host="app.diagrams.net" modified="2026-06-09T00:00:00.000Z" agent="Kiro" version="21.0.0">
+  <diagram name="EPC Architecture and Routing" id="epc-arch-routing">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Background: Apigee (APIM Team) -->
+        <mxCell id="apigee-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FF8F00;arcSize=5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="180" width="1000" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="apigee-label" value="APIGEE (APIM Team)" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="185" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Background: EPC (AWS) -->
+        <mxCell id="epc-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;arcSize=5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="1000" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="epc-label" value="Endpoint Catalogue (EPC) — AWS" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="565" width="280" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- External Actors -->
+        <mxCell id="sender" value="Sender" style="shape=mxgraph.basic.rect;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="80" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="receiver" value="Receiver" style="shape=mxgraph.basic.rect;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="80" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="endpoint-supplier" value="Endpoint&#xa;Supplier" style="shape=mxgraph.basic.rect;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="740" y="80" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- BaRS Proxy -->
+        <mxCell id="bars-proxy" value="BaRS Proxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="160" y="310" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Apigee Keystore -->
+        <mxCell id="apigee-keystore" value="Apigee keystore&#xa;(client cert for&#xa;mTLS to EPC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="370" y="260" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- EPC Proxy (in Apigee) -->
+        <mxCell id="epc-proxy" value="EPC Proxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="310" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Auth annotations for EPC Proxy -->
+        <mxCell id="auth-get" value="JWT Authentication&#xa;App-restricted for GET&#xa;(supplier reads, automation)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="880" y="250" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="auth-cis2" value="CIS2 Authentication&#xa;User-restricted for&#xa;POST/PUT/DELETE&#xa;(admin writes)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="880" y="320" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Auth path annotation -->
+        <mxCell id="auth-path-note" value="GET → app-restricted auth path&#xa;POST/PUT/DELETE → CIS2 auth path" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="195" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- S3 routing config (crossed out) -->
+        <mxCell id="s3-config" value="S3 — routing&#xa;configuration&#xa;database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="430" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-x" value="✗" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;fontColor=#CC0000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="395" width="30" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Trusted headers annotation -->
+        <mxCell id="trusted-headers" value="Apigee injects trusted headers:&#xa;— NHSD-Client-Id, NHSD-Product-Id, NHSD-Scope (from app-restricted tokens)&#xa;— NHSD-User-Id, NHSD-User-Role (from CIS2 tokens)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#FF8F00;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="430" width="470" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ODS validation annotation -->
+        <mxCell id="ods-validation" value="ODS header vs token validation (TBD: Apigee or EPC?)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#FF8F00;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="400" y="490" width="470" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- EPC Components -->
+        <mxCell id="epc-keystore" value="EPC keystore&#xa;(server cert)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="270" y="620" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="epc-gateway" value="EPC Gateway&#xa;(AWS API GW)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="470" y="620" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda" value="Lambda&#xa;functions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="470" y="710" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dynamodb" value="DynamoDB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF59D;strokeColor=#F9A825;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="710" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Connection labels -->
+        <mxCell id="get-label" value="GET&#xa;mTLS and/or API-Key" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="370" width="120" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: Sender → BaRS Proxy -->
+        <mxCell id="edge-sender-bars" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="sender" target="bars-proxy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: BaRS Proxy → Receiver -->
+        <mxCell id="edge-bars-receiver" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="bars-proxy" target="receiver">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="250" />
+              <mxPoint x="390" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Arrows: BaRS Proxy → EPC Gateway (GET for endpoint resolution) -->
+        <mxCell id="edge-bars-epc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;" edge="1" parent="1" source="bars-proxy" target="epc-gateway">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="530" />
+              <mxPoint x="540" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Arrows: Endpoint Supplier → EPC Proxy -->
+        <mxCell id="edge-supplier-epc-proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="endpoint-supplier" target="epc-proxy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: EPC Proxy → EPC Gateway -->
+        <mxCell id="edge-epc-proxy-gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="epc-proxy" target="epc-gateway">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="530" />
+              <mxPoint x="540" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Arrows: EPC Gateway → Lambda -->
+        <mxCell id="edge-gateway-lambda" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="epc-gateway" target="lambda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: Lambda → DynamoDB -->
+        <mxCell id="edge-lambda-dynamo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" parent="1" source="lambda" target="dynamodb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: EPC Keystore → EPC Gateway -->
+        <mxCell id="edge-keystore-gateway" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;" edge="1" parent="1" source="epc-keystore" target="epc-gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: Apigee Keystore → BaRS Proxy -->
+        <mxCell id="edge-apigee-keystore-bars" style="edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;" edge="1" parent="1" source="apigee-keystore" target="bars-proxy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
