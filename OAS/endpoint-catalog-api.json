@@ -1269,7 +1269,7 @@
       "X-Correlation-Id": {
         "name": "X-Correlation-Id",
         "in": "header",
-        "required": false,
+        "required": true,
         "description": "A UUID for end-to-end tracing across multiple systems. Mirrored back in the response.",
         "schema": {
           "type": "string",
