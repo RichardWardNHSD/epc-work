@@ -13,9 +13,9 @@ reordering, no FHIR guarantee of preservation). Explicit metadata is required.
 
 | Option | Mechanism | Status |
 |--------|-----------|--------|
-| **Option A** | Separate FHIR `List` resource with ordered `entry[]` array | Current design |
-| **Option B** | API auto-applies List order in responses (implicit List — server does the heavy lifting) | Proposed enhancement to Option A |
-| **Option C** | Custom `endpoint-priority` extension on the Endpoint resource | Not recommended (see limitations) |
+| **Option A** | Separate FHIR `List` resource with ordered `entry[]` array | ✅ Adopted |
+| **Option B** | API auto-applies List order in responses (implicit List — server does the heavy lifting) | Future requirement (builds on Option A) |
+| **Option C** | Custom `endpoint-priority` extension on the Endpoint resource | ❌ Not adopted (see limitations) |
 
 ---
 
@@ -459,7 +459,7 @@ Returns the updated `List` resource.
 ## DELETE /List/{id} — Remove a list
 
 Removes the priority ordering for a HealthcareService. After deletion, consumers fall back to
-the unordered results from `GET /Endpoint` or `GET /HealthcareService?_include=HealthcareService:endpoint`.
+the unordered results from `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}`.
 
 ### Request
 
@@ -481,15 +481,15 @@ NHSD-End-User-Organisation-ODS: A1001
 ### When no list exists
 
 If a service has no priority list, `GET /List?subject=HealthcareService/{id}` returns an empty
-Bundle (`total: 0`). Consumers should fall back to the unordered results from `GET /Endpoint`
-or `GET /HealthcareService?_include=HealthcareService:endpoint`.
+Bundle (`total: 0`). Consumers should fall back to the unordered results from
+`GET /Endpoint?_has:HealthcareService:endpoint:_id={id}`.
 
 ### Two-call pattern (Endpoints + HealthcareService metadata)
 
 When the consumer needs both the ordered Endpoints and the HealthcareService metadata:
 
 1. `GET /List?subject=HealthcareService/{id}&status=current` — get the ordered Endpoint references
-2. `GET /HealthcareService?_id={id}&_include=HealthcareService:endpoint` — get the service and all its Endpoints
+2. `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}` — get all active Endpoints for the service
 
 Apply the order client-side by iterating `List.entry[]` and resolving each reference against the
 Endpoints returned in step 2. Any Endpoint in step 2 that does not appear in the List is appended
@@ -510,9 +510,9 @@ The response Bundle contains the `List` (mode: `match`) and all referenced `Endp
 
 | Consumer need | Recommended pattern | Calls |
 |---------------|---------------------|-------|
-| Ordered Endpoints + HealthcareService metadata | `GET /List?subject=...` then `GET /HealthcareService?_id=...&_include=HealthcareService:endpoint`, order client-side | 2 |
+| Ordered Endpoints + HealthcareService metadata | `GET /List?subject=...` then `GET /Endpoint?_has:HealthcareService:endpoint:_id=...`, order client-side. Fetch `GET /HealthcareService/{id}` separately if service metadata is needed. | 2–3 |
 | Ordered Endpoints only | `GET /List?subject=...&_include=List:item`, order by `List.entry[]` | 1 |
-| Unordered Endpoints + HealthcareService metadata | `GET /HealthcareService?_id=...&_include=HealthcareService:endpoint` | 1 |
+| Unordered Endpoints only | `GET /Endpoint?_has:HealthcareService:endpoint:_id=...` | 1 |
 | Check if a custom order exists | `GET /List?subject=...` — if `total: 0`, fall back to unordered search | 1 |
 
 ---
@@ -523,8 +523,7 @@ The `List` resource complements rather than replaces the existing ADR-114 search
 
 | Pattern | Returns | Ordered? | Use when |
 |---------|---------|----------|----------|
-| `GET /HealthcareService?_id=&_include=HealthcareService:endpoint` | HealthcareService + Endpoints | No | You need service metadata alongside endpoints |
-| `GET /Endpoint?_has:HealthcareService:endpoint:_id=` | Endpoints only | No | You only need endpoint details |
+| `GET /Endpoint?_has:HealthcareService:endpoint:_id=` | Endpoints only | No | You only need endpoint details (unordered) |
 | `GET /List?subject=HealthcareService/{id}&_include=List:item` | List + Endpoints | **Yes** | You need endpoints in a defined priority order |
 
 No changes are required to the existing `/Endpoint` or `/HealthcareService` paths.
@@ -1337,6 +1336,10 @@ the correct priority sequence without any client-side ordering logic.
 
 # Option C: Priority Extension on Endpoint Resource
 
+> **❌ Not adopted.** This option was evaluated but not selected due to fundamental
+> architectural limitations (Endpoints shared across multiple HealthcareServices cannot
+> carry per-service priority values). Retained below for reference only.
+
 ## Context
 
 This document presents an alternative approach to endpoint ordering in the Endpoint Catalog.
@@ -1791,26 +1794,28 @@ type filtering as orthogonal concerns.
 
 ### Decision Factors
 
-The options are not mutually exclusive:
+> **Decision: Option A adopted. Option B is a future enhancement. Option C is not adopted.**
 
-- **Option A + B together** is the recommended production path: List for storage and admin
-  management, implicit ordering for consumers. This gives the best of both worlds — FHIR
-  conformance for the data model, simplest possible consumer experience.
+- **Option A** (FHIR List resource) is the adopted implementation. It provides explicit,
+  FHIR-conformant priority ordering that consumers can query directly. This is the current
+  design and is being implemented.
 
-- **Option C** has a fundamental architectural limitation: because Endpoints can be shared
-  across multiple HealthcareServices, a single priority extension value on the Endpoint
-  cannot express different priorities for different services. This makes Option C
-  **unsuitable for the EPC data model** without significant workarounds (e.g. duplicating
-  Endpoints per service, or using a complex multi-valued extension scoped by service).
-  Combined with the Template model issue (Endpoint doesn't know its own connectionType),
-  Option C is not recommended.
+- **Option B** (implicit ordering — API auto-applies List order in responses) is a planned
+  **future enhancement** that builds on Option A. When implemented, consumers will receive
+  Endpoints pre-sorted without needing to query the List separately. The List resource
+  still exists as the storage mechanism and for admin management — Option B simply adds
+  server-side ordering to consumer-facing responses.
+
+- **Option C** (priority extension on Endpoint resource) is **not adopted** due to a
+  fundamental architectural limitation: Endpoints can be shared across multiple
+  HealthcareServices, so a single priority extension value on the Endpoint cannot express
+  different priorities for different services. Combined with the Template model (Endpoint
+  doesn't hold its own connectionType), Option C is unsuitable for the EPC data model.
 
 ### Next Steps
 
-| # | Action | Owner |
-|---|--------|-------|
-| 1 | Confirm whether priority should be global or per connection type | Architecture / DoS leads |
-| 2 | Take Option C to IOPS for a second opinion on extension approach vs List | Architecture |
-| 3 | Confirm extension URL namespace if Option C is adopted | IOPS / FHIR governance |
-| 4 | Validate DoS requirements — do they need anything beyond simple numeric ranking? | DoS leads |
-| 5 | If Option A+B is chosen, implement implicit ordering in the Lambda | Development team |
+| # | Action | Owner | Status |
+|---|--------|-------|--------|
+| 1 | Confirm whether priority should be global or per connection type | Architecture / DoS leads | Open |
+| 2 | Implement Option A List operations in the Lambda | Development team | In progress |
+| 3 | Plan Option B (implicit ordering in GET /Endpoint responses) as a future iteration | Architecture | Future |
