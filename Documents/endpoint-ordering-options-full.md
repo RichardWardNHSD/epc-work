@@ -776,6 +776,18 @@ with an empty `entry[]`. The List is ready to be populated when Endpoints are ad
 
 ## Ordering, connectionType and payloadType
 
+> **`GET /List` does not support `connectionType` or `payloadType` filtering.** This is because:
+>
+> 1. The `List` resource is a pure ordering mechanism — it holds references to Endpoints
+>    by ID, with no knowledge of what type each Endpoint is.
+> 2. `connectionType` and `payloadType` are properties of the Endpoint (resolved from its
+>    parent Template at read time). They are not properties of the List or its entries.
+> 3. FHIR `_include` has no filter mechanism — when `_include=List:item` is used, all
+>    referenced Endpoints are returned regardless of their type.
+>
+> Consumers needing both ordering and type filtering must use the two-step pattern
+> described below.
+
 ### The core tension
 
 The `List` resource expresses a single priority order across **all** Endpoints for a
