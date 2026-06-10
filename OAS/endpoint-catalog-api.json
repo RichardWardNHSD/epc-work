@@ -268,16 +268,16 @@
     "/HealthcareService": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "get": {
@@ -296,15 +296,6 @@
           },
           {
             "$ref": "#/components/parameters/HealthcareServiceIdentifier_QParam"
-          },
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
           }
         ],
         "responses": {
@@ -340,17 +331,7 @@
         "requestBody": {
           "$ref": "#/components/requestBodies/HealthcareService"
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       }
     },
     "/HealthcareService/{id}": {
@@ -359,16 +340,16 @@
           "$ref": "#/components/parameters/HealthcareServiceIdentifier_PParam"
         },
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "get": {
@@ -389,17 +370,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "put": {
         "tags": [
@@ -422,17 +393,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "delete": {
         "tags": [
@@ -452,32 +413,22 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       }
     },
     "/Endpoint": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "get": {
@@ -499,15 +450,6 @@
           },
           {
             "$ref": "#/components/parameters/PayloadType_QParam"
-          },
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
           }
         ],
         "responses": {
@@ -543,32 +485,22 @@
         "requestBody": {
           "$ref": "#/components/requestBodies/Endpoint"
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       }
     },
     "/Endpoint/$template": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "get": {
@@ -587,15 +519,6 @@
           },
           {
             "$ref": "#/components/parameters/PayloadType_QParam"
-          },
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
           }
         ],
         "responses": {
@@ -631,17 +554,7 @@
         "requestBody": {
           "$ref": "#/components/requestBodies/EndpointTemplate"
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       }
     },
     "/Endpoint/{id}": {
@@ -650,16 +563,16 @@
           "$ref": "#/components/parameters/EndpointIdentifier_PParam"
         },
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "get": {
@@ -680,17 +593,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "put": {
         "tags": [
@@ -713,17 +616,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "delete": {
         "tags": [
@@ -743,17 +636,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       }
     },
     "/Endpoint/{id}/$template": {
@@ -762,16 +645,16 @@
           "$ref": "#/components/parameters/EndpointIdentifier_PParam"
         },
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "put": {
@@ -795,17 +678,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "delete": {
         "tags": [
@@ -825,32 +698,22 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       }
     },
     "/List": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "post": {
@@ -874,17 +737,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "get": {
         "tags": [
@@ -931,15 +784,6 @@
               ],
               "example": "List:item"
             }
-          },
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
           }
         ],
         "responses": {
@@ -968,16 +812,16 @@
           }
         },
         {
-          "$ref": "#/components/parameters/RequestId_HParam"
+          "$ref": "#/components/parameters/X-Request-Id"
         },
         {
-          "$ref": "#/components/parameters/CorrelationId_HParam"
+          "$ref": "#/components/parameters/X-Correlation-Id"
         },
         {
           "$ref": "#/components/parameters/AcceptEPC_HParam"
         },
         {
-          "$ref": "#/components/parameters/RequestingOrganisationODS_HParam"
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
         }
       ],
       "get": {
@@ -998,17 +842,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "put": {
         "tags": [
@@ -1034,17 +868,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       },
       "delete": {
         "tags": [
@@ -1064,17 +888,7 @@
             "$ref": "#/components/responses/5XX"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
-          },
-          {
-            "$ref": "#/components/parameters/X-Request-Id"
-          },
-          {
-            "$ref": "#/components/parameters/X-Correlation-Id"
-          }
-        ]
+        "parameters": []
       }
     }
   },
@@ -1333,28 +1147,6 @@
       }
     },
     "parameters": {
-      "RequestId_HParam": {
-        "name": "X-Request-Id",
-        "description": "The X-Request-Id for the request header, when supplied, mirrored back by the receiver.",
-        "required": true,
-        "in": "header",
-        "schema": {
-          "type": "string",
-          "format": "uuid",
-          "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
-        }
-      },
-      "CorrelationId_HParam": {
-        "name": "X-Correlation-Id",
-        "description": "The X-Correlation-Id for the request header, when supplied, mirrored back by the receiver.",
-        "required": true,
-        "in": "header",
-        "schema": {
-          "type": "string",
-          "format": "uuid",
-          "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
-        }
-      },
       "AcceptEPC_HParam": {
         "name": "Accept",
         "description": "The Accept header must specify the type of content the requester can process.",
@@ -1441,16 +1233,6 @@
         "allowEmptyValue": false,
         "schema": {
           "$ref": "#/components/schemas/GUID"
-        }
-      },
-      "RequestingOrganisationODS_HParam": {
-        "name": "NHSD-End-User-Organisation-ODS",
-        "description": "The ODS code of the end-user organisation making the request.",
-        "in": "header",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "example": "A1001"
         }
       },
       "ServiceId_QParam": {
