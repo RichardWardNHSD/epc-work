@@ -208,6 +208,20 @@ Despite deferring the full DR plan, the MVP is not unprotected:
 |---|---|
 | **Defer full DR plan from MVP; retain PITR + inherent resilience** | Serverless architecture provides inherent multi-AZ resilience. PITR provides continuous data backup. The EPC holds configuration data (not clinical), so the impact of temporary unavailability is limited. Full DR (multi-region, tested procedures, scheduled exercises) is delivered as part of production readiness before wider rollout. |
 
+> ⚠️ **Engineering Red Lines compliance:** The MVP without the full DR plan (tested
+> runbooks, confirmed RPO/RTO, scheduled DR exercises, backup retention alignment) is
+> **not compliant** with the NHS England Engineering CoE Red Lines Backup Scenario
+> requirements. A **let (exemption)** must be obtained from the Engineering CoE before
+> go-live, acknowledging that:
+>
+> - DR testing has not been conducted
+> - RPO/RTO targets have not been formally confirmed with the service owner
+> - Backup retention periods have not been validated against Red Lines minimum requirements
+> - Service tier classification (Gold/Silver) has not been agreed
+>
+> The let should be time-bound (e.g. 3 months post-MVP go-live) with a commitment to
+> deliver the full DR plan within that window.
+
 ---
 
 ## When to deliver
