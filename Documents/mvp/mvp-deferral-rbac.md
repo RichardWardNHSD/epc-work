@@ -5,6 +5,15 @@
 
 ---
 
+## Requirement references
+
+| Requirement | Description |
+|---|---|
+| EPCSe Requirements V1.8 §5.0 | Role definitions and access control model for the Endpoint Catalog |
+| EPCSe006 | Provision of Audit — audit trail must capture who made changes |
+
+---
+
 ## Purpose
 
 This document analyses the deferral of Role-Based Access Control (RBAC) from the EPC MVP.

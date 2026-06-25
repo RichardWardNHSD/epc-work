@@ -5,6 +5,14 @@
 
 ---
 
+## Requirement references
+
+| Requirement | Description |
+|---|---|
+| EPCFUNC-06 | Endpoint ordering — expressing communication preference for multi-protocol services |
+
+---
+
 ## Purpose
 
 This document analyses the deferral of Endpoint ordering via the FHIR List resource from

@@ -5,6 +5,17 @@
 
 ---
 
+## Requirement references
+
+| Requirement | Description |
+|---|---|
+| EPC-NF06 | Audit all access attempts and actions, forward to CSOC |
+| EPC-NF07 | Operational logging for incident troubleshooting, forward to ITOC |
+| EPC-NF08 | Intentional log events conforming to agreed design |
+| EPC-NF09 | Platinum service class for APIs |
+
+---
+
 ## Purpose
 
 This document analyses the deferral of ODIN-based observability from the EPC MVP. The

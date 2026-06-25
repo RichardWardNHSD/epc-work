@@ -5,6 +5,15 @@
 
 ---
 
+## Requirement references
+
+| Requirement | Description |
+|---|---|
+| EPC-NF09 | Platinum service class — availability, resilience, and recovery expectations |
+| NHS England Engineering CoE Red Lines Backup Scenario | Organisational minimum requirements for backup frequency, recovery testing, and RPO/RTO |
+
+---
+
 ## Purpose
 
 This document analyses the deferral of the full disaster recovery plan from the EPC MVP.

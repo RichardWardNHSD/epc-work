@@ -5,6 +5,14 @@
 
 ---
 
+## Requirement references
+
+| Requirement | Description |
+|---|---|
+| EPCSe001 AC4 | "Set the status to private" — private Endpoint address visibility control |
+
+---
+
 ## Purpose
 
 This document analyses the deferral of the `header: private` address redaction feature
