@@ -14,6 +14,14 @@ be delivered.
 
 ## MVP scope
 
+> ⚠️ **The MVP is for internal use only.** External consumers (suppliers, third-party
+> systems) must not be granted write access to the EPC until RBAC and the full DR plan
+> are in place. Without RBAC, there is no fine-grained access control to prevent an
+> external party from performing operations beyond their intended scope. Without DR
+> compliance, the service does not meet the operational assurance bar required for
+> external-facing production APIs. Internal consumers (BaRS Proxy read-only lookups,
+> R&M team operational writes) can operate safely within the MVP auth model.
+
 The EPC MVP delivers:
 
 | Capability | Detail |
