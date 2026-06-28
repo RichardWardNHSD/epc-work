@@ -22,8 +22,6 @@ how soft-deleting a parent resource affects its child records.
 
 > **Note:** The List resource does not have a soft delete mechanism. Lists are deleted
 > outright (`DELETE /List/{id}`) or have their entries removed via `PUT /List/{id}`.
-> Lists are deferred from MVP — see
-> [MVP Deferral — Endpoint Ordering](./mvp/mvp-deferral-endpoint-ordering.md).
 
 ---
 
