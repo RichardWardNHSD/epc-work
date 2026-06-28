@@ -66,7 +66,7 @@ When a Template is soft-deleted (`status` set to `entered-in-error`):
 |---|---|
 | Template status | Set to `entered-in-error` |
 | Child Endpoint status | **NOT automatically changed** — child Endpoints retain their current status |
-| Child Endpoint visibility | **Immediately hidden from consumers** — the visibility rule requires *both* Endpoint status = `active` AND Template status = `active`. If the Template is not active, all children are invisible regardless of their own status. |
+| Child Endpoint visibility | **Immediately hidden from consumers** — the visibility rule requires *both* Endpoint status = `active` AND Template status = `active`. If the Template is not active, all children are invisible regardless of their own status. **Exception:** the managing organisation (owner) can always see their Endpoints regardless of status — the visibility filter does not apply to owners. |
 | Child Endpoint data | **Unchanged** — no fields on child Endpoints are modified |
 | HealthcareService references | **Unchanged** — HealthcareServices still reference the child Endpoints, but those Endpoints are now invisible to consumers |
 
@@ -178,7 +178,7 @@ When a HealthcareService is soft-deleted (`active` set to `false`):
 |---|---|
 | HealthcareService active | Set to `false` |
 | Referenced Endpoints | **NOT changed** — Endpoint status and period are unaffected |
-| Endpoint visibility | **Immediately hidden from consumers** — the visibility rule requires `HealthcareService.active = true`. If the service is inactive, all its Endpoints are invisible to consumer queries via that service. |
+| Endpoint visibility | **Immediately hidden from consumers** — the visibility rule requires `HealthcareService.active = true`. If the service is inactive, all its Endpoints are invisible to consumer queries via that service. **Exception:** the managing organisation (owner) can always see their Endpoints regardless of the HealthcareService's active status. |
 | Endpoint availability via other services | **Unaffected** — if the same Endpoint is referenced by another active HealthcareService, it remains visible through that other service |
 | Template | **Unchanged** |
 | List (if exists) | **Unchanged** — the List still references the HealthcareService, but queries via the inactive service return nothing |
@@ -237,6 +237,12 @@ An Endpoint is visible to consumers only when **all** of the following are true:
 4. Current time is within Endpoint `period` (if set)
 
 Soft-deleting any one of the first three breaks the chain and hides the Endpoint.
+
+> **Owner exception:** The managing organisation (the owner of the Template/Endpoint)
+> can **always** see their resources regardless of status, period, or HealthcareService
+> active state. Visibility filtering only applies to non-owner consumers. This ensures
+> owners can manage the lifecycle of their resources — reactivate, troubleshoot, and
+> review — even when those resources are hidden from consumers.
 
 ---
 
