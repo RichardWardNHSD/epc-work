@@ -69,7 +69,7 @@ refinement, implementation, testing, and documentation — not just coding.
 
 ---
 
-## Time saved by deferrals
+## Effort saved by deferrals
 
 | Deferral | Size |
 |---|---|
