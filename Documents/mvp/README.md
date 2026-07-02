@@ -71,17 +71,15 @@ refinement, implementation, testing, and documentation — not just coding.
 
 ## Time saved by deferrals
 
-| Deferral | Size | Sprints saved |
-|---|---|---:|
-| RBAC | L | 5–6 |
-| Observability (ODIN) | M | 3–4 |
-| Endpoint Ordering (List) | M | 3–4 |
-| Disaster Recovery | S | 1–2 |
-| Private Endpoint Redaction | S | 1–2 |
-| **Total** | | **13–18 sprints** |
+| Deferral | Size |
+|---|---|
+| RBAC | L |
+| Observability (ODIN) | M |
+| Endpoint Ordering (List) | M |
+| Disaster Recovery | S |
+| Private Endpoint Redaction | S |
 
-**Elapsed time saved:** approximately 4–6 months (accounting for some parallelisation
-across deferrals).
+**Elapsed time saved:** to be provided by supplier.
 
 The biggest saving is not sprint count alone — it is the removal of **external
 dependencies** that are outside the EPC team's control:

@@ -212,7 +212,7 @@ If the R&M support infrastructure is not delivered with MVP:
 | Elevated rate limit (API product) | Apigee configuration | One-time setup | Request from platform team |
 | CloudWatch alarm (batch failure rate) | CloudWatch | Terraform | Standard alarm |
 
-**Total estimated effort:** S–M (2–3 sprints)
+
 
 This covers the Lambda development, S3 configuration, Apigee onboarding, error handling,
 results reporting, and testing. The CSV formats are already defined in the operational
