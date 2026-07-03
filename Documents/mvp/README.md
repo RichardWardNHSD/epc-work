@@ -36,7 +36,6 @@ The EPC MVP delivers:
 | Audit | Application-level audit trail (client_id, ODS code, operation, timestamp) |
 | Observability | CloudWatch Logs, Metrics, Alarms, Dashboards, X-Ray tracing |
 | R&M support infrastructure | CSV-to-API processing pipeline enabling the R&M team to perform daily switches and bulk operations |
-| Data migration | Migration of existing endpoint configuration data from the current SPoA/endpoint solution into the EPC. Includes data mapping, validation, reconciliation, and cutover planning to ensure continuity of service routing. |
 
 For detail on the R&M support infrastructure, see
 [R&M Support Infrastructure](./mvp-rm-support-infrastructure.md).
@@ -117,6 +116,7 @@ the core value proposition or creating unacceptable risk.
 | **Status and period-based visibility filtering** | EPCFUNC-31, EPCFUNC-32, EPCFUNC-33, EPCFUNC-14 | Ensures consumers only see active, valid Endpoints. Without filtering, suspended, expired, or errored Endpoints would be returned — causing routing failures for senders. |
 | **Infrastructure-as-code (Terraform)** | EPC-NF09 (Platinum service class)¹ | Reproducible environments are essential for deployment confidence and disaster recovery. Manual infrastructure is not acceptable for a production service. |
 | **R&M support infrastructure (CSV-to-API pipeline)** | Operational requirement | The R&M team is the primary write operator for MVP. Without the processing pipeline, they cannot perform daily supplier switches, endpoint activations, or bulk updates. The EPC delivers no operational value if the team that operates it has no tooling. See [R&M Support Infrastructure](./mvp-rm-support-infrastructure.md). |
+| **Data migration from existing endpoint solution** | Path to live | Migration of existing endpoint configuration data from the current endpoint solution into the EPC. Without migration, the EPC launches empty — no endpoints to resolve, no templates to manage, no service routing. Includes data mapping, validation, reconciliation, and cutover planning. This is a path-to-live activity, not a product capability. |
 
 > ¹ EPC-NF09 references the Platinum service class. In practice, the EPC would be
 > classified as **Gold** (consistent with the BaRS Proxy, which it directly supports).
