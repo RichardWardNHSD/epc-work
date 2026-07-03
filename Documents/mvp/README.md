@@ -36,6 +36,7 @@ The EPC MVP delivers:
 | Audit | Application-level audit trail (client_id, ODS code, operation, timestamp) |
 | Observability | CloudWatch Logs, Metrics, Alarms, Dashboards, X-Ray tracing |
 | R&M support infrastructure | CSV-to-API processing pipeline enabling the R&M team to perform daily switches and bulk operations |
+| Data migration | Migration of existing endpoint configuration data from the current SPoA/endpoint solution into the EPC. Includes data mapping, validation, reconciliation, and cutover planning to ensure continuity of service routing. |
 
 For detail on the R&M support infrastructure, see
 [R&M Support Infrastructure](./mvp-rm-support-infrastructure.md).
@@ -79,7 +80,7 @@ refinement, implementation, testing, and documentation — not just coding.
 | Disaster Recovery | S |
 | Private Endpoint Redaction | S |
 
-**Elapsed time saved:** to be provided by supplier.
+**Elapsed time saved:** *to be provided by supplier.*
 
 The biggest saving is not sprint count alone — it is the removal of **external
 dependencies** that are outside the EPC team's control:
