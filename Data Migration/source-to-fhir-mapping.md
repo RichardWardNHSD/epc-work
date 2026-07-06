@@ -254,7 +254,7 @@ WHERE e.DataStatus = 0
 | Source column | FHIR field | Transformation |
 |---------------|-----------|----------------|
 | `EndpointId` | — | Not sent to API; recorded in migration log as `source_id` |
-| `TemplateId` | — | Used to look up the `catalog_id` from Step 1 migration log → becomes the Template reference |
+| `TemplateId` | `basedOn[0].reference` | Look up `catalog_id` from Step 1 migration log → `"Endpoint/{catalog_id}"` |
 | — (resolved from Step 1 log) | `identifier[0].value` | The Product ID of the parent Template (resolved from Step 1) |
 | — | `identifier[0].system` | Static: `https://fhir.nhs.uk/id/product-id` |
 | `Active` | `status` | Map: `true` → `active`, `false` → `off` |
@@ -263,10 +263,16 @@ WHERE e.DataStatus = 0
 | — | `meta.profile[0]` | Static: `http://hl7.org/fhir/StructureDefinition/Endpoint` |
 | — | `meta.lastUpdated` | Runtime: current migration timestamp |
 
+> **Note:** The `basedOn` reference links the child Endpoint to its parent Template. This
+> is a standard FHIR reference — the EPC uses it to resolve inherited fields (`address`,
+> `connectionType`, `payloadType`, `managingOrganization`, `name`, `header`) from the
+> Template at read time. Child Endpoints only store `status`, `period`, and the `basedOn`
+> reference — all other fields are inherited.
+
 > **Note:** In the new EPC model, child Endpoints do **not** carry `address`,
 > `connectionType`, `payloadType`, `managingOrganization`, `name`, or `header` — these are
-> all inherited from the parent Template at read time. Only `status` and `period` are stored
-> on the child Endpoint.
+> all inherited from the parent Template at read time. Only `status`, `period`, and
+> `basedOn` are stored on the child Endpoint.
 
 #### Example: Source row → FHIR payload
 
@@ -294,6 +300,9 @@ ProductId: ygm04
   "identifier": [{
     "system": "https://fhir.nhs.uk/id/product-id",
     "value": "CegedimBaRS-v1.0.0"
+  }],
+  "basedOn": [{
+    "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
   }],
   "status": "active",
   "period": {
