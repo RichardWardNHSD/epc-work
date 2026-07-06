@@ -212,9 +212,12 @@ FH123,2000099999,PROD-PHARMOUTCOMES-001,PROD-CEGEDIM-001,2026-07-07
 
 > **Naming convention:** `epc-switches-YYYY-MM-DD.csv` (e.g., `epc-switches-2026-07-07.csv`)
 
-> **Validation before upload:** Confirm each `ServiceId` exists in the EPC (it must have a
-> HealthcareService record). Confirm the `NewProductId` has an active Endpoint Template.
-> Rows with invalid data will fail during processing.
+> **Validation is performed by the Lambda after upload:** The R&M team does not need to
+> pre-check that each `ServiceId` or `NewProductId` exists in the EPC. The Lambda validates
+> every row during processing — if a `ServiceId` has no matching HealthcareService, or the
+> `NewProductId` has no active Endpoint Template, the row is marked as `FAILED` in the
+> processing report with a descriptive error. The R&M team then corrects and re-submits
+> only the failed rows.
 
 ---
 
