@@ -142,7 +142,6 @@ resolves inherited fields from the parent Template.
 | `meta.profile` | Static | `http://hl7.org/fhir/StructureDefinition/Endpoint` |
 | `identifier[].system` | Static | `https://fhir.nhs.uk/id/product-id` |
 | `identifier[].value` | **CSV `ProductId`** | Links this Endpoint to its parent Template |
-| `basedOn` is not used | — | — |
 | `extension[].url` | Static | `http://hl7.org` |
 | `extension[].valueReference.reference` | **Step 2 output** | `Endpoint/{template-id}` — the `id` of the parent Template resolved in Step 2 |
 | `extension[].valueReference.display` | Static | `Parent Template Endpoint` |
@@ -316,6 +315,15 @@ NHSD-End-User-Organisation-ODS: R778
       "value": "PinnaclePharmOutcomes-v2024.12.12"
     }
   ],
+  "extension": [
+    {
+      "url": "http://hl7.org",
+      "valueReference": {
+        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+        "display": "Parent Template Endpoint"
+      }
+    }
+  ],
   "status": "suspended",
   "period": {
     "start": "2026-07-01T00:00:00+00:00"
@@ -325,13 +333,8 @@ NHSD-End-User-Organisation-ODS: R778
 
 #### Response — 200 OK
 
-Returns the updated Endpoint with the new status.
-
----
-
-### Setting a period end date
-
-To expire an Endpoint (e.g. ahead of a supplier switch), set `period.end`:
+Returns the updated Endpoint with the new status and all inherited fields resolved from
+the parent Template.
 
 ```json
 {
@@ -349,11 +352,170 @@ To expire an Endpoint (e.g. ahead of a supplier switch), set `period.end`:
       "value": "PinnaclePharmOutcomes-v2024.12.12"
     }
   ],
+  "extension": [
+    {
+      "url": "http://hl7.org",
+      "valueReference": {
+        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+        "display": "Parent Template Endpoint"
+      }
+    }
+  ],
+  "status": "suspended",
+  "period": {
+    "start": "2026-07-01T00:00:00+00:00"
+  },
+  "name": "Endpoint Template",
+  "connectionType": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+        "code": "hl7-fhir-rest",
+        "display": "HL7 FHIR"
+      }
+    ]
+  },
+  "payloadType": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+          "code": "bars",
+          "display": "BaRS"
+        }
+      ]
+    }
+  ],
+  "managingOrganization": [
+    {
+      "identifier": {
+        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+        "value": "R778"
+      }
+    }
+  ],
+  "address": "https://myService.nhs.uk/Base/Address",
+  "header": "public"
+}
+```
+
+---
+
+### Setting a period end date
+
+To expire an Endpoint (e.g. ahead of a supplier switch), set `period.end`:
+
+#### Request
+
+```http
+PUT /Endpoint/ep-a1b2c3d4-0000-0000-0000-111122223333 HTTP/1.1
+Host: sandbox.api.service.nhs.uk
+Content-Type: application/fhir+json;version=1.4.0
+Accept: application/fhir+json
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+X-Request-Id: h8i9j0k1-1111-2222-3333-444455556666
+X-Correlation-Id: i9j0k1l2-2222-3333-4444-555566667777
+NHSD-End-User-Organisation-ODS: R778
+```
+
+```json
+{
+  "resourceType": "Endpoint",
+  "id": "ep-a1b2c3d4-0000-0000-0000-111122223333",
+  "meta": {
+    "lastUpdated": "2026-06-18T14:00:00+00:00",
+    "profile": [
+      "http://hl7.org/fhir/StructureDefinition/Endpoint"
+    ]
+  },
+  "identifier": [
+    {
+      "system": "https://fhir.nhs.uk/id/product-id",
+      "value": "PinnaclePharmOutcomes-v2024.12.12"
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://hl7.org",
+      "valueReference": {
+        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+        "display": "Parent Template Endpoint"
+      }
+    }
+  ],
   "status": "active",
   "period": {
     "start": "2026-01-01T00:00:00+00:00",
     "end": "2026-06-30T23:59:59+00:00"
   }
+}
+```
+
+#### Response — 200 OK
+
+Returns the updated Endpoint with the period end date set and all inherited fields resolved.
+
+```json
+{
+  "resourceType": "Endpoint",
+  "id": "ep-a1b2c3d4-0000-0000-0000-111122223333",
+  "meta": {
+    "lastUpdated": "2026-06-18T14:00:00+00:00",
+    "profile": [
+      "http://hl7.org/fhir/StructureDefinition/Endpoint"
+    ]
+  },
+  "identifier": [
+    {
+      "system": "https://fhir.nhs.uk/id/product-id",
+      "value": "PinnaclePharmOutcomes-v2024.12.12"
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://hl7.org",
+      "valueReference": {
+        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+        "display": "Parent Template Endpoint"
+      }
+    }
+  ],
+  "status": "active",
+  "period": {
+    "start": "2026-01-01T00:00:00+00:00",
+    "end": "2026-06-30T23:59:59+00:00"
+  },
+  "name": "Endpoint Template",
+  "connectionType": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+        "code": "hl7-fhir-rest",
+        "display": "HL7 FHIR"
+      }
+    ]
+  },
+  "payloadType": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+          "code": "bars",
+          "display": "BaRS"
+        }
+      ]
+    }
+  ],
+  "managingOrganization": [
+    {
+      "identifier": {
+        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+        "value": "R778"
+      }
+    }
+  ],
+  "address": "https://myService.nhs.uk/Base/Address",
+  "header": "public"
 }
 ```
 
