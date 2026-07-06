@@ -3,7 +3,7 @@
 ## Overview
 
 An `Endpoint` resource represents a specific technical connection for a `HealthcareService`
-in the Endpoint Catalog. Each Endpoint is a child of an **Endpoint Template** — it inherits
+in the Endpoint Catalogue. Each Endpoint is a child of an **Endpoint Template** — it inherits
 the shared protocol characteristics (`connectionType`, `payloadType`, `address`, `name`,
 `header`, `managingOrganization`) from its parent Template and holds only two fields of its
 own: `status` and `period`.
@@ -20,7 +20,7 @@ lifecycle through status changes, period adjustments, and supplier switches.
 
 ## What is an Endpoint?
 
-In the Endpoint Catalog, a child Endpoint is a FHIR R4 `Endpoint` resource that carries:
+In the Endpoint Catalogue, a child Endpoint is a FHIR R4 `Endpoint` resource that carries:
 
 | Field | Source | Purpose |
 |-------|--------|---------|

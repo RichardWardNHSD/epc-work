@@ -2,7 +2,7 @@
 
 ## Overview
 
-A `HealthcareService` resource represents a clinical service in the Endpoint Catalog — for
+A `HealthcareService` resource represents a clinical service in the Endpoint Catalogue — for
 example, a pharmacy, an urgent treatment centre, or a GP practice offering a specific
 pathway. Each HealthcareService can have one or more `Endpoint` resources associated with
 it, describing how senders can connect to that service.
@@ -21,7 +21,7 @@ HealthcareService is what binds the child Endpoint to a specific service.
 
 ## What is a HealthcareService?
 
-In the Endpoint Catalog, a `HealthcareService` is a FHIR R4 resource that carries:
+In the Endpoint Catalogue, a `HealthcareService` is a FHIR R4 resource that carries:
 
 | Field | Purpose |
 |-------|---------|

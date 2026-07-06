@@ -179,8 +179,6 @@ There is no more:
 The BaRS Proxy reads directly from the EPC API — changes take effect immediately on
 successful API response.
 
-See [Managing Endpoints — Pharmacy Endpoint Switching](./manage-endpoint.md#pharmacy-endpoint-switching-supplier-switch)
-for the full technical process.
 
 ### New Daily Workflow — Step by Step
 

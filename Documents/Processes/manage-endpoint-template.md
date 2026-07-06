@@ -5,7 +5,7 @@
 A multi-tenanted supplier deploys a single instance of their system that serves many
 HealthcareServices simultaneously. All those services share the same technical endpoint — the
 same URL, connection type, and payload type. Rather than duplicating this data across every
-Endpoint record, the Endpoint Catalog uses an **Endpoint Template** as the single source of
+Endpoint record, the Endpoint Catalogue uses an **Endpoint Template** as the single source of
 truth.
 
 The run/maintain team creates one Template per supplier product. That Template is then used
