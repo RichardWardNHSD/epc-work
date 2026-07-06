@@ -128,7 +128,7 @@ resolves inherited fields from the parent Template.
 |------------|-----------------------|-------|
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 | `ProductId` | `identifier[].value` | Links to the parent Template |
-| `ProductId` | `basedOn[].reference` | Resolved via Step 2 — the Template `id` returned from the `$template` lookup |
+| `ProductId` | `extension[].valueReference.reference` | Resolved via Step 2 — the Template `id` returned from the `$template` lookup |
 | `Status` | `status` | Initial lifecycle state |
 | `PeriodStart` | `period.start` | Optional — omit if not set |
 | `PeriodEnd` | `period.end` | Optional — omit if not set |
@@ -142,15 +142,18 @@ resolves inherited fields from the parent Template.
 | `meta.profile` | Static | `http://hl7.org/fhir/StructureDefinition/Endpoint` |
 | `identifier[].system` | Static | `https://fhir.nhs.uk/id/product-id` |
 | `identifier[].value` | **CSV `ProductId`** | Links this Endpoint to its parent Template |
-| `basedOn[].reference` | **Step 2 output** | `Endpoint/{template-id}` — the `id` of the parent Template resolved in Step 2 |
+| `basedOn` is not used | — | — |
+| `extension[].url` | Static | `http://hl7.org` |
+| `extension[].valueReference.reference` | **Step 2 output** | `Endpoint/{template-id}` — the `id` of the parent Template resolved in Step 2 |
+| `extension[].valueReference.display` | Static | `Parent Template Endpoint` |
 | `status` | **CSV `Status`** | e.g. `active` |
 | `period.start` | **CSV `PeriodStart`** | Optional |
 | `period.end` | **CSV `PeriodEnd`** | Optional |
 
-> **Note:** The `basedOn` reference is how the EPC links a child Endpoint to its parent
-> Template. The EPC uses this reference to resolve inherited fields (`connectionType`,
-> `payloadType`, `address`, `name`, `header`, `managingOrganization`) from the Template at
-> read time. Do not include these inherited fields in the payload.
+> **Note:** The `extension` with URL `http://hl7.org` is how the EPC links a child
+> Endpoint to its parent Template. The EPC uses this reference to resolve inherited fields
+> (`connectionType`, `payloadType`, `address`, `name`, `header`, `managingOrganization`)
+> from the Template at read time. Do not include these inherited fields in the payload.
 
 #### Request
 
@@ -182,9 +185,13 @@ NHSD-End-User-Organisation-ODS: R778
       "value": "PinnaclePharmOutcomes-v2024.12.12"
     }
   ],
-  "basedOn": [
+  "extension": [
     {
-      "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
+      "url": "http://hl7.org",
+      "valueReference": {
+        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+        "display": "Parent Template Endpoint"
+      }
     }
   ],
   "status": "active",
@@ -215,9 +222,13 @@ resolved from the parent Template.
       "value": "PinnaclePharmOutcomes-v2024.12.12"
     }
   ],
-  "basedOn": [
+  "extension": [
     {
-      "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
+      "url": "http://hl7.org",
+      "valueReference": {
+        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+        "display": "Parent Template Endpoint"
+      }
     }
   ],
   "status": "active",
