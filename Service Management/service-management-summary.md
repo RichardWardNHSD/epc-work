@@ -1,214 +1,396 @@
-# EPC Service Management Summary
+# EPC Service Management — Summary & Gap Analysis
 
-## Overview
+## Purpose
 
-This document summarises the service management requirements and operational readiness
-position for the Endpoint Catalogue (EPC) API, based on the technical design documents
-and the draft service management requirements (V0.2).
+This document summarises the NHS England Service Management Requirements (Draft V0.2) and
+Runbook (Draft V0.2) for the Endpoint Catalogue (EPC), and cross-references them against
+the technical design documents already produced for the EPC build.
 
-> **Note:** This summary is derived from the technical architecture documents. The
-> authoritative service management requirements are in the accompanying `.docx` files
-> in this folder. This markdown summary provides a cross-reference between those
-> requirements and the technical design decisions already made.
+The goal is to identify:
 
----
+- What is already addressed by the technical design
+- What gaps remain between the requirements and the current build
+- What actions are needed to reach operational readiness
 
-## Service Classification
-
-| Aspect | Current Position | Open Action |
-|---|---|---|
-| **Service tier** | Targeting Silver/Tier 2 (99.9% availability) | Confirm with service owner — if Gold/Tier 1, multi-region required |
-| **Availability target** | 99.9% (≈8.7 hours downtime/year) | Needs formal sign-off |
-| **Planned maintenance windows** | Zero (serverless architecture) | Confirmed by design |
-| **Response time (P95)** | ≤ 150ms | Provisioned concurrency recommended to meet this |
-| **RPO** | < 5 minutes | Achieved via DynamoDB PITR |
-| **RTO** | < 30 minutes | Achieved via PITR restore + redeployment |
+> **Authoritative sources:** The `.docx` files in this folder are the formal requirements.
+> This markdown summary is a working cross-reference for the delivery team.
 
 ---
 
-## Operational Support Model
+## 1. Service Overview
 
-### Current State (Interim)
+The Endpoint Catalogue provides a central repository of endpoint and service metadata,
+enabling interoperability across NHS services. Although not user-facing, EPC is
+business-critical — failures directly impact service integration and data exchange
+(e.g. BaRS Proxy cannot route messages without it).
 
-| Aspect | Detail |
+---
+
+## 2. Support Model
+
+The requirements specify an identical model to BaRS Proxy API support:
+
+| Tier | Role | Responsibility |
+|------|------|----------------|
+| **1** | National Service Desk (NSD) | Logging, triage, initial engagement |
+| **2** | NHS England Service Management / Service Bridge | Coordination, escalation, oversight |
+| **3** | Accenture (Supplier) | Technical investigation and resolution |
+| **4** | NHS England BaRS Interoperability Team | Technical analysis / support to Tier 3 |
+
+**Support hours:** Core business hours as per SoW; Major Incident support 24×7.
+
+**Contact routes:** NSD (email/telephone) → ServiceNow portal → defined escalation.
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
 |---|---|
-| **Support team** | BaRS Run & Maintain (R&M) team |
-| **Support mechanism** | CSV → S3 → Lambda → API pipeline for bulk operations |
-| **Access model** | Application-restricted via Apigee (recommended); direct AWS API Gateway access (interim tactical) |
-| **Hours** | Business hours (on-call TBD) |
-| **Escalation** | National Service Desk → BaRS Programme (if required) |
-| **Self-service** | Not available — all changes via R&M team |
-
-### Target State
-
-| Aspect | Detail |
-|---|---|
-| **Support team** | Dedicated EPC support + supplier self-service |
-| **Access model** | App-restricted for automation, CIS2 for admin UI |
-| **Self-service** | Supplier self-service via admin UI (CIS2 authenticated) |
-| **Automation** | Supplier systems manage own endpoints via API |
+| Support model defined | ✅ Interim support process documented (R&M team) |
+| Target state (supplier self-service) | ✅ Documented in authorisation & admin UI designs |
+| Escalation paths | ⚠️ On-call rota and ITOC handover not yet defined |
 
 ---
 
-## Disaster Recovery
+## 3. Incident Management
 
-| Mechanism | Purpose | RPO | RTO |
+### Priority and response
+
+All incidents must be logged in ServiceNow and prioritised by NHS England. Response and
+resolution targets follow the BaRS Proxy OLAs.
+
+### Alerting and incident creation rules
+
+This is the most operationally significant section. KPI-based alerting uses three states:
+
+| State | Meaning |
+|-------|---------|
+| **Normal** | Within acceptable parameters |
+| **High** | Threshold breached — degradation detected |
+| **Critical** | Severe degradation or failure |
+
+**A ServiceNow Incident is created ONLY when severity increases:**
+
+| Transition | Action |
+|---|---|
+| Normal → High | Create incident (Runbook Action 2) |
+| Normal → Critical | Create incident (Runbook Action 2) |
+| High → Critical | Create incident (Runbook Action 2) |
+
+**No incident is created when alert level stays the same or decreases:**
+
+| Transition | Action |
+|---|---|
+| Normal → Normal, High → High, Critical → Critical | Notification only (Runbook Action 1) |
+| Critical → High, Critical → Normal, High → Normal | Notification only (Runbook Action 1) |
+
+### KPI documentation requirements
+
+Each KPI must be documented in Confluence with:
+
+- Unique name (used in ServiceNow short description)
+- Full description
+- Frequency and timeframe analysed
+- Thresholds for Normal / High / Critical
+- Supported by a Key Operating Procedure (KOP) for ITOC
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| Alerting thresholds defined | ⚠️ Technical alarms exist (5XX rate, latency, etc.) but not yet mapped to the Normal/High/Critical state model |
+| KPI unique names defined | ❌ Not yet — need formal KPI naming scheme |
+| Confluence documentation of each KPI | ❌ Not yet started |
+| State transition logic (only escalate on worsening) | ❌ Not implemented — current alarms fire on threshold breach without state tracking |
+| KOP for ITOC | ❌ Not yet written |
+
+**Gap:** The technical design defines CloudWatch/ODIN alerts that fire on threshold
+breaches, but the requirements need a **stateful alerting model** where incidents are
+only raised on worsening transitions. This likely requires either ODIN alerting rules
+with state tracking or custom logic in the alert pipeline.
+
+---
+
+## 4. Runbook Actions
+
+The Runbook defines two actions triggered by KPI state transitions:
+
+### Action 1 — Notification Only (no change / improving)
+
+Triggered when alert state remains the same or improves. Actions:
+
+1. **Teams message** to `[ BaRS ] KPI and ServiceNow alerts` channel containing:
+   - Full date/time of alert
+   - Alert level prior → alert level attained + KPI name
+   - Threshold value / current value
+
+2. **Email** to `England.sm.CellTwo@nhs.net` with:
+   - Subject: `{prior level} - {current level}: KPI Episode Update: ITOC - APIM - EPC (BARS) -- {KPI name}`
+   - Body: service details, KPI description, current value, links
+
+### Action 2 — Create Incident (worsening)
+
+Triggered when alert severity increases. Actions:
+
+1. **ServiceNow Incident creation** (directly via ODIN if supported, otherwise email to
+   `ssd.nationalservicedesk@nhs.net`, cc `England.sm.CellTwo@nhs.net`):
+   - Service: BaRS - Booking and Referral Standard
+   - Service Offering: BaRS EndPoint Catalogue (EPC)
+   - Assignment Group: ITO BaRS Service Management
+   - Impact and Urgency: Priority 5
+   - Body: service, KPI name, description, current value
+
+2. **Teams message** to `[ BaRS ] KPI and ServiceNow alerts` (same format as Action 1)
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| ODIN integration for ServiceNow creation | ❌ ODIN capabilities for this not yet confirmed |
+| Email-based incident creation fallback | ❌ Not implemented |
+| Teams channel notifications | ❌ Not implemented |
+| Runbook procedures documented | ⚠️ DR runbook exists; operational runbook per these actions does not |
+
+**Gap:** The runbook actions are entirely process/tooling-dependent on ODIN or an
+integration layer. If ODIN cannot create ServiceNow incidents directly, an email-based
+fallback is needed. Neither path is currently built.
+
+---
+
+## 5. Major Incident Management
+
+Declared when EPC is unavailable or severely degraded, multiple consumers impacted, or
+endpoint data issues affect integrations at scale.
+
+- Service Bridge leads coordination
+- Bridge calls established as required
+- Accenture, BaRS Service Management, and Clinical representation required
+- Post Incident Review (PIR) mandatory
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| DR plan supports rapid recovery | ✅ PITR, Lambda rollback, Terraform redeploy documented |
+| Monitoring detects major incidents | ✅ Critical alarms (5XX rate, no traffic) defined |
+| Bridge call attendance defined | ⚠️ Process — not a technical deliverable |
+
+---
+
+## 6. Change & Release Management
+
+Standard RFC process — identical to BaRS Proxy. All changes require:
+
+- Description, justification, implementation plan
+- Risk/impact analysis, backout plan, test plan
+- Comms plan (if required), planned start/end date
+- CAB/ECAB approval where required
+
+Emergency changes permitted with Service Owner or EDM approval.
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| CI/CD with manual promotion gate | ✅ Documented in DR and deployment design |
+| Rollback capability | ✅ Lambda alias swap, API GW stage rollback |
+| Infrastructure-as-code | ✅ Terraform |
+| Pre-deployment backups | ✅ On-demand DynamoDB backup in pipeline |
+
+---
+
+## 7. Service Level Management
+
+SLAs must cover:
+
+- API availability
+- Response times
+- Error rates
+
+Continuous monitoring required, with SLA breach analysis in monthly Service Review Packs.
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| Availability monitoring | ✅ CloudWatch/ODIN alarms defined |
+| Response time monitoring (P90/P95) | ✅ Latency metrics and alarms defined |
+| Error rate monitoring | ✅ 4XX/5XX rate metrics defined |
+| SLA breach reporting | ❌ No automated SLA breach report exists |
+| Monthly reporting pack | ❌ Not a technical deliverable — process TBD |
+
+---
+
+## 8. Monitoring & Observability
+
+### Requirements summary
+
+| Area | Requirement |
+|------|-------------|
+| Coverage | Availability, error rates, latency, integration health, overall EPC health |
+| Dashboards | Key metrics, detailed analysis capability, component-level visibility |
+| Alerting | Automated on threshold breach, ServiceNow routing, noise reduction |
+| Event handling | Logged, traceable, service-impacting events generate incidents |
+| Thresholds | Agreed with NHS England, aligned to service impact, automatic and near real-time |
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| Availability monitoring | ✅ |
+| Error rate monitoring | ✅ |
+| Latency monitoring | ✅ |
+| Dashboards (Grafana/CloudWatch) | ✅ Designed (ODIN-first and CloudWatch approaches) |
+| Component-level visibility | ✅ Per-Lambda, per-table metrics |
+| Metric extraction for NHS England analysis | ⚠️ Depends on ODIN access — TBD |
+| Alerting → ServiceNow | ❌ Integration not built (see Runbook gap above) |
+| Traceability: alert → incident → root cause | ⚠️ Trace IDs in logs support this, but the ServiceNow linkage is not automated |
+
+---
+
+## 9. Service Continuity & Resilience (BCDR)
+
+### Requirements summary
+
+- Define and maintain RTO and RPO
+- DR arrangements documented, tested, aligned to criticality
+- Backup and restore in place
+- Monitoring integrated with service management for rapid detection and recovery
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| RPO defined (< 5 min) | ✅ Achieved via DynamoDB PITR |
+| RTO defined (< 30 min) | ✅ Achievable via PITR restore + redeploy |
+| DR documented | ✅ Full disaster-recovery.md |
+| DR tested | ❌ First test not yet scheduled |
+| Multi-region (if Gold) | ✅ Designed but not enabled — awaiting tier decision |
+| Backup & restore | ✅ PITR + on-demand backups |
+
+---
+
+## 10. Security & Audit
+
+### Requirements summary
+
+- Audit logging of endpoint create/update/delete, metadata changes, access/activity
+- Logs include timestamp, identity, action, outcome
+- Secure storage, access-controlled, protected from modification
+- Encrypted at rest and in transit
+- Retention per NHS Records Management Policy
+- Authorised users can view, search, filter, extract, and correlate log data
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| Audit table capturing who/what/when | ✅ `epc-audit` DynamoDB table designed |
+| Identity captured (app/user) | ✅ App-restricted: client_id, Product ID, ODS. CIS2: user UUID, role, org |
+| Secure storage | ✅ DynamoDB encrypted at rest (AWS KMS) |
+| Retention (365 days min) | ✅ Audit log retention set to 365 days |
+| Search/filter/extract capability | ⚠️ Available via ODIN/Loki or CloudWatch Insights — no dedicated audit UI |
+| Protection from modification | ✅ Write-once pattern in DynamoDB (no update/delete on audit records) |
+
+### Audit gap (interim)
+
+The interim tactical support process (direct AWS access bypassing Apigee) captures only
+IAM role identity, not application/user identity. The recommended CSV → Apigee path
+resolves this.
+
+---
+
+## 11. Documentation Requirements
+
+Accenture must provide and maintain:
+
+| Area | Content required |
+|------|-----------------|
+| Observability | Tools, dashboards, metrics, thresholds, alerting behaviour |
+| Audit | Logging approach, data structure, retention, access methods |
+| Service behaviour | Endpoint lifecycle, filtering logic, expected behaviours |
+| Limitations | Known constraints on supportability, integrations, performance |
+
+### Alignment with technical design
+
+| Requirement | Technical design status |
+|---|---|
+| Observability documentation | ✅ Two detailed observability docs (CloudWatch + ODIN) |
+| Audit documentation | ✅ Audit architecture documented |
+| Service behaviour | ✅ Endpoint lifecycle, visibility, filtering all documented |
+| Limitations documented | ⚠️ Partially — some known constraints noted in open questions |
+
+---
+
+## 12. Key Gaps Summary
+
+| # | Gap | Severity | Notes |
+|---|-----|----------|-------|
+| 1 | **Stateful KPI alerting model** — current alarms fire on threshold breach, requirements need state transition tracking (only create incidents on worsening) | High | May need ODIN alerting rules or custom state logic |
+| 2 | **KPI naming and Confluence documentation** — each KPI needs a unique name, description, thresholds formally documented | Medium | Process task — can start now |
+| 3 | **ServiceNow integration** — no automated path from alert to ServiceNow incident creation | High | Depends on ODIN capability or email fallback |
+| 4 | **Teams notifications** — runbook requires messages to BaRS KPI channel | Medium | Integration needed (ODIN → Teams or custom webhook) |
+| 5 | **ITOC KOP** — Key Operating Procedure for ITOC not yet written | Medium | Process document |
+| 6 | **On-call rota and escalation path** — not defined | Medium | Delivery/operational decision |
+| 7 | **SLA breach reporting** — no automated report for Service Review Packs | Low | Can be built from ODIN/CloudWatch data |
+| 8 | **First DR test** — not yet scheduled | Medium | Schedule quarterly |
+| 9 | **ODIN capabilities confirmation** — can ODIN create ServiceNow incidents directly? | High | Blocker for runbook automation |
+
+---
+
+## 13. Recommended Next Steps
+
+1. **Confirm ODIN capabilities** — specifically whether it can:
+   - Track alert state transitions (Normal/High/Critical)
+   - Create ServiceNow incidents directly on state worsening
+   - Send Teams channel notifications
+   - If not, define the integration architecture needed
+
+2. **Define KPIs formally** — create a KPI register with:
+   - Unique name per KPI (e.g. `EPC-4XX-RECV`, `EPC-5XX-RATE`, `EPC-LATENCY-P90`)
+   - Normal/High/Critical thresholds for each
+   - Frequency and analysis window
+   - Document in Confluence
+
+3. **Write the ITOC KOP** — what ITOC should check, when to escalate, who to contact
+
+4. **Define on-call rota** — who is on call, hours, escalation path
+
+5. **Schedule first DR test** — quarterly cadence, first test before or shortly after go-live
+
+6. **Build runbook automation** — once ODIN capabilities are confirmed, implement the
+   Action 1 (notify) and Action 2 (incident + notify) workflows
+
+7. **Agree service tier** — Gold vs Silver classification drives multi-region decision
+
+---
+
+## 14. Requirements vs Technical Design — Full Traceability
+
+| Req Section | Requirement | Design Doc | Status |
 |---|---|---|---|
-| **DynamoDB PITR** | Continuous backup; restore to any point in last 35 days | ~5 minutes | 15–30 minutes |
-| **On-Demand Backups** | Snapshot before deployments/schema changes | Zero (consistent snapshot) | 15–30 minutes |
-| **Deletion Protection** | Prevents accidental table deletion | N/A (preventive) | N/A |
-| **Infrastructure-as-Code (Terraform)** | Full environment reproducibility | N/A | Minutes (redeploy) |
-| **Multi-region (Global Tables)** | Regional failover (if Gold classification) | ~1 second | Minutes (DNS) |
-
-### DR Open Actions
-
-- Confirm RPO/RTO targets with service owner
-- Confirm service tier classification (Gold/Silver)
-- Decide on multi-region requirement
-- Schedule first quarterly DR test
-- Define on-call rota and escalation path
-
----
-
-## Observability and Monitoring
-
-| Layer | Tool | Purpose |
-|---|---|---|
-| **Logs** | CloudWatch Logs (structured JSON) | Operational troubleshooting, audit |
-| **Metrics** | CloudWatch Metrics + custom (EMF) | Latency, errors, throughput |
-| **Alerting** | CloudWatch Alarms → SNS | Team notifications, ITOC escalation |
-| **Tracing** | AWS X-Ray | Request tracing through API GW → Lambda → DynamoDB |
-| **Centralised** | ODIN (future) | Cross-service visibility |
-| **ITOC forwarding** | CloudWatch → (mechanism TBD) | Operational visibility for ITOC |
-| **CSOC** | Log export (format TBD) | Security monitoring |
-
-### Log Retention
-
-| Log type | Retention |
-|---|---|
-| Application logs | 90 days |
-| API Gateway access logs | 90 days |
-| Audit event logs | 365 days |
-
-### Key Alarms
-
-Expected alarm coverage (to be confirmed):
-- API error rate > threshold (5xx responses)
-- API latency P95 > 150ms
-- DynamoDB throttling events
-- Lambda concurrent execution > 80% of limit
-- Failed authentication attempts (potential abuse)
+| §4.1 Support Model | Tiered support (NSD → SM → Supplier → BaRS) | interim-support-process-access.md | ✅ |
+| §6.3 Alerting Rules | KPI state transitions drive incidents | observability-odin.md | ⚠️ Alarms exist but no state model |
+| §6.3 Alerting Rules | KPIs documented in Confluence | — | ❌ |
+| §11.1 Monitoring | Availability, errors, latency, integration health | observability.md / observability-odin.md | ✅ |
+| §11.2 Observability | Dashboards with analysis capability | observability-odin.md | ✅ |
+| §11.3 Alerting | Automated alerts, ServiceNow routing | observability-odin.md | ⚠️ Alerts exist, ServiceNow routing TBD |
+| §11.5 Thresholds | Agreed, documented, automatic, near real-time | observability-odin.md | ⚠️ Technical thresholds set, formal agreement TBD |
+| §12 BCDR | RPO/RTO defined, DR tested | disaster-recovery.md | ✅ (test pending) |
+| §14 Audit | Comprehensive audit logging | epc-audit architecture | ✅ |
+| §14.2 Log Storage | Secure, encrypted, retention per policy | observability.md | ✅ |
+| §14.3 Log Access | Search, filter, extract, correlate | ODIN/Loki or CloudWatch Insights | ⚠️ |
+| §17 Documentation | Observability, audit, behaviour, limitations | Multiple design docs | ✅ |
 
 ---
 
-## Audit
+## Document References
 
-| Aspect | Detail |
-|---|---|
-| **Audit store** | Dedicated `epc-audit` DynamoDB table |
-| **Retention** | 365 days minimum |
-| **What is captured** | Who made the change (app/user ID), what changed (resource + field-level diff), when, on whose behalf (ODS code) |
-| **Identity source (app-restricted)** | Application client_id, Product ID, ODS code (from token claims forwarded by Apigee) |
-| **Identity source (CIS2)** | Individual user UUID, role, organisation (from CIS2 token claims) |
-
-### Audit Gap (Interim Process)
-
-The interim tactical support process (direct AWS access, bypassing Apigee) has reduced
-audit quality — only IAM role identity is captured, not application/user identity.
-The recommended path (CSV → Apigee API calls) preserves full audit trail.
-
----
-
-## Incident Management
-
-| Severity | Example | Response target | Escalation |
-|---|---|---|---|
-| **P1 — Critical** | Full service unavailable, data loss | 15 minutes (acknowledge), 1 hour (resolve) | Immediate — on-call + service owner |
-| **P2 — High** | Degraded performance, partial functionality loss | 30 minutes (acknowledge), 4 hours (resolve) | Development team + service owner |
-| **P3 — Medium** | Single consumer affected, workaround available | Next business day | Development team |
-| **P4 — Low** | Minor issue, cosmetic, enhancement request | Planned sprint | Backlog |
-
-### Incident Routing
-
-| Source | Route |
-|---|---|
-| External consumer (supplier) | National Service Desk → BaRS Programme → EPC team |
-| Internal consumer (BaRS Proxy) | Automated alerting (CloudWatch Alarms) → EPC on-call |
-| Platform issue (Apigee/AWS) | ITOC → EPC team (if EPC-specific) |
-
----
-
-## Change Management
-
-| Change type | Approval | Deployment |
-|---|---|---|
-| **Standard change** (config, non-breaking) | Team lead approval | Automated CI/CD → INT → PROD |
-| **Normal change** (new feature, API change) | Architecture review + product owner | CI/CD with manual promotion gate |
-| **Emergency change** | Verbal approval, retrospective documentation | Direct deployment with immediate rollback plan |
-
-### Deployment Strategy
-
-- **Infrastructure**: Terraform (immutable, versioned)
-- **Code**: CI/CD pipeline (automated tests → INT → manual gate → PROD)
-- **Rollback**: Previous Lambda version alias swap (< 1 minute)
-- **Zero downtime**: Lambda aliases + API Gateway stage deployment
-
----
-
-## Data Management
-
-| Aspect | Detail |
-|---|---|
-| **Data store** | DynamoDB (on-demand, multi-AZ) |
-| **Backup** | PITR (continuous) + on-demand before changes |
-| **Data migration** | CSV → S3 → Lambda pipeline (run by R&M team) |
-| **Data ownership** | Templates/Endpoints owned by suppliers; HealthcareServices owned by providers |
-| **Deletion** | Soft delete (status → `entered-in-error`) preferred; hard delete requires System Admin role |
-
----
-
-## Dependencies
-
-| Dependency | Impact if unavailable | Mitigation |
-|---|---|---|
-| **Apigee** | No external requests reach EPC | None — Apigee is the gateway. Platform SLA applies. |
-| **DynamoDB** | No data reads or writes | Multi-AZ (built-in); multi-region (optional) |
-| **CloudWatch** | No monitoring/alerting | AWS SLA; manual health checks as fallback |
-| **BaRS Proxy** (consumer) | BaRS cannot resolve endpoints | EPC outage becomes a BaRS outage for message routing |
-| **CIS2** (for admin operations) | Admin users cannot authenticate | App-restricted path remains available for automated operations |
-
----
-
-## Runbook Coverage
-
-The following operational procedures should be documented in the runbook:
-
-| # | Procedure | Status |
-|---|---|---|
-| 1 | PITR restore from DynamoDB backup | Documented in DR design |
-| 2 | Lambda rollback to previous version | To document |
-| 3 | Emergency Terraform redeploy | To document |
-| 4 | Bulk endpoint update via CSV pipeline | Documented in interim support process |
-| 5 | Supplier switch (change HS → Endpoint association) | Documented in visibility/status design |
-| 6 | Endpoint decommissioning (status → off) | Documented in visibility design |
-| 7 | On-call escalation procedure | To define |
-| 8 | ITOC handover (what to check, what to escalate) | To define |
-| 9 | Consumer onboarding (adding a new API consumer) | Documented in onboarding guides |
-| 10 | Certificate renewal (EPC server cert for mTLS) | To document |
-
----
-
-## Open Actions (Service Management)
-
-| # | Action | Owner | Status |
-|---|---|---|---|
-| 1 | Confirm service tier (Gold/Silver) and availability target | Service owner | Open |
-| 2 | Define on-call rota and escalation path | Delivery lead | Open |
-| 3 | Schedule first quarterly DR test | Delivery lead | Open |
-| 4 | Confirm ITOC log forwarding mechanism | Platform team | Open |
-| 5 | Confirm ODIN onboarding timeline | ODIN team | Open |
-| 6 | Define log retention beyond 90 days (archive?) | Architecture | Open |
-| 7 | Confirm CSOC log forwarding requirements | Security | Open |
-| 8 | Complete runbook procedures (items 2, 3, 7, 8, 10 above) | Development team | Open |
-| 9 | Agree monitoring dashboards with ITOC | Development team / ITOC | Open |
-| 10 | Confirm P1/P2 response time SLAs with service owner | Service owner | Open |
+| Document | Version | Location |
+|----------|---------|----------|
+| Service Management Requirements | Draft V0.2 | This folder (.docx) |
+| Runbook | Draft V0.2 | This folder (.docx) |
+| Observability (CloudWatch) | Current | `../Documents/observability.md` |
+| Observability (ODIN-first) | Current | `../Documents/observability-odin.md` |
+| Disaster Recovery | Current | `../Documents/disaster-recovery.md` |
+| Interim Support Process | Current | `../Documents/interim-support-process-access.md` |
+| Audit Architecture | Current | `../Documents/epc-audit-architecture.drawio` |
