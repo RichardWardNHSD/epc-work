@@ -90,8 +90,84 @@ X-Correlation-Id: b2c3d4e5-2222-3333-4444-555566667777
 NHSD-End-User-Organisation-ODS: R778
 ```
 
-Extract the Template `id` from `entry[0].resource.id`. This is used as the parent reference
-when creating the child Endpoint.
+#### Response — 200 OK (Template found)
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 1,
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Endpoint",
+        "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+        "meta": {
+          "lastUpdated": "2026-05-08T10:00:00+00:00",
+          "profile": ["http://hl7.org/fhir/StructureDefinition/Endpoint"]
+        },
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/id/product-id",
+            "value": "PinnaclePharmOutcomes-v2024.12.12"
+          }
+        ],
+        "status": "active",
+        "name": "Endpoint Template",
+        "connectionType": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+              "code": "hl7-fhir-rest",
+              "display": "HL7 FHIR"
+            }
+          ]
+        },
+        "payloadType": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                "code": "bars",
+                "display": "BaRS"
+              }
+            ]
+          }
+        ],
+        "managingOrganization": [
+          {
+            "identifier": {
+              "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+              "value": "R778"
+            }
+          }
+        ],
+        "address": "https://myService.nhs.uk/Base/Address",
+        "header": "public"
+      },
+      "search": { "mode": "match" }
+    }
+  ]
+}
+```
+
+Extract the Template `id` from `entry[0].resource.id` — in this example,
+`5fce3e6a-ba37-4289-84d1-cc3ebdb992f5`. This is used as the `extension[].valueReference.reference`
+value when creating the child Endpoint in Step 4.
+
+#### Response — 200 OK (Template not found)
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 0,
+  "entry": []
+}
+```
+
+If no Template is found, the Endpoint cannot be created. The Template must be created first
+— see [Managing Endpoint Templates](./manage-endpoint-template.md).
 
 ---
 
@@ -112,8 +188,95 @@ X-Correlation-Id: d4e5f6g7-4444-5555-6666-777788889999
 NHSD-End-User-Organisation-ODS: R778
 ```
 
+#### Response — 200 OK (No existing Endpoint — safe to create)
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 0,
+  "entry": []
+}
+```
+
+Proceed to Step 4.
+
+#### Response — 200 OK (Endpoint already exists)
+
+```json
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 1,
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Endpoint",
+        "id": "ep-existing-0000-0000-0000-111122223333",
+        "meta": {
+          "lastUpdated": "2026-05-01T09:00:00+00:00",
+          "profile": ["http://hl7.org/fhir/StructureDefinition/Endpoint"]
+        },
+        "identifier": [
+          {
+            "system": "https://fhir.nhs.uk/id/product-id",
+            "value": "PinnaclePharmOutcomes-v2024.12.12"
+          }
+        ],
+        "extension": [
+          {
+            "url": "http://hl7.org",
+            "valueReference": {
+              "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+              "display": "Parent Template Endpoint"
+            }
+          }
+        ],
+        "status": "active",
+        "period": {
+          "start": "2026-01-01T00:00:00+00:00"
+        },
+        "name": "Endpoint Template",
+        "connectionType": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+              "code": "hl7-fhir-rest",
+              "display": "HL7 FHIR"
+            }
+          ]
+        },
+        "payloadType": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                "code": "bars",
+                "display": "BaRS"
+              }
+            ]
+          }
+        ],
+        "managingOrganization": [
+          {
+            "identifier": {
+              "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+              "value": "R778"
+            }
+          }
+        ],
+        "address": "https://myService.nhs.uk/Base/Address",
+        "header": "public"
+      },
+      "search": { "mode": "match" }
+    }
+  ]
+}
+```
+
 If an active Endpoint already exists with an overlapping period, **do not create a new
-one** — the API will return `409 Conflict`. Update the existing Endpoint instead.
+one** — attempting to do so will result in a `409 Conflict`. Update the existing Endpoint
+instead using `PUT /Endpoint/{id}` (see [Updating an Endpoint](#updating-an-endpoint)).
 
 ---
 
