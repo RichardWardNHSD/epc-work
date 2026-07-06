@@ -125,7 +125,7 @@ fixed values for this migration — they do not need to be extracted from the so
 | `payloadType[].coding[].system` | `http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc` |
 
 > ⚠️ **Product Id — construction mechanism not yet defined:** The existing database holds
-> only the **supplier name**, not a versioned product identifier. The Endpoint Catalog
+> only the **supplier name**, not a versioned product identifier. The Endpoint Catalogue
 > requires a `productId` in the format `{ProductName}-v{Version}` (e.g.
 > `PinnaclePharmOutcomes-v2024.12.12`), but the version component is not available in the
 > source data. A mechanism for constructing or obtaining the full `productId` during
@@ -133,6 +133,27 @@ fixed values for this migration — they do not need to be extracted from the so
 > Options may include: contacting suppliers directly for their product version, deriving a
 > version from a release date held elsewhere in the source system, or agreeing a placeholder
 > convention for the initial migration.
+
+> 🔴 **ACTION REQUIRED — NHS Team:** Before migration can proceed, the NHS team (R&M /
+> BaRS programme) must establish and agree the definitive Product ID for each supplier
+> present in the live data. This involves:
+>
+> 1. **Enumerate all suppliers** in the current EPC Tool / `targets.json` — produce a
+>    complete list of unique supplier names and their endpoint URLs.
+> 2. **Engage each supplier** to confirm their product name and current version number
+>    (or agree a versioning scheme if the supplier does not currently version their product).
+> 3. **Agree the Product ID format** — confirm whether the format is
+>    `{SupplierProduct}-v{Version}` (e.g., `PinnaclePharmOutcomes-v2024.12.12`) or an
+>    alternative convention.
+> 4. **Produce a Product ID mapping table** — a definitive lookup from supplier name (as
+>    held in the live data) to the agreed Product ID. This table is the input to the
+>    migration script for Step 1.
+> 5. **Publish the mapping** — make the agreed Product IDs available to the migration team
+>    and to suppliers (who will need them for ongoing self-service operations post-migration).
+>
+> **This is a blocking dependency.** No Templates can be created until the Product ID for
+> each supplier is confirmed. The migration script will use the mapping table to populate
+> `identifier[].value` for each Template.
 
 A Template is unique on the combination of `productId` + `connectionType` + `payloadType`.
 If the existing database contains multiple records with the same combination, only one
@@ -236,7 +257,7 @@ NHSD-End-User-Organisation-ODS: R778
 | `meta.lastUpdated` | Runtime | Current date/time — not the source record's date |
 | `meta.profile` | Static | `http://hl7.org/fhir/StructureDefinition/Endpoint` |
 | `identifier[].system` | Static | Always `https://fhir.nhs.uk/id/product-id` |
-| `identifier[].value` | Source ⚠️ | Product identifier from the existing database — **only supplier name is available; version component must be obtained via a yet-to-be-defined mechanism before migration can proceed** |
+| `identifier[].value` | Source ⚠️ | Product identifier from the existing database — **only supplier name is available; the NHS team must produce the Product ID mapping table (see ACTION REQUIRED above) before migration can proceed** |
 | `status` | Static | Always `active` for migration |
 | `name` | Static | Set to `Endpoint Template` |
 | `connectionType.coding[].system` | Static | `http://terminology.hl7.org/CodeSystem/endpoint-connection-type` |
