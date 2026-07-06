@@ -26,10 +26,10 @@ In the Endpoint Catalogue, a child Endpoint is a FHIR R4 `Endpoint` resource tha
 |-------|--------|---------|
 | `status` | Set by the run/maintain team or supplier | Operational lifecycle state (`active`, `suspended`, `off`, etc.) |
 | `period` | Set by the run/maintain team or supplier | Time-bounded validity window (`start` and/or `end`) |
+| `name` | Set by the run/maintain team | Human-readable name for the Endpoint (e.g., "Shirley Pharmacy BaRS Endpoint") |
 | `connectionType` | Inherited from Template | The technical protocol (e.g. `hl7-fhir-rest`) |
 | `payloadType` | Inherited from Template | The message standard (e.g. `bars`) |
 | `address` | Inherited from Template | The target URL |
-| `name` | Inherited from Template | Human-readable name |
 | `header` | Inherited from Template | Visibility (`public` or `private`) |
 | `managingOrganization` | Inherited from Template | The supplier organisation |
 
@@ -54,13 +54,14 @@ processing pipeline before Step 2 begins.
 | `ODSCode` | ODS code of the supplier organisation that owns the Template | Supplier | `R778` |
 | `ProductId` | Product ID identifying the parent Template | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
 | `ServiceId` | DoS Service ID of the HealthcareService this Endpoint serves | DoS / Commissioner | `2000099999` |
+| `Name` | Human-readable name for the Endpoint (optional) | Run/maintain | `Shirley Pharmacy BaRS Endpoint` |
 | `Status` | Initial status of the Endpoint | Run/maintain | `active` |
 | `PeriodStart` | Start date/time for the Endpoint's validity (optional) | Run/maintain | `2026-07-01T00:00:00+00:00` |
 | `PeriodEnd` | End date/time for the Endpoint's validity (optional) | Run/maintain | |
 
 ```csv
-ODSCode,ProductId,ServiceId,Status,PeriodStart,PeriodEnd
-R778,PinnaclePharmOutcomes-v2024.12.12,2000099999,active,2026-07-01T00:00:00+00:00,
+ODSCode,ProductId,ServiceId,Name,Status,PeriodStart,PeriodEnd
+R778,PinnaclePharmOutcomes-v2024.12.12,2000099999,Shirley Pharmacy BaRS Endpoint,active,2026-07-01T00:00:00+00:00,
 ```
 
 The CSV may contain multiple rows — one per Endpoint. Each row is processed independently.
@@ -292,6 +293,7 @@ resolves inherited fields from the parent Template.
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 | `ProductId` | `identifier[].value` | Links to the parent Template |
 | — | `extension[].valueReference.reference` | `Endpoint/{template-id}` — the Template `id` returned from the `$template` lookup in Step 2. This is not derived from the CSV; it comes from the API response in Step 2. |
+| `Name` | `name` | Human-readable name. If not provided in the CSV, derive as `"Endpoint for service {ServiceId}"` |
 | `Status` | `status` | Initial lifecycle state |
 | `PeriodStart` | `period.start` | Optional — omit if not set |
 | `PeriodEnd` | `period.end` | Optional — omit if not set |
@@ -308,14 +310,16 @@ resolves inherited fields from the parent Template.
 | `extension[].url` | Static | `http://hl7.org` |
 | `extension[].valueReference.reference` | **Step 2 output** | `Endpoint/{template-id}` — the `id` of the parent Template resolved in Step 2 |
 | `extension[].valueReference.display` | Static | `Parent Template Endpoint` |
+| `name` | **CSV `Name`** | Human-readable name. If not provided, derive as `"Endpoint for service {ServiceId}"` |
 | `status` | **CSV `Status`** | e.g. `active` |
 | `period.start` | **CSV `PeriodStart`** | Optional |
 | `period.end` | **CSV `PeriodEnd`** | Optional |
 
 > **Note:** The `extension` with URL `http://hl7.org` is how the EPC links a child
 > Endpoint to its parent Template. The EPC uses this reference to resolve inherited fields
-> (`connectionType`, `payloadType`, `address`, `name`, `header`, `managingOrganization`)
+> (`connectionType`, `payloadType`, `address`, `header`, `managingOrganization`)
 > from the Template at read time. Do not include these inherited fields in the payload.
+> The `name` field is set directly on the child Endpoint (not inherited).
 
 #### Request
 
@@ -356,6 +360,7 @@ NHSD-End-User-Organisation-ODS: R778
       }
     }
   ],
+  "name": "Shirley Pharmacy BaRS Endpoint",
   "status": "active",
   "period": {
     "start": "2026-07-01T00:00:00+00:00"
@@ -393,11 +398,11 @@ resolved from the parent Template.
       }
     }
   ],
+  "name": "Shirley Pharmacy BaRS Endpoint",
   "status": "active",
   "period": {
     "start": "2026-07-01T00:00:00+00:00"
   },
-  "name": "Endpoint Template",
   "connectionType": {
     "coding": [
       {
@@ -487,6 +492,7 @@ NHSD-End-User-Organisation-ODS: R778
       }
     }
   ],
+  "name": "Shirley Pharmacy BaRS Endpoint",
   "status": "suspended",
   "period": {
     "start": "2026-07-01T00:00:00+00:00"
@@ -524,6 +530,7 @@ the parent Template.
       }
     }
   ],
+  "name": "Shirley Pharmacy BaRS Endpoint",
   "status": "suspended",
   "period": {
     "start": "2026-07-01T00:00:00+00:00"
@@ -606,6 +613,7 @@ NHSD-End-User-Organisation-ODS: R778
       }
     }
   ],
+  "name": "Shirley Pharmacy BaRS Endpoint",
   "status": "active",
   "period": {
     "start": "2026-01-01T00:00:00+00:00",
@@ -643,12 +651,12 @@ Returns the updated Endpoint with the period end date set and all inherited fiel
       }
     }
   ],
+  "name": "Shirley Pharmacy BaRS Endpoint",
   "status": "active",
   "period": {
     "start": "2026-01-01T00:00:00+00:00",
     "end": "2026-06-30T23:59:59+00:00"
   },
-  "name": "Endpoint Template",
   "connectionType": {
     "coding": [
       {
