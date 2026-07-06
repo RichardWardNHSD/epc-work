@@ -128,7 +128,7 @@ resolves inherited fields from the parent Template.
 |------------|-----------------------|-------|
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 | `ProductId` | `identifier[].value` | Links to the parent Template |
-| `ProductId` | `extension[].valueReference.reference` | Resolved via Step 2 — the Template `id` returned from the `$template` lookup |
+| — | `extension[].valueReference.reference` | `Endpoint/{template-id}` — the Template `id` returned from the `$template` lookup in Step 2. This is not derived from the CSV; it comes from the API response in Step 2. |
 | `Status` | `status` | Initial lifecycle state |
 | `PeriodStart` | `period.start` | Optional — omit if not set |
 | `PeriodEnd` | `period.end` | Optional — omit if not set |
