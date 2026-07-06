@@ -182,36 +182,280 @@ successful API response.
 See [Managing Endpoints — Pharmacy Endpoint Switching](./manage-endpoint.md#pharmacy-endpoint-switching-supplier-switch)
 for the full technical process.
 
-### New daily workflow
+### New Daily Workflow — Step by Step
+
+---
+
+#### Step 1 — Prepare the Switch CSV
+
+Extract today's switches from the Master Switch Log (or receive them via an automated
+feed). Create a CSV file with the following structure:
+
+##### CSV columns
+
+| Column | Description | Source | Example |
+|--------|-------------|--------|---------|
+| `ODSCode` | ODS code of the pharmacy | Master Switch Log | `FQ024` |
+| `ServiceId` | DoS Service ID (the `Pharm+ DoS Service ID` column) | Master Switch Log | `2000110743` |
+| `OldProductId` | Product ID of the outgoing supplier's Endpoint Template | Master Switch Log / EPC | `PROD-CEGEDIM-001` |
+| `NewProductId` | Product ID of the incoming supplier's Endpoint Template | Master Switch Log / EPC | `PROD-PHARMOUTCOMES-001` |
+| `SwitchDate` | Effective date of the switch | Master Switch Log | `2026-07-07` |
+
+##### Example CSV file
+
+```csv
+ODSCode,ServiceId,OldProductId,NewProductId,SwitchDate
+FQ024,2000110743,PROD-CEGEDIM-001,PROD-PHARMOUTCOMES-001,2026-07-07
+FKV30,2000017778,PROD-POSITIVE-001,PROD-PHARMOUTCOMES-001,2026-07-07
+FH123,2000099999,PROD-PHARMOUTCOMES-001,PROD-CEGEDIM-001,2026-07-07
+```
+
+> **Naming convention:** `epc-switches-YYYY-MM-DD.csv` (e.g., `epc-switches-2026-07-07.csv`)
+
+> **Validation before upload:** Confirm each `ServiceId` exists in the EPC (it must have a
+> HealthcareService record). Confirm the `NewProductId` has an active Endpoint Template.
+> Rows with invalid data will fail during processing.
+
+---
+
+#### Step 2 — Upload the CSV to the S3 Processing Bucket
+
+Upload the CSV to the designated S3 bucket. This triggers the Lambda processing pipeline
+automatically.
+
+##### Using the AWS CLI
+
+```bash
+aws s3 cp epc-switches-2026-07-07.csv \
+  s3://epc-switch-processing-prod/incoming/epc-switches-2026-07-07.csv
+```
+
+##### Using the AWS Console
+
+1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/`
+2. Click **Upload**
+3. Select the CSV file
+4. Click **Upload**
+
+> **What happens on upload:** The S3 `PutObject` event triggers the
+> `epc-switch-processor` Lambda function. The Lambda reads the CSV and processes each
+> row independently.
+
+---
+
+#### Step 3 — Lambda Processing (Automated)
+
+The `epc-switch-processor` Lambda function executes the following for **each row** in the
+CSV:
+
+##### 3a — Locate the HealthcareService
+
+The Lambda calls the EPC API to find the pharmacy's HealthcareService using the DoS
+Service ID:
+
+```http
+GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000110743 HTTP/1.1
+Host: api.service.nhs.uk
+Accept: application/fhir+json
+Authorization: Bearer {lambda-service-token}
+X-Request-Id: {auto-generated-uuid}
+X-Correlation-Id: {batch-correlation-id}
+NHSD-End-User-Organisation-ODS: X26
+```
+
+The Lambda extracts:
+- The HealthcareService `id` (e.g., `9f2c6f12-1a6d-4d9c-a111-123456789abc`)
+- The current `endpoint[]` array (to confirm the old Endpoint is referenced)
+
+##### 3b — Locate the new supplier's Endpoint
+
+The Lambda looks up the new supplier's Endpoint using the `NewProductId`:
+
+```http
+GET /Endpoint?identifier=https://fhir.nhs.uk/id/product-id|PROD-PHARMOUTCOMES-001&ConnectionType=http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest&PayloadType=http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars HTTP/1.1
+Host: api.service.nhs.uk
+Accept: application/fhir+json
+Authorization: Bearer {lambda-service-token}
+X-Request-Id: {auto-generated-uuid}
+X-Correlation-Id: {batch-correlation-id}
+NHSD-End-User-Organisation-ODS: X26
+```
+
+The Lambda extracts the new Endpoint `id` (e.g., `ep-new-supplier-001`).
+
+> **If the Endpoint does not exist:** The row is marked as `FAILED — Endpoint not found`
+> in the processing report. No changes are made.
+
+##### 3c — Update the HealthcareService endpoint reference
+
+The Lambda issues a `PUT /HealthcareService/{id}` to replace the old Endpoint reference
+with the new one:
+
+```http
+PUT /HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc HTTP/1.1
+Host: api.service.nhs.uk
+Content-Type: application/fhir+json;version=1.4.0
+Accept: application/fhir+json
+Authorization: Bearer {lambda-service-token}
+X-Request-Id: {auto-generated-uuid}
+X-Correlation-Id: {batch-correlation-id}
+NHSD-End-User-Organisation-ODS: X26
+```
+
+```json
+{
+  "resourceType": "HealthcareService",
+  "id": "9f2c6f12-1a6d-4d9c-a111-123456789abc",
+  "meta": {
+    "lastUpdated": "2026-07-07T09:00:00+00:00",
+    "profile": [
+      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+    ]
+  },
+  "identifier": [
+    {
+      "system": "https://fhir.nhs.uk/Id/dos-service-id",
+      "value": "2000110743"
+    },
+    {
+      "system": "https://fhir.nhs.uk/id/product-id",
+      "value": "PROD-PHARMOUTCOMES-001"
+    }
+  ],
+  "active": true,
+  "name": "Shirley Pharmacy",
+  "providedBy": {
+    "identifier": {
+      "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+      "value": "FQ024"
+    }
+  },
+  "endpoint": [
+    {
+      "reference": "Endpoint/ep-new-supplier-001"
+    }
+  ]
+}
+```
+
+> **Note:** The `identifier[]` array includes both the DoS Service ID and the **new**
+> Product ID. This transfers delegated authority to the new supplier in the same atomic
+> operation.
+
+##### 3d — Response handling
+
+| API Response | Lambda Action |
+|--------------|---------------|
+| `200 OK` | Row marked as `SUCCESS` in processing report |
+| `404 Not Found` (HealthcareService) | Row marked as `FAILED — Service not found` |
+| `404 Not Found` (Endpoint) | Row marked as `FAILED — Endpoint not found` |
+| `409 Conflict` | Row marked as `FAILED — Conflict` (e.g., concurrent update) |
+| `4XX` other | Row marked as `FAILED — {error detail from OperationOutcome}` |
+| `5XX` | Row marked as `RETRY` — Lambda retries up to 3 times with exponential backoff |
+
+##### 3e — Processing report
+
+After all rows are processed, the Lambda writes a report to S3:
+
+```
+s3://epc-switch-processing-prod/reports/epc-switches-2026-07-07-report.csv
+```
+
+Report CSV structure:
+
+```csv
+ODSCode,ServiceId,OldProductId,NewProductId,SwitchDate,Status,Detail
+FQ024,2000110743,PROD-CEGEDIM-001,PROD-PHARMOUTCOMES-001,2026-07-07,SUCCESS,
+FKV30,2000017778,PROD-POSITIVE-001,PROD-PHARMOUTCOMES-001,2026-07-07,SUCCESS,
+FH123,2000099999,PROD-PHARMOUTCOMES-001,PROD-CEGEDIM-001,2026-07-07,FAILED,Endpoint not found for PROD-CEGEDIM-001
+```
+
+---
+
+#### Step 4 — Review the Processing Report
+
+The R&M team retrieves the processing report from S3:
+
+```bash
+aws s3 cp \
+  s3://epc-switch-processing-prod/reports/epc-switches-2026-07-07-report.csv \
+  ./epc-switches-2026-07-07-report.csv
+```
+
+Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/`
+
+##### Action on results
+
+| Status | Action |
+|--------|--------|
+| `SUCCESS` | No action needed — switch is live immediately |
+| `FAILED — Service not found` | Confirm DoS Service ID is correct; check if HealthcareService needs to be created |
+| `FAILED — Endpoint not found` | Confirm the new supplier's Product ID is correct and their Endpoint Template + Endpoint exist |
+| `FAILED — Conflict` | Investigate concurrent modification; re-submit the row |
+| `RETRY` (exhausted) | Escalate to development team — likely an infrastructure issue |
+
+##### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-switches-2026-07-07-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/epc-switches-2026-07-07-fixes.csv
+```
+
+The pipeline will re-process only those rows.
+
+---
+
+#### Step 5 — Verify (Optional)
+
+For high-confidence verification, the R&M team can query the EPC API directly to confirm
+a switch has taken effect:
+
+```http
+GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000110743&_include=HealthcareService:endpoint HTTP/1.1
+Host: api.service.nhs.uk
+Accept: application/fhir+json
+Authorization: Bearer {token}
+```
+
+The response should show the HealthcareService with the new supplier's Endpoint in the
+`endpoint[]` array. The BaRS Proxy will use this Endpoint immediately for routing.
+
+---
+
+#### Summary: New Process at a Glance
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  NEW DAILY SWITCH PROCESS (EPC API)                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. Prepare the switch CSV                                      │
-│     └── Extract today's switches from the Master Switch Log     │
-│         (or receive them via an automated feed)                 │
-│     └── CSV columns: ODSCode, ServiceId, OldProductId,          │
-│         NewProductId, SwitchDate                                │
+│  R&M Team                        AWS Infrastructure             │
+│  ─────────                        ──────────────────            │
 │                                                                 │
-│  2. Upload the CSV to the processing S3 bucket                  │
-│     └── The upload triggers the automated processing pipeline   │
+│  1. Create CSV from Master       ─── upload ──►  S3 Bucket      │
+│     Switch Log                                   (incoming/)    │
+│                                                      │          │
+│                                                      ▼          │
+│                                              Lambda triggered    │
+│                                              (epc-switch-       │
+│                                               processor)        │
+│                                                      │          │
+│                                          For each row:          │
+│                                          ┌───────────────────┐  │
+│                                          │ GET /HC Service   │  │
+│                                          │ GET /Endpoint     │  │
+│                                          │ PUT /HC Service   │  │
+│                                          └───────────────────┘  │
+│                                                      │          │
+│                                                      ▼          │
+│  4. Download and review          ◄── writes ──  S3 Bucket       │
+│     processing report                            (reports/)     │
 │                                                                 │
-│  3. Pipeline executes each switch:                              │
-│     a. Locates the HealthcareService by DoS Service ID          │
-│     b. Locates the new supplier's Endpoint by Product ID        │
-│     c. Updates the HealthcareService endpoint[] reference        │
-│     d. Updates the Product ID identifier (delegated authority)  │
-│     e. Logs the result (success / failure / conflict)           │
-│                                                                 │
-│  4. Review the processing report                                │
-│     └── Successful switches: no further action                  │
-│     └── Failed switches: investigate and re-submit or escalate  │
-│                                                                 │
-│  5. (Future) Eliminate the spreadsheet entirely                  │
-│     └── The EPC API becomes the system of record for switch     │
-│         state — no manual spreadsheet update needed             │
+│  5. Re-submit any failures                                      │
+│     (corrected CSV)                                             │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
