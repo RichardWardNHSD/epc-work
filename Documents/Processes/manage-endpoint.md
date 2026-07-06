@@ -128,6 +128,7 @@ resolves inherited fields from the parent Template.
 |------------|-----------------------|-------|
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 | `ProductId` | `identifier[].value` | Links to the parent Template |
+| `ProductId` | `basedOn[].reference` | Resolved via Step 2 — the Template `id` returned from the `$template` lookup |
 | `Status` | `status` | Initial lifecycle state |
 | `PeriodStart` | `period.start` | Optional — omit if not set |
 | `PeriodEnd` | `period.end` | Optional — omit if not set |
@@ -141,13 +142,15 @@ resolves inherited fields from the parent Template.
 | `meta.profile` | Static | `http://hl7.org/fhir/StructureDefinition/Endpoint` |
 | `identifier[].system` | Static | `https://fhir.nhs.uk/id/product-id` |
 | `identifier[].value` | **CSV `ProductId`** | Links this Endpoint to its parent Template |
+| `basedOn[].reference` | **Step 2 output** | `Endpoint/{template-id}` — the `id` of the parent Template resolved in Step 2 |
 | `status` | **CSV `Status`** | e.g. `active` |
 | `period.start` | **CSV `PeriodStart`** | Optional |
 | `period.end` | **CSV `PeriodEnd`** | Optional |
 
-> **Note:** Do not include `connectionType`, `payloadType`, `address`, `name`, `header`,
-> or `managingOrganization` in the payload — these are inherited from the Template and
-> resolved at read time.
+> **Note:** The `basedOn` reference is how the EPC links a child Endpoint to its parent
+> Template. The EPC uses this reference to resolve inherited fields (`connectionType`,
+> `payloadType`, `address`, `name`, `header`, `managingOrganization`) from the Template at
+> read time. Do not include these inherited fields in the payload.
 
 #### Request
 
@@ -179,6 +182,11 @@ NHSD-End-User-Organisation-ODS: R778
       "value": "PinnaclePharmOutcomes-v2024.12.12"
     }
   ],
+  "basedOn": [
+    {
+      "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
+    }
+  ],
   "status": "active",
   "period": {
     "start": "2026-07-01T00:00:00+00:00"
@@ -205,6 +213,11 @@ resolved from the parent Template.
     {
       "system": "https://fhir.nhs.uk/id/product-id",
       "value": "PinnaclePharmOutcomes-v2024.12.12"
+    }
+  ],
+  "basedOn": [
+    {
+      "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
     }
   ],
   "status": "active",
