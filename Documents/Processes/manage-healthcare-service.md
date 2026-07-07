@@ -107,6 +107,9 @@ aws s3 cp epc-healthcareservices-2026-07-07.csv \
 
 ### Lambda processing (automated)
 
+> **Note:** Lambda names used in this document (e.g., `epc-healthcareservice-processor`)
+> are illustrative examples and may not reflect the actual deployed Lambda function names.
+
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
 CSV:
 
