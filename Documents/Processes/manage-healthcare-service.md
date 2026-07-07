@@ -68,6 +68,19 @@ The CSV may contain multiple rows — one per service. Each row is processed ind
 Multiple Endpoints can be associated with a single HealthcareService by including multiple
 `EndpointId` values (comma-separated).
 
+> ⚠️ **To confirm with engineering:** The delimiter for multiple `EndpointId` values in a
+> single CSV field needs to be agreed. Comma-separated values inside a CSV column can cause
+> parsing ambiguity. Alternatives to consider:
+> - Pipe-delimited: `id1|id2|id3`
+> - Semicolon-delimited: `id1;id2;id3`
+> - Quoted comma-separated: `"id1,id2,id3"`
+> - JSON array: `["id1","id2","id3"]`
+> - Braces: `{id1,id2,id3}`
+> - Brackets: `[id1,id2,id3]`
+>
+> The chosen format must be unambiguous within the CSV structure and straightforward for
+> the Lambda to parse. Confirm with the engineering team before implementation.
+
 ##### Example: Multiple Endpoints (comma-separated)
 
 ```csv
