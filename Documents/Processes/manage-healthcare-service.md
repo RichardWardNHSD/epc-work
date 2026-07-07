@@ -209,14 +209,15 @@ NHSD-End-User-Organisation-ODS: A1001
 | `X-Correlation-Id` | header | `b2c3d4e5-2222-3333-4444-555566667777` | Runtime | UUID |
 | `NHSD-End-User-Organisation-ODS` | header | `A1001` | CSV `ODSCode` | ODS code of the requesting organisation |
 
-#### Response — HealthcareService exists (200 OK, total: 1)
+#### Pipeline behaviour — HealthcareService exists (200 OK, total: 1)
 
-If a matching HealthcareService is found, **do not create a new one**. The existing resource
-id can be used to update it via `PUT /HealthcareService/{id}` if needed. The Lambda compares
-the CSV data against the existing resource — if the data matches (same name, same Endpoints),
-the row is recorded as `SKIPPED` in the processing report. If the data differs (e.g.,
-different Endpoint associations or a name change), the Lambda proceeds to update the resource
-and records the row as `UPDATED`.
+If the API returns an existing HealthcareService, the pipeline compares the CSV data against
+the existing resource:
+
+- **Data matches** (same name, same Endpoints) → the pipeline skips the row and records
+  `SKIPPED` in the processing report.
+- **Data differs** (e.g., different Endpoint associations or a name change) → the pipeline
+  updates the resource via `PUT /HealthcareService/{id}` and records `UPDATED`.
 
 ```json
 {
@@ -258,7 +259,9 @@ and records the row as `UPDATED`.
 }
 ```
 
-#### Response — HealthcareService does not exist (200 OK, total: 0)
+#### Pipeline behaviour — HealthcareService does not exist (200 OK, total: 0)
+
+The pipeline proceeds to Step 3 to create the HealthcareService.
 
 ```json
 {
@@ -269,17 +272,13 @@ and records the row as `UPDATED`.
 }
 ```
 
-Proceed to Step 3 (create).
+#### Pipeline behaviour — Error responses
 
-#### Error handling in Step 2
+If the lookup call fails, the pipeline records the row as `FAILED` in the processing report
+and moves to the next row. It does **not** attempt to create or update the HealthcareService.
 
-If the `GET /HealthcareService` call fails (e.g., due to an authentication error, a timeout,
-or an unexpected server error), the Lambda records the row as `FAILED` in the processing
-report and moves to the next row. It does **not** attempt to create or update the
-HealthcareService.
-
-| API Response | Lambda Action | Processing Report |
-|--------------|---------------|-------------------|
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
 | `200 OK`, `total: 0` | Proceed to Step 3 (create) | — |
 | `200 OK`, `total: 1`, data matches CSV | Skip — no changes needed | `SKIPPED` — "Already exists with matching data" |
 | `200 OK`, `total: 1`, data differs from CSV | Proceed to update (`PUT`) | `UPDATED` (after successful PUT) |
