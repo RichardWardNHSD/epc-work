@@ -37,7 +37,7 @@ Endpoints.
 
 ---
 
-## Process
+## Creating a HealthcareService
 
 ### Step 1 — Gather the required data
 
@@ -57,8 +57,8 @@ ODSCode,ServiceId,ServiceName,EndpointId
 A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001
 ```
 
-> **Naming convention:** `epc-healthcareservices-YYYY-MM-DD.csv` (e.g.,
-> `epc-healthcareservices-2026-07-07.csv`)
+> **Naming convention:** `epc-healthcareservice-create-YYYY-MM-DD.csv` (e.g.,
+> `epc-healthcareservice-create-2026-07-07.csv`)
 
 > **Note:** `EndpointId` is optional. A HealthcareService can be created without any
 > associated Endpoints. Endpoints can be associated later via an update.
@@ -86,7 +86,7 @@ array. The order of the IDs determines the priority order.
 
 ---
 
-### Step 1a — Upload the CSV to the S3 processing bucket
+### Step 2 — Upload the CSV to S3
 
 Upload the CSV to the designated S3 bucket. This triggers the `epc-healthcareservice-processor`
 Lambda function automatically.
@@ -94,24 +94,24 @@ Lambda function automatically.
 #### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-healthcareservices-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-2026-07-07.csv
+aws s3 cp epc-healthcareservice-create-2026-07-07.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/create/epc-healthcareservice-create-2026-07-07.csv
 ```
 
 #### Using the AWS Console
 
-1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/healthcareservices/`
+1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/healthcareservices/create/`
 2. Click **Upload**
 3. Select the CSV file
 4. Click **Upload**
 
 > **What happens on upload:** The S3 `PutObject` event triggers the
 > `epc-healthcareservice-processor` Lambda function. The Lambda reads the CSV and processes
-> each row independently, executing Steps 2 and 3 for every row.
+> each row independently, executing Steps 2a, 2b, and 3 for every row.
 
 ---
 
-### Lambda processing (automated)
+### Pipeline processing (automated)
 
 > **Note:** Lambda names used in this document (e.g., `epc-healthcareservice-processor`)
 > are illustrative examples and may not reflect the actual deployed Lambda function names.
@@ -119,74 +119,22 @@ aws s3 cp epc-healthcareservices-2026-07-07.csv \
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
 CSV:
 
-1. **Check whether the HealthcareService already exists** (Step 1a below)
-2. **Validate EndpointId references** (Step 1b below) — confirm each referenced Endpoint
-   exists in the EPC before proceeding
-3. **Create or update the HealthcareService** (Step 2 below)
-4. **Record the outcome** in the processing report
-
-#### Processing report
-
-After all rows are processed, the Lambda writes a report to S3:
-
-```
-s3://epc-switch-processing-prod/reports/healthcareservices/epc-healthcareservices-2026-07-07-report.csv
-```
-
-##### Report CSV structure
-
-```csv
-ODSCode,ServiceId,ServiceName,EndpointId,Status,Detail
-A1001,2000099999,Anytown Urgent Treatment Centre,{e1a2b3c4-0000-0000-0000-000000000001},CREATED,
-A1001,2000088888,Anytown Pharmacy,{e2b3c4d5-1111-2222-3333-444455556666},SKIPPED,Already exists with matching data
-A1001,2000077777,Anytown GP,{e3c4d5e6-0000-0000-0000-000000000001},FAILED,Endpoint e3c4d5e6-0000-0000-0000-000000000001 not found
-```
-
-##### Status values
-
-| Status | Meaning | Action |
-|--------|---------|--------|
-| `CREATED` | HealthcareService created successfully | No action needed |
-| `UPDATED` | Existing HealthcareService updated (e.g., Endpoint association changed) | No action needed |
-| `SKIPPED` | HealthcareService already exists with matching data | No action needed |
-| `FAILED` | Error during processing | Investigate, correct, and re-submit |
-
-##### Retrieving the report
-
-```bash
-aws s3 cp \
-  s3://epc-switch-processing-prod/reports/healthcareservices/epc-healthcareservices-2026-07-07-report.csv \
-  ./epc-healthcareservices-2026-07-07-report.csv
-```
-
-Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/`
-
-##### Re-processing failed rows
-
-Extract the failed rows from the report, correct the data, and upload a new CSV containing
-only the corrected rows:
-
-```bash
-aws s3 cp epc-healthcareservices-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-2026-07-07-fixes.csv
-```
-
 ---
 
-### Step 1a — Check whether the HealthcareService already exists
+#### Step 2a — Check whether the HealthcareService already exists
 
 Before creating a HealthcareService, the pipeline checks that one does not already exist
 for this service. The check uses `GET /HealthcareService` with the `ServiceId` from the CSV
 as the search parameter.
 
-#### How the CSV data is used
+##### How the CSV data is used
 
 | CSV column | Used as | Notes |
 |------------|---------|-------|
 | `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID |
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 
-#### Request
+##### Request
 
 ```http
 GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999 HTTP/1.1
@@ -198,7 +146,7 @@ X-Correlation-Id: b2c3d4e5-2222-3333-4444-555566667777
 NHSD-End-User-Organisation-ODS: A1001
 ```
 
-#### Parameters
+##### Parameters
 
 | Parameter | In | Example | Source | Notes |
 |-----------|----|---------|--------|-------|
@@ -207,15 +155,10 @@ NHSD-End-User-Organisation-ODS: A1001
 | `X-Correlation-Id` | header | `b2c3d4e5-2222-3333-4444-555566667777` | Runtime | UUID |
 | `NHSD-End-User-Organisation-ODS` | header | `A1001` | CSV `ODSCode` | ODS code of the requesting organisation |
 
-#### Pipeline behaviour — HealthcareService exists (200 OK, total: 1)
+##### Pipeline behaviour — HealthcareService already exists (200 OK, total: 1)
 
-If the API returns an existing HealthcareService, the pipeline compares the CSV data against
-the existing resource:
-
-- **Data matches** (same name, same Endpoints) → the pipeline skips the row and records
-  `SKIPPED` in the processing report.
-- **Data differs** (e.g., different Endpoint associations or a name change) → the pipeline
-  updates the resource via `PUT /HealthcareService/{id}` and records `UPDATED`.
+If the API returns an existing HealthcareService, the pipeline skips the row and records
+`SKIPPED` in the processing report.
 
 ```json
 {
@@ -257,9 +200,9 @@ the existing resource:
 }
 ```
 
-#### Pipeline behaviour — HealthcareService does not exist (200 OK, total: 0)
+##### Pipeline behaviour — HealthcareService does not exist (200 OK, total: 0)
 
-The pipeline proceeds to Step 1b (validate Endpoint references).
+The pipeline proceeds to Step 2b (validate Endpoint references).
 
 ```json
 {
@@ -270,16 +213,15 @@ The pipeline proceeds to Step 1b (validate Endpoint references).
 }
 ```
 
-#### Pipeline behaviour — Error responses
+##### Pipeline behaviour — Error responses
 
 If the lookup call fails, the pipeline records the row as `FAILED` in the processing report
-and moves to the next row. It does **not** attempt to create or update the HealthcareService.
+and moves to the next row. It does **not** attempt to create the HealthcareService.
 
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
-| `200 OK`, `total: 0` | Proceed to Step 1b (validate Endpoints) | — |
-| `200 OK`, `total: 1`, data matches CSV | Skip — no changes needed | `SKIPPED` — "Already exists with matching data" |
-| `200 OK`, `total: 1`, data differs from CSV | Proceed to Step 1b, then update (`PUT`) | `UPDATED` (after successful PUT) |
+| `200 OK`, `total: 0` | Proceed to Step 2b (validate Endpoints) | — |
+| `200 OK`, `total: 1` | Skip — already exists | `SKIPPED` — "Already exists" |
 | `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
 | `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
 | `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
@@ -287,16 +229,15 @@ and moves to the next row. It does **not** attempt to create or update the Healt
 
 ---
 
-### Step 1b — Validate EndpointId references
+#### Step 2b — Validate EndpointId references
 
 If the CSV row includes one or more `EndpointId` values, the pipeline validates that each
-referenced Endpoint exists in the EPC before proceeding to create or update the
-HealthcareService. This prevents the creation of a HealthcareService that references a
-non-existent Endpoint.
+referenced Endpoint exists in the EPC before proceeding to create the HealthcareService.
+This prevents the creation of a HealthcareService that references a non-existent Endpoint.
 
 For each `EndpointId` in the row, the pipeline calls:
 
-#### Request
+##### Request
 
 ```http
 GET /Endpoint/{EndpointId} HTTP/1.1
@@ -308,17 +249,17 @@ X-Correlation-Id: {batch-correlation-id}
 NHSD-End-User-Organisation-ODS: A1001
 ```
 
-#### Pipeline behaviour
+##### Pipeline behaviour
 
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
-| `200 OK` | Endpoint exists — proceed to Step 2 (create/update) | — |
+| `200 OK` | Endpoint exists — proceed to Step 3 (create) | — |
 | `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
 | `401` / `403` | Auth error — do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
 | `5XX` / timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
 
 > **Note:** If the `EndpointId` column is empty (no Endpoints to associate), this step is
-> skipped and the pipeline proceeds directly to Step 2. A HealthcareService can be created
+> skipped and the pipeline proceeds directly to Step 3. A HealthcareService can be created
 > without Endpoint associations.
 
 > **Note:** If multiple EndpointIds are provided (brace-delimited), **all** must pass
@@ -327,12 +268,12 @@ NHSD-End-User-Organisation-ODS: A1001
 
 ---
 
-### Step 2 — Create or update the HealthcareService
+#### Step 3 — Create the HealthcareService
 
 Call `POST /HealthcareService` with the payload built from the CSV data. The EPC assigns
 the resource `id`.
 
-#### How the CSV data is used
+##### How the CSV data is used
 
 | CSV column | Maps to payload field | Example value |
 |------------|-----------------------|---------------|
@@ -343,7 +284,7 @@ the resource `id`.
 
 `ODSCode` is also used as the `NHSD-End-User-Organisation-ODS` request header.
 
-#### Payload field reference
+##### Payload field reference
 
 | Field | Source | Value / Notes |
 |-------|--------|---------------|
@@ -359,7 +300,7 @@ the resource `id`.
 | `endpoint[].reference` | **CSV `EndpointId`** | e.g. `Endpoint/e1a2b3c4-0000-0000-0000-000000000001` |
 | `id` | EPC | Assigned by the EPC on creation — **do not include in payload** |
 
-#### Request
+##### Request
 
 ```http
 POST /HealthcareService HTTP/1.1
@@ -372,7 +313,7 @@ X-Correlation-Id: d4e5f6g7-4444-5555-6666-777788889999
 NHSD-End-User-Organisation-ODS: A1001
 ```
 
-#### Request payload
+##### Request payload
 
 ```json
 {
@@ -405,7 +346,7 @@ NHSD-End-User-Organisation-ODS: A1001
 }
 ```
 
-#### Response — 200 OK
+##### Response — 200 OK
 
 The EPC returns the created HealthcareService with its assigned `id`. Record this `id` — it
 is needed for updates, endpoint association changes, and deletion.
@@ -444,6 +385,53 @@ is needed for updates, endpoint association changes, and deletion.
 
 ---
 
+### Processing report
+
+After all rows are processed, the Lambda writes a report to S3:
+
+```
+s3://epc-switch-processing-prod/reports/healthcareservices/create/epc-healthcareservice-create-2026-07-07-report.csv
+```
+
+#### Report CSV structure
+
+```csv
+ODSCode,ServiceId,ServiceName,EndpointId,Status,Detail
+A1001,2000099999,Anytown Urgent Treatment Centre,{e1a2b3c4-0000-0000-0000-000000000001},CREATED,
+A1001,2000088888,Anytown Pharmacy,{e2b3c4d5-1111-2222-3333-444455556666},SKIPPED,Already exists
+A1001,2000077777,Anytown GP,{e3c4d5e6-0000-0000-0000-000000000001},FAILED,Endpoint e3c4d5e6-0000-0000-0000-000000000001 not found
+```
+
+#### Status values
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| `CREATED` | HealthcareService created successfully | No action needed |
+| `SKIPPED` | HealthcareService already exists | No action needed |
+| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+#### Retrieving the report
+
+```bash
+aws s3 cp \
+  s3://epc-switch-processing-prod/reports/healthcareservices/create/epc-healthcareservice-create-2026-07-07-report.csv \
+  ./epc-healthcareservice-create-2026-07-07-report.csv
+```
+
+Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/create/`
+
+#### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-healthcareservice-create-2026-07-07-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/create/epc-healthcareservice-create-2026-07-07-fixes.csv
+```
+
+---
+
 ## Updating a HealthcareService
 
 When a service needs to be updated — for example, to change its name, add or remove
@@ -451,7 +439,11 @@ Endpoint associations, or change the providing organisation — the HealthcareSe
 updated via `PUT /HealthcareService/{id}`.
 
 `PUT` is a full replacement. The entire resource must be included in the payload, even if
-only one field is changing.
+only one field is changing. Any Endpoint references omitted from the `endpoint[]` array
+will be disassociated from the service.
+
+> **Note:** Removing an Endpoint reference from a HealthcareService does not delete the
+> Endpoint resource itself. The Endpoint continues to exist and can be reassociated later.
 
 ---
 
@@ -466,42 +458,82 @@ The run/maintain team collects the updated information and prepares a CSV file.
 | `ODSCode` | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
 | `ServiceId` | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
 | `ServiceName` | Updated human-readable name | Supplier / Commissioner | `Anytown UTC (Extended Hours)` |
-| `EndpointId` | Endpoint(s) to associate (comma-separated if multiple) | EPC | `e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002` |
+| `EndpointId` | Full set of Endpoint(s) to associate (optional) | EPC | `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}` |
 
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId
-A1001,2000099999,Anytown UTC (Extended Hours),e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002
+A1001,2000099999,Anytown UTC (Extended Hours),{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}
 ```
 
-#### Upload the CSV to S3
+> **Naming convention:** `epc-healthcareservice-update-YYYY-MM-DD.csv` (e.g.,
+> `epc-healthcareservice-update-2026-07-07.csv`)
 
-Upload the CSV to the designated S3 bucket. This triggers the
-`epc-healthcareservice-processor` Lambda function automatically.
+The CSV may contain multiple rows — one per service. Each row is processed independently.
 
-```bash
-aws s3 cp epc-healthcareservices-update-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-update-2026-07-07.csv
-```
+Multiple Endpoints can be associated with a single HealthcareService by including multiple
+`EndpointId` values wrapped in braces and separated by commas: `{id1,id2,id3}`.
 
-The Lambda detects that the HealthcareService already exists (via the `ServiceId` lookup)
-and performs a `PUT /HealthcareService/{id}` with the updated data. The processing report
-records the outcome as `UPDATED` for each successfully modified row.
+> ⚠️ **Proposed format — awaiting engineering confirmation:** The proposed delimiter for
+> multiple `EndpointId` values is brace-wrapped comma-separated:
+> `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}`.
+> This avoids ambiguity with the CSV column delimiter. Engineering to confirm this is
+> straightforward to parse in the Lambda before implementation proceeds.
+
+> **Note:** The `endpoint[]` array in the PUT payload represents the **complete** set of
+> Endpoint associations. To add a new Endpoint, include it alongside the existing ones.
+> To remove an Endpoint, omit it from the list.
 
 ---
 
-### Step 2 — Locate the HealthcareService
+### Step 2 — Upload the CSV to S3
 
-The HealthcareService's logical `id` is not in the CSV — it must be obtained by calling
-`GET /HealthcareService` using the `ServiceId` from the CSV as the search key.
+Upload the CSV to the designated S3 bucket. This triggers the `epc-healthcareservice-processor`
+Lambda function automatically.
 
-#### How the CSV data is used
+#### Using the AWS CLI
+
+```bash
+aws s3 cp epc-healthcareservice-update-2026-07-07.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/update/epc-healthcareservice-update-2026-07-07.csv
+```
+
+#### Using the AWS Console
+
+1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/healthcareservices/update/`
+2. Click **Upload**
+3. Select the CSV file
+4. Click **Upload**
+
+> **What happens on upload:** The S3 `PutObject` event triggers the
+> `epc-healthcareservice-processor` Lambda function. The Lambda reads the CSV and processes
+> each row independently, executing Steps 2a, 2b, and 3 for every row.
+
+---
+
+### Pipeline processing (automated)
+
+> **Note:** Lambda names used in this document (e.g., `epc-healthcareservice-processor`)
+> are illustrative examples and may not reflect the actual deployed Lambda function names.
+
+The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
+CSV:
+
+---
+
+#### Step 2a — Locate the HealthcareService
+
+The pipeline locates the existing HealthcareService using `GET /HealthcareService` with the
+`ServiceId` from the CSV. If the HealthcareService is not found, the row is recorded as
+`FAILED` — you cannot update a resource that does not exist.
+
+##### How the CSV data is used
 
 | CSV column | Used as | Notes |
 |------------|---------|-------|
-| `ServiceId` | `identifier` query parameter | The primary lookup key |
+| `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID |
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 
-#### Request
+##### Request
 
 ```http
 GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999 HTTP/1.1
@@ -513,20 +545,67 @@ X-Correlation-Id: f6g7h8i9-6666-7777-8888-999900001111
 NHSD-End-User-Organisation-ODS: A1001
 ```
 
-#### Response — 200 OK
+##### Pipeline behaviour
 
-Returns a Bundle. Extract `entry[0].resource.id` to get the HealthcareService's logical `id`
-for use in Step 3.
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK`, `total: 1` | Extract `entry[0].resource.id` — proceed to Step 2b | — |
+| `200 OK`, `total: 0` | HealthcareService not found — do not proceed | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}" |
+| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
+| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
+| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
 
 ---
 
-### Step 3 — Update the HealthcareService
+#### Step 2b — Validate EndpointId references
 
-Call `PUT /HealthcareService/{id}` with the full replacement payload. The `id` from Step 2
-is used in the path. All fields from the existing HealthcareService are carried forward,
-with updated values replacing old ones.
+If the CSV row includes one or more `EndpointId` values, the pipeline validates that each
+referenced Endpoint exists in the EPC before proceeding to update the HealthcareService.
 
-#### How the CSV data is used
+For each `EndpointId` in the row, the pipeline calls:
+
+##### Request
+
+```http
+GET /Endpoint/{EndpointId} HTTP/1.1
+Host: sandbox.api.service.nhs.uk
+Accept: application/fhir+json
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+X-Request-Id: {auto-generated-uuid}
+X-Correlation-Id: {batch-correlation-id}
+NHSD-End-User-Organisation-ODS: A1001
+```
+
+##### Pipeline behaviour
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK` | Endpoint exists — proceed to Step 3 (update) | — |
+| `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
+| `401` / `403` | Auth error — do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
+| `5XX` / timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
+
+> **Note:** If the `EndpointId` column is empty (no Endpoints to associate), this step is
+> skipped and the pipeline proceeds directly to Step 3. The update will set `endpoint[]`
+> to an empty array, disassociating all Endpoints.
+
+> **Note:** If multiple EndpointIds are provided (brace-delimited), **all** must pass
+> validation. If any single EndpointId fails, the entire row is recorded as `FAILED` —
+> the HealthcareService is not partially updated.
+
+---
+
+#### Step 3 — Update the HealthcareService
+
+Call `PUT /HealthcareService/{id}` with the full replacement payload. The `id` from Step 2a
+is used in the path. All fields from the CSV are used to construct the complete resource.
+
+> **Note:** `PUT` is a full replacement — the entire resource must be included in the
+> payload. Any Endpoint references omitted from the `endpoint[]` array will be
+> disassociated from the service.
+
+##### How the CSV data is used
 
 | CSV column | Maps to payload field | Notes |
 |------------|-----------------------|-------|
@@ -535,10 +614,7 @@ with updated values replacing old ones.
 | `ServiceName` | `name` | The updated value |
 | `EndpointId` | `endpoint[].reference` | Full set of Endpoint references — replaces the existing list |
 
-> **Note:** `PUT` is a full replacement — the entire `endpoint[]` array must be included.
-> Any Endpoint references omitted from the payload will be disassociated from the service.
-
-#### Request
+##### Request
 
 ```http
 PUT /HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc HTTP/1.1
@@ -550,6 +626,8 @@ X-Request-Id: g7h8i9j0-7777-8888-9999-000011112222
 X-Correlation-Id: h8i9j0k1-8888-9999-0000-111122223333
 NHSD-End-User-Organisation-ODS: A1001
 ```
+
+##### Request payload
 
 ```json
 {
@@ -586,7 +664,7 @@ NHSD-End-User-Organisation-ODS: A1001
 }
 ```
 
-#### Response — 200 OK
+##### Response — 200 OK
 
 Returns the updated HealthcareService.
 
@@ -627,9 +705,54 @@ Returns the updated HealthcareService.
 
 ---
 
+### Processing report
+
+After all rows are processed, the Lambda writes a report to S3:
+
+```
+s3://epc-switch-processing-prod/reports/healthcareservices/update/epc-healthcareservice-update-2026-07-07-report.csv
+```
+
+#### Report CSV structure
+
+```csv
+ODSCode,ServiceId,ServiceName,EndpointId,Status,Detail
+A1001,2000099999,Anytown UTC (Extended Hours),{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002},UPDATED,
+A1001,2000077777,Anytown GP,,FAILED,HealthcareService not found for ServiceId 2000077777
+```
+
+#### Status values
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| `UPDATED` | HealthcareService updated successfully | No action needed |
+| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+#### Retrieving the report
+
+```bash
+aws s3 cp \
+  s3://epc-switch-processing-prod/reports/healthcareservices/update/epc-healthcareservice-update-2026-07-07-report.csv \
+  ./epc-healthcareservice-update-2026-07-07-report.csv
+```
+
+Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/update/`
+
+#### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-healthcareservice-update-2026-07-07-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/update/epc-healthcareservice-update-2026-07-07-fixes.csv
+```
+
+---
+
 ## Deleting a HealthcareService
 
-There are two ways to remove a HealthcareService from active use.
+There are two ways to remove a HealthcareService from active use:
 
 | Type | Mechanism | Reversible? | Use when |
 |------|-----------|-------------|----------|
@@ -641,35 +764,84 @@ There are two ways to remove a HealthcareService from active use.
 > while Endpoints still reference it, those Endpoints become orphaned — they exist but are
 > not discoverable via HealthcareService-based searches.
 
----
-
-### Soft delete
-
-A soft delete marks the HealthcareService as inactive without physically removing it. The
-record is retained and can be reinstated by setting `active` back to `true`.
+The delete type is controlled by a `DeleteType` column in the CSV.
 
 ---
 
-#### Step 1 — Gather the required data
+### Step 1 — Gather the required data
 
-##### CSV structure
+The run/maintain team collects the required information and prepares a CSV file.
+
+#### CSV structure
 
 | Column | Description | Provided by | Example |
 |--------|-------------|-------------|---------|
 | `ODSCode` | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
 | `ServiceId` | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
+| `DeleteType` | Type of deletion: `soft` or `hard` | Run/maintain team | `soft` |
 
 ```csv
-ODSCode,ServiceId
-A1001,2000099999
+ODSCode,ServiceId,DeleteType
+A1001,2000099999,soft
 ```
+
+> **Naming convention:** `epc-healthcareservice-delete-YYYY-MM-DD.csv` (e.g.,
+> `epc-healthcareservice-delete-2026-07-07.csv`)
+
+The CSV may contain multiple rows — one per service. Each row is processed independently.
+
+> **Note:** Hard delete requires **admin access**. If the processing credentials do not have
+> admin permissions, rows with `DeleteType: hard` will fail.
 
 ---
 
-#### Step 2 — Locate the HealthcareService
+### Step 2 — Upload the CSV to S3
 
-Call `GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|{ServiceId}`
-to obtain the resource `id` and full current resource.
+Upload the CSV to the designated S3 bucket. This triggers the `epc-healthcareservice-processor`
+Lambda function automatically.
+
+#### Using the AWS CLI
+
+```bash
+aws s3 cp epc-healthcareservice-delete-2026-07-07.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07.csv
+```
+
+#### Using the AWS Console
+
+1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/healthcareservices/delete/`
+2. Click **Upload**
+3. Select the CSV file
+4. Click **Upload**
+
+> **What happens on upload:** The S3 `PutObject` event triggers the
+> `epc-healthcareservice-processor` Lambda function. The Lambda reads the CSV and processes
+> each row independently, executing Steps 2a and 3 for every row.
+
+---
+
+### Pipeline processing (automated)
+
+> **Note:** Lambda names used in this document (e.g., `epc-healthcareservice-processor`)
+> are illustrative examples and may not reflect the actual deployed Lambda function names.
+
+The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
+CSV:
+
+---
+
+#### Step 2a — Locate the HealthcareService
+
+The pipeline locates the existing HealthcareService using `GET /HealthcareService` with the
+`ServiceId` from the CSV. The full current resource is needed for soft delete (to construct
+the PUT payload).
+
+##### How the CSV data is used
+
+| CSV column | Used as | Notes |
+|------------|---------|-------|
+| `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID |
+| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 
 ##### Request
 
@@ -683,11 +855,28 @@ X-Correlation-Id: j0k1l2m3-0000-1111-2222-333344445555
 NHSD-End-User-Organisation-ODS: A1001
 ```
 
-Extract `entry[0].resource.id` and retain the full resource for the PUT payload.
+Extract `entry[0].resource.id` and retain the full resource for soft delete payloads.
+
+##### Pipeline behaviour
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK`, `total: 1` | Extract `entry[0].resource.id` — proceed to Step 3 | — |
+| `200 OK`, `total: 0` | HealthcareService not found — do not proceed | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}" |
+| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
+| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
+| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
 
 ---
 
-#### Step 3 — Soft delete the HealthcareService
+#### Step 3 — Delete the HealthcareService
+
+The pipeline examines the `DeleteType` column to determine the deletion mechanism.
+
+---
+
+##### Soft delete (`DeleteType: soft`)
 
 Call `PUT /HealthcareService/{id}` with the full existing resource, changing only `active`
 to `false`.
@@ -695,7 +884,7 @@ to `false`.
 > **Note:** `PUT` is a full replacement — the entire resource must be included in the payload
 > even though only `active` is changing.
 
-##### Request
+###### Request
 
 ```http
 PUT /HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc HTTP/1.1
@@ -707,6 +896,8 @@ X-Request-Id: k1l2m3n4-1111-2222-3333-444455556666
 X-Correlation-Id: l2m3n4o5-2222-3333-4444-555566667777
 NHSD-End-User-Organisation-ODS: A1001
 ```
+
+###### Request payload
 
 ```json
 {
@@ -740,65 +931,22 @@ NHSD-End-User-Organisation-ODS: A1001
 }
 ```
 
-##### Response — 200 OK
+###### Response — 200 OK
 
-Returns the updated HealthcareService with `active: false`.
+Returns the updated HealthcareService with `active: false`. The pipeline records
+`SOFT_DELETED` in the processing report.
 
 ---
 
-### Hard delete
+##### Hard delete (`DeleteType: hard`)
 
-A hard delete permanently removes the HealthcareService resource from the EPC. This cannot
-be undone. Use only when the service is being fully decommissioned.
+Call `DELETE /HealthcareService/{id}` using the `id` obtained in Step 2a. No request body
+is required.
 
 > **Note:** Hard delete requires **admin access**. Standard operational roles cannot
 > perform this action.
 
----
-
-#### Step 1 — Gather the required data
-
-##### CSV structure
-
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
-| `ServiceId` | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
-
-```csv
-ODSCode,ServiceId
-A1001,2000099999
-```
-
----
-
-#### Step 2 — Locate the HealthcareService
-
-Call `GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|{ServiceId}`
-to obtain the resource `id`.
-
-##### Request
-
-```http
-GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999 HTTP/1.1
-Host: sandbox.api.service.nhs.uk
-Accept: application/fhir+json
-Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
-X-Request-Id: m3n4o5p6-3333-4444-5555-666677778888
-X-Correlation-Id: n4o5p6q7-4444-5555-6666-777788889999
-NHSD-End-User-Organisation-ODS: A1001
-```
-
-Extract `entry[0].resource.id`.
-
----
-
-#### Step 3 — Hard delete the HealthcareService
-
-Call `DELETE /HealthcareService/{id}` using the `id` obtained in Step 2. No request body
-is required.
-
-##### Request
+###### Request
 
 ```http
 DELETE /HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc HTTP/1.1
@@ -809,42 +957,57 @@ X-Correlation-Id: p6q7r8s9-6666-7777-8888-999900001111
 NHSD-End-User-Organisation-ODS: A1001
 ```
 
-##### Response — 200 OK
+###### Response — 200 OK
 
-The HealthcareService is permanently removed. No response body is returned.
+The HealthcareService is permanently removed. No response body is returned. The pipeline
+records `DELETED` in the processing report.
 
 ---
 
-## Adding or removing Endpoint associations
+### Processing report
 
-To add a new Endpoint to an existing HealthcareService, or remove one, use
-`PUT /HealthcareService/{id}` with the updated `endpoint[]` array.
+After all rows are processed, the Lambda writes a report to S3:
 
-### Adding an Endpoint
-
-Include the new Endpoint reference in the `endpoint[]` array alongside the existing ones:
-
-```json
-"endpoint": [
-  { "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001" },
-  { "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002" },
-  { "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000003" }
-]
+```
+s3://epc-switch-processing-prod/reports/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07-report.csv
 ```
 
-### Removing an Endpoint
+#### Report CSV structure
 
-Omit the Endpoint reference from the `endpoint[]` array. Because `PUT` is a full
-replacement, any reference not included will be disassociated from the service:
-
-```json
-"endpoint": [
-  { "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001" }
-]
+```csv
+ODSCode,ServiceId,DeleteType,Status,Detail
+A1001,2000099999,soft,SOFT_DELETED,
+A1001,2000088888,hard,DELETED,
+A1001,2000077777,hard,FAILED,Insufficient permissions for hard delete
 ```
 
-> **Note:** Removing an Endpoint reference from a HealthcareService does not delete the
-> Endpoint resource itself. The Endpoint continues to exist and can be reassociated later.
+#### Status values
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| `DELETED` | HealthcareService permanently removed (hard delete) | No action needed |
+| `SOFT_DELETED` | HealthcareService deactivated (`active: false`) | No action needed — reinstate by updating `active` to `true` |
+| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+#### Retrieving the report
+
+```bash
+aws s3 cp \
+  s3://epc-switch-processing-prod/reports/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07-report.csv \
+  ./epc-healthcareservice-delete-2026-07-07-report.csv
+```
+
+Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/delete/`
+
+#### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-healthcareservice-delete-2026-07-07-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07-fixes.csv
+```
 
 ---
 
@@ -857,7 +1020,7 @@ replacement, any reference not included will be disassociated from the service:
 | Create a HealthcareService | `POST /HealthcareService` | Creates a new service record; EPC assigns `id` |
 | Update a HealthcareService | `PUT /HealthcareService/{id}` | Full replacement — all fields must be included |
 | Soft delete (deactivate) | `PUT /HealthcareService/{id}` with `active: false` | Reversible — set `active: true` to reinstate |
-| Hard delete | `DELETE /HealthcareService/{id}` | Permanent removal |
+| Hard delete | `DELETE /HealthcareService/{id}` | Permanent removal — requires admin access |
 
 ---
 
