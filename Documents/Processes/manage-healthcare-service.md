@@ -850,7 +850,7 @@ aws s3 cp epc-healthcareservice-delete-2026-07-07.csv \
 
 > **What happens on upload:** The S3 `PutObject` event triggers the
 > `epc-healthcareservice-processor` Lambda function. The Lambda reads the CSV and processes
-> each row independently, executing Steps 2a and 3 for every row.
+> each row independently.
 
 ---
 
@@ -862,45 +862,13 @@ aws s3 cp epc-healthcareservice-delete-2026-07-07.csv \
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
 CSV:
 
----
+1. Examine the `DeleteType` column to determine the deletion mechanism
+2. Attempt the delete operation (soft or hard) — if the HealthcareService does not exist,
+   the API returns an error and the pipeline records `FAILED`
 
-#### Step 2a — Locate the HealthcareService
-
-The pipeline locates the existing HealthcareService using `GET /HealthcareService` with the
-`ServiceId` from the CSV. The full current resource is needed for soft delete (to construct
-the PUT payload).
-
-##### How the CSV data is used
-
-| CSV column | Used as | Notes |
-|------------|---------|-------|
-| `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID |
-| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
-
-##### Request
-
-```http
-GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999 HTTP/1.1
-Host: sandbox.api.service.nhs.uk
-Accept: application/fhir+json
-Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
-X-Request-Id: i9j0k1l2-9999-0000-1111-222233334444
-X-Correlation-Id: j0k1l2m3-0000-1111-2222-333344445555
-NHSD-End-User-Organisation-ODS: A1001
-```
-
-Extract `entry[0].resource.id` and retain the full resource for soft delete payloads.
-
-##### Pipeline behaviour
-
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK`, `total: 1` | Extract `entry[0].resource.id` — proceed to Step 3 | — |
-| `200 OK`, `total: 0` | HealthcareService not found — do not proceed | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}" |
-| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
-| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
+> **Note:** There is no separate existence check. The pipeline calls the API directly —
+> if the resource does not exist, `PUT` returns `404` and `DELETE` returns `404`. The
+> pipeline records the row as `FAILED` with the appropriate error detail.
 
 ---
 
@@ -912,8 +880,9 @@ The pipeline examines the `DeleteType` column to determine the deletion mechanis
 
 ##### Soft delete (`DeleteType: soft`)
 
-Call `PUT /HealthcareService/{id}` with the full existing resource, changing only `active`
-to `false`.
+The pipeline calls `PUT /HealthcareService/{ServiceId}` setting `active` to `false`.
+The `ServiceId` from the CSV is used as the resource identifier. If the HealthcareService
+does not exist, the API returns `404` and the row is recorded as `FAILED`.
 
 > **Note:** `PUT` is a full replacement — the entire resource must be included in the payload
 > even though only `active` is changing.
@@ -970,12 +939,22 @@ NHSD-End-User-Organisation-ODS: A1001
 Returns the updated HealthcareService with `active: false`. The pipeline records
 `SOFT_DELETED` in the processing report.
 
+###### Pipeline behaviour — Soft delete errors
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK` | Soft delete successful | `SOFT_DELETED` |
+| `404 Not Found` | HealthcareService does not exist | `FAILED` — "HealthcareService not found" |
+| `401` / `403` | Auth error | `FAILED` — "Authentication/authorisation error" |
+| `5XX` / timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Server error after 3 retries" |
+
 ---
 
 ##### Hard delete (`DeleteType: hard`)
 
-Call `DELETE /HealthcareService/{id}` using the `id` obtained in Step 2a. No request body
-is required.
+Call `DELETE /HealthcareService/{ServiceId}` using the `ServiceId` from the CSV as the
+resource identifier. No request body is required. If the HealthcareService does not exist,
+the API returns `404` and the row is recorded as `FAILED`.
 
 > **Note:** Hard delete requires **admin access**. Standard operational roles cannot
 > perform this action.
@@ -995,6 +974,15 @@ NHSD-End-User-Organisation-ODS: A1001
 
 The HealthcareService is permanently removed. No response body is returned. The pipeline
 records `DELETED` in the processing report.
+
+###### Pipeline behaviour — Hard delete errors
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK` | Hard delete successful | `DELETED` |
+| `404 Not Found` | HealthcareService does not exist | `FAILED` — "HealthcareService not found" |
+| `401` / `403` | Auth error or insufficient permissions | `FAILED` — "Insufficient permissions for hard delete" |
+| `5XX` / timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Server error after 3 retries" |
 
 ---
 
