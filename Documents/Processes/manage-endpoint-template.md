@@ -40,10 +40,10 @@ In the Endpoint Catalogue, a Template carries:
 | Field | Purpose |
 |-------|---------|
 | `identifier` | The product identity — a unique Product Id for the supplier product |
-| `name` | Always `Endpoint Template` |
+| `name` | Human-readable name (e.g., `Endpoint Template` for BaRS; may vary for other Template types) |
 | `status` | Whether the Template is currently active |
-| `connectionType` | Always `hl7-fhir-rest` |
-| `payloadType` | Always `bars` |
+| `connectionType` | The technical protocol — `hl7-fhir-rest` for BaRS, but may differ for other Template types |
+| `payloadType` | The message standard — `bars` for BaRS, but may differ for other Template types |
 | `address` | The target URL of the Endpoint |
 | `managingOrganization` | The supplier organisation (ODS code) that owns the Template |
 | `header` | Always `public` |
@@ -309,13 +309,13 @@ static values set by the processing pipeline.
 | `identifier[].system` | Static | Always `https://fhir.nhs.uk/id/product-id` |
 | `identifier[].value` | **CSV `ProductId`** | e.g. `PinnaclePharmOutcomes-v2024.12.12` ⚠️ |
 | `status` | Static | Always `active` |
-| `name` | Static | Always `Endpoint Template` |
+| `name` | Static (BaRS) | `Endpoint Template` for BaRS Templates. May vary for other Template types. |
 | `connectionType.coding[].system` | Static | `http://terminology.hl7.org/CodeSystem/endpoint-connection-type` |
-| `connectionType.coding[].code` | Static | `hl7-fhir-rest` |
-| `connectionType.coding[].display` | Static | `HL7 FHIR` |
+| `connectionType.coding[].code` | Static (BaRS) | `hl7-fhir-rest` for BaRS Templates. May vary for other Template types. |
+| `connectionType.coding[].display` | Static (BaRS) | `HL7 FHIR` for BaRS Templates. May vary for other Template types. |
 | `payloadType[].coding[].system` | Static | `http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc` |
-| `payloadType[].coding[].code` | Static | `bars` |
-| `payloadType[].coding[].display` | Static | `BaRS` |
+| `payloadType[].coding[].code` | Static (BaRS) | `bars` for BaRS Templates. May vary for other Template types. |
+| `payloadType[].coding[].display` | Static (BaRS) | `BaRS` for BaRS Templates. May vary for other Template types. |
 | `managingOrganization[].identifier.system` | Static | Always `https://fhir.nhs.uk/Id/ods-organization-code` |
 | `managingOrganization[].identifier.value` | **CSV `ODSCode`** | e.g. `R778` |
 | `address` | **CSV `Address`** | e.g. `https://myService.nhs.uk/Base/Address` |
