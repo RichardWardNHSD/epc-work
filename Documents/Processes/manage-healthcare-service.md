@@ -251,12 +251,29 @@ NHSD-End-User-Organisation-ODS: A1001
 
 ##### Pipeline behaviour
 
+The pipeline iterates through each `EndpointId` in the row, calling `GET /Endpoint/{EndpointId}`
+for each one. **All** EndpointIds must pass validation before the pipeline proceeds to Step 3.
+If any single EndpointId fails, the iteration stops and the entire row is recorded as `FAILED`.
+
+```
+For each EndpointId in the row:
+    │
+    ├── GET /Endpoint/{EndpointId}
+    │       │
+    │       ├── 200 OK → Endpoint exists, continue to next EndpointId
+    │       ├── 404    → STOP — record row as FAILED
+    │       ├── 401/403 → STOP — record row as FAILED
+    │       └── 5XX/timeout → Retry up to 3 times, then STOP if still failing
+    │
+    └── All EndpointIds validated successfully → proceed to Step 3 (create)
+```
+
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
-| `200 OK` | Endpoint exists — proceed to Step 3 (create) | — |
-| `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
-| `401` / `403` | Auth error — do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
-| `5XX` / timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
+| `200 OK` (for all EndpointIds) | All Endpoints exist — proceed to Step 3 (create) | — |
+| `404 Not Found` (any EndpointId) | Endpoint does not exist — stop validation, do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
+| `401` / `403` (any EndpointId) | Auth error — stop validation, do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
+| `5XX` / timeout (any EndpointId) | Retry up to 3 times; if still failing, stop validation, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
 
 > **Note:** If the `EndpointId` column is empty (no Endpoints to associate), this step is
 > skipped and the pipeline proceeds directly to Step 3. A HealthcareService can be created
@@ -579,12 +596,29 @@ NHSD-End-User-Organisation-ODS: A1001
 
 ##### Pipeline behaviour
 
+The pipeline iterates through each `EndpointId` in the row, calling `GET /Endpoint/{EndpointId}`
+for each one. **All** EndpointIds must pass validation before the pipeline proceeds to Step 3.
+If any single EndpointId fails, the iteration stops and the entire row is recorded as `FAILED`.
+
+```
+For each EndpointId in the row:
+    │
+    ├── GET /Endpoint/{EndpointId}
+    │       │
+    │       ├── 200 OK → Endpoint exists, continue to next EndpointId
+    │       ├── 404    → STOP — record row as FAILED
+    │       ├── 401/403 → STOP — record row as FAILED
+    │       └── 5XX/timeout → Retry up to 3 times, then STOP if still failing
+    │
+    └── All EndpointIds validated successfully → proceed to Step 3 (update)
+```
+
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
-| `200 OK` | Endpoint exists — proceed to Step 3 (update) | — |
-| `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
-| `401` / `403` | Auth error — do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
-| `5XX` / timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
+| `200 OK` (for all EndpointIds) | All Endpoints exist — proceed to Step 3 (update) | — |
+| `404 Not Found` (any EndpointId) | Endpoint does not exist — stop validation, do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
+| `401` / `403` (any EndpointId) | Auth error — stop validation, do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
+| `5XX` / timeout (any EndpointId) | Retry up to 3 times; if still failing, stop validation, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
 
 > **Note:** If the `EndpointId` column is empty (no Endpoints to associate), this step is
 > skipped and the pipeline proceeds directly to Step 3. The update will set `endpoint[]`
