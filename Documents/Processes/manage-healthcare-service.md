@@ -66,7 +66,7 @@ A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-0000000
 The CSV may contain multiple rows — one per service. Each row is processed independently.
 
 Multiple Endpoints can be associated with a single HealthcareService by including multiple
-`EndpointId` values (comma-separated or as separate rows with the same `ServiceId`).
+`EndpointId` values (comma-separated).
 
 ##### Example: Multiple Endpoints (comma-separated)
 
@@ -76,19 +76,7 @@ A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-0000000
 ```
 
 This creates a single HealthcareService with two Endpoint references in its `endpoint[]`
-array.
-
-##### Example: Multiple Endpoints (separate rows)
-
-```csv
-ODSCode,ServiceId,ServiceName,EndpointId
-A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001
-A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000002
-```
-
-When the Lambda encounters multiple rows with the same `ServiceId`, it collects all
-`EndpointId` values and creates (or updates) a single HealthcareService with all Endpoints
-in its `endpoint[]` array. The order of rows determines the priority order.
+array. The order of the IDs determines the priority order.
 
 ---
 
