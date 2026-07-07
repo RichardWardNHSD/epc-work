@@ -66,26 +66,19 @@ A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-0000000
 The CSV may contain multiple rows — one per service. Each row is processed independently.
 
 Multiple Endpoints can be associated with a single HealthcareService by including multiple
-`EndpointId` values (comma-separated).
+`EndpointId` values wrapped in braces and separated by commas: `{id1,id2,id3}`.
 
-> ⚠️ **To confirm with engineering:** The delimiter for multiple `EndpointId` values in a
-> single CSV field needs to be agreed. Comma-separated values inside a CSV column can cause
-> parsing ambiguity. Alternatives to consider:
-> - Pipe-delimited: `id1|id2|id3`
-> - Semicolon-delimited: `id1;id2;id3`
-> - Quoted comma-separated: `"id1,id2,id3"`
-> - JSON array: `["id1","id2","id3"]`
-> - Braces: `{id1,id2,id3}`
-> - Brackets: `[id1,id2,id3]`
->
-> The chosen format must be unambiguous within the CSV structure and straightforward for
-> the Lambda to parse. Confirm with the engineering team before implementation.
+> ⚠️ **Proposed format — awaiting engineering confirmation:** The proposed delimiter for
+> multiple `EndpointId` values is brace-wrapped comma-separated:
+> `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}`.
+> This avoids ambiguity with the CSV column delimiter. Engineering to confirm this is
+> straightforward to parse in the Lambda before implementation proceeds.
 
-##### Example: Multiple Endpoints (comma-separated)
+##### Example: Multiple Endpoints
 
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId
-A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002
+A1001,2000099999,Anytown Urgent Treatment Centre,{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}
 ```
 
 This creates a single HealthcareService with two Endpoint references in its `endpoint[]`
