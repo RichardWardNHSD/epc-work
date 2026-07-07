@@ -119,51 +119,11 @@ aws s3 cp epc-healthcareservices-2026-07-07.csv \
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
 CSV:
 
-1. **Validate EndpointId references** (Step 1b below) — confirm each referenced Endpoint
+1. **Check whether the HealthcareService already exists** (Step 1a below)
+2. **Validate EndpointId references** (Step 1b below) — confirm each referenced Endpoint
    exists in the EPC before proceeding
-2. **Check whether the HealthcareService already exists** (Step 2 below)
-3. **Create the HealthcareService** if it does not exist (Step 3 below), or **update** it
-   if it already exists and the data has changed
+3. **Create or update the HealthcareService** (Step 2 below)
 4. **Record the outcome** in the processing report
-
----
-
-### Step 1b — Validate EndpointId references
-
-If the CSV row includes one or more `EndpointId` values, the pipeline validates that each
-referenced Endpoint exists in the EPC before proceeding. This prevents the creation of a
-HealthcareService that references a non-existent Endpoint.
-
-For each `EndpointId` in the row, the pipeline calls:
-
-#### Request
-
-```http
-GET /Endpoint/{EndpointId} HTTP/1.1
-Host: sandbox.api.service.nhs.uk
-Accept: application/fhir+json
-Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
-X-Request-Id: {auto-generated-uuid}
-X-Correlation-Id: {batch-correlation-id}
-NHSD-End-User-Organisation-ODS: A1001
-```
-
-#### Pipeline behaviour
-
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK` | Endpoint exists — proceed to Step 2 | — |
-| `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
-| `401` / `403` | Auth error — do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
-| `5XX` / timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
-
-> **Note:** If the `EndpointId` column is empty (no Endpoints to associate), this step is
-> skipped and the pipeline proceeds directly to Step 2. A HealthcareService can be created
-> without Endpoint associations.
-
-> **Note:** If multiple EndpointIds are provided (brace-delimited), **all** must pass
-> validation. If any single EndpointId fails, the entire row is recorded as `FAILED` —
-> the HealthcareService is not partially created with only the valid Endpoints.
 
 #### Processing report
 
@@ -177,12 +137,12 @@ s3://epc-switch-processing-prod/reports/healthcareservices/epc-healthcareservice
 
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId,Status,Detail
-A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001,CREATED,
-A1001,2000088888,Anytown Pharmacy,e2b3c4d5-1111-2222-3333-444455556666,SKIPPED,Already exists
-A1001,2000077777,Anytown GP,,FAILED,Endpoint e3c4d5e6-0000-0000-0000-000000000001 not found
+A1001,2000099999,Anytown Urgent Treatment Centre,{e1a2b3c4-0000-0000-0000-000000000001},CREATED,
+A1001,2000088888,Anytown Pharmacy,{e2b3c4d5-1111-2222-3333-444455556666},SKIPPED,Already exists with matching data
+A1001,2000077777,Anytown GP,{e3c4d5e6-0000-0000-0000-000000000001},FAILED,Endpoint e3c4d5e6-0000-0000-0000-000000000001 not found
 ```
 
-##### Action on results
+##### Status values
 
 | Status | Meaning | Action |
 |--------|---------|--------|
@@ -190,16 +150,6 @@ A1001,2000077777,Anytown GP,,FAILED,Endpoint e3c4d5e6-0000-0000-0000-00000000000
 | `UPDATED` | Existing HealthcareService updated (e.g., Endpoint association changed) | No action needed |
 | `SKIPPED` | HealthcareService already exists with matching data | No action needed |
 | `FAILED` | Error during processing | Investigate, correct, and re-submit |
-
-##### Re-processing failed rows
-
-Extract the failed rows from the report, correct the data, and upload a new CSV containing
-only the corrected rows:
-
-```bash
-aws s3 cp epc-healthcareservices-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-2026-07-07-fixes.csv
-```
 
 ##### Retrieving the report
 
@@ -211,13 +161,23 @@ aws s3 cp \
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/`
 
+##### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-healthcareservices-2026-07-07-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-2026-07-07-fixes.csv
+```
+
 ---
 
-### Step 2 — Check whether the HealthcareService already exists
+### Step 1a — Check whether the HealthcareService already exists
 
-Before creating a HealthcareService, the processing pipeline checks that one does not
-already exist for this service. The check uses `GET /HealthcareService` with the `ServiceId`
-from the CSV as the search parameter.
+Before creating a HealthcareService, the pipeline checks that one does not already exist
+for this service. The check uses `GET /HealthcareService` with the `ServiceId` from the CSV
+as the search parameter.
 
 #### How the CSV data is used
 
@@ -299,7 +259,7 @@ the existing resource:
 
 #### Pipeline behaviour — HealthcareService does not exist (200 OK, total: 0)
 
-The pipeline proceeds to Step 3 to create the HealthcareService.
+The pipeline proceeds to Step 1b (validate Endpoint references).
 
 ```json
 {
@@ -317,9 +277,9 @@ and moves to the next row. It does **not** attempt to create or update the Healt
 
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
-| `200 OK`, `total: 0` | Proceed to Step 3 (create) | — |
+| `200 OK`, `total: 0` | Proceed to Step 1b (validate Endpoints) | — |
 | `200 OK`, `total: 1`, data matches CSV | Skip — no changes needed | `SKIPPED` — "Already exists with matching data" |
-| `200 OK`, `total: 1`, data differs from CSV | Proceed to update (`PUT`) | `UPDATED` (after successful PUT) |
+| `200 OK`, `total: 1`, data differs from CSV | Proceed to Step 1b, then update (`PUT`) | `UPDATED` (after successful PUT) |
 | `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
 | `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
 | `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
@@ -327,7 +287,47 @@ and moves to the next row. It does **not** attempt to create or update the Healt
 
 ---
 
-### Step 3 — Create the HealthcareService
+### Step 1b — Validate EndpointId references
+
+If the CSV row includes one or more `EndpointId` values, the pipeline validates that each
+referenced Endpoint exists in the EPC before proceeding to create or update the
+HealthcareService. This prevents the creation of a HealthcareService that references a
+non-existent Endpoint.
+
+For each `EndpointId` in the row, the pipeline calls:
+
+#### Request
+
+```http
+GET /Endpoint/{EndpointId} HTTP/1.1
+Host: sandbox.api.service.nhs.uk
+Accept: application/fhir+json
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+X-Request-Id: {auto-generated-uuid}
+X-Correlation-Id: {batch-correlation-id}
+NHSD-End-User-Organisation-ODS: A1001
+```
+
+#### Pipeline behaviour
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK` | Endpoint exists — proceed to Step 2 (create/update) | — |
+| `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
+| `401` / `403` | Auth error — do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
+| `5XX` / timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
+
+> **Note:** If the `EndpointId` column is empty (no Endpoints to associate), this step is
+> skipped and the pipeline proceeds directly to Step 2. A HealthcareService can be created
+> without Endpoint associations.
+
+> **Note:** If multiple EndpointIds are provided (brace-delimited), **all** must pass
+> validation. If any single EndpointId fails, the entire row is recorded as `FAILED` —
+> the HealthcareService is not partially created with only the valid Endpoints.
+
+---
+
+### Step 2 — Create or update the HealthcareService
 
 Call `POST /HealthcareService` with the payload built from the CSV data. The EPC assigns
 the resource `id`.
