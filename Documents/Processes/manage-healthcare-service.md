@@ -41,9 +41,7 @@ Endpoints.
 
 ### Step 1 — Gather the required data
 
-The run/maintain team collects the required information and prepares a CSV file. This CSV
-is the input to the create process — it is uploaded to an S3 bucket which triggers the
-processing pipeline before Step 2 begins.
+The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
@@ -59,15 +57,99 @@ ODSCode,ServiceId,ServiceName,EndpointId
 A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001
 ```
 
+> **Naming convention:** `epc-healthcareservices-YYYY-MM-DD.csv` (e.g.,
+> `epc-healthcareservices-2026-07-07.csv`)
+
 > **Note:** `EndpointId` is optional. A HealthcareService can be created without any
 > associated Endpoints. Endpoints can be associated later via an update.
 
 The CSV may contain multiple rows — one per service. Each row is processed independently.
-The file is uploaded to the designated S3 bucket by the run/maintain team before any API
-calls are made.
 
 Multiple Endpoints can be associated with a single HealthcareService by including multiple
 `EndpointId` values (comma-separated or as separate rows with the same `ServiceId`).
+
+---
+
+### Step 1a — Upload the CSV to the S3 processing bucket
+
+Upload the CSV to the designated S3 bucket. This triggers the `epc-healthcareservice-processor`
+Lambda function automatically.
+
+#### Using the AWS CLI
+
+```bash
+aws s3 cp epc-healthcareservices-2026-07-07.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-2026-07-07.csv
+```
+
+#### Using the AWS Console
+
+1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/healthcareservices/`
+2. Click **Upload**
+3. Select the CSV file
+4. Click **Upload**
+
+> **What happens on upload:** The S3 `PutObject` event triggers the
+> `epc-healthcareservice-processor` Lambda function. The Lambda reads the CSV and processes
+> each row independently, executing Steps 2 and 3 for every row.
+
+---
+
+### Lambda processing (automated)
+
+The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
+CSV:
+
+1. **Check whether the HealthcareService already exists** (Step 2 below)
+2. **Create the HealthcareService** if it does not exist (Step 3 below), or **update** it
+   if it already exists and the data has changed
+3. **Record the outcome** in the processing report
+
+#### Processing report
+
+After all rows are processed, the Lambda writes a report to S3:
+
+```
+s3://epc-switch-processing-prod/reports/healthcareservices/epc-healthcareservices-2026-07-07-report.csv
+```
+
+##### Report CSV structure
+
+```csv
+ODSCode,ServiceId,ServiceName,EndpointId,Status,Detail
+A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001,CREATED,
+A1001,2000088888,Anytown Pharmacy,e2b3c4d5-1111-2222-3333-444455556666,SKIPPED,Already exists
+A1001,2000077777,Anytown GP,,FAILED,Endpoint e3c4d5e6-0000-0000-0000-000000000001 not found
+```
+
+##### Action on results
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| `CREATED` | HealthcareService created successfully | No action needed |
+| `UPDATED` | Existing HealthcareService updated (e.g., Endpoint association changed) | No action needed |
+| `SKIPPED` | HealthcareService already exists with matching data | No action needed |
+| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+##### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-healthcareservices-2026-07-07-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-2026-07-07-fixes.csv
+```
+
+##### Retrieving the report
+
+```bash
+aws s3 cp \
+  s3://epc-switch-processing-prod/reports/healthcareservices/epc-healthcareservices-2026-07-07-report.csv \
+  ./epc-healthcareservices-2026-07-07-report.csv
+```
+
+Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/`
 
 ---
 
@@ -295,8 +377,7 @@ only one field is changing.
 
 ### Step 1 — Gather the required data
 
-The run/maintain team collects the updated information and prepares a CSV file. This CSV is
-uploaded to the S3 bucket to trigger the update pipeline.
+The run/maintain team collects the updated information and prepares a CSV file.
 
 #### CSV structure
 
@@ -311,6 +392,20 @@ uploaded to the S3 bucket to trigger the update pipeline.
 ODSCode,ServiceId,ServiceName,EndpointId
 A1001,2000099999,Anytown UTC (Extended Hours),e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002
 ```
+
+#### Upload the CSV to S3
+
+Upload the CSV to the designated S3 bucket. This triggers the
+`epc-healthcareservice-processor` Lambda function automatically.
+
+```bash
+aws s3 cp epc-healthcareservices-update-2026-07-07.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/epc-healthcareservices-update-2026-07-07.csv
+```
+
+The Lambda detects that the HealthcareService already exists (via the `ServiceId` lookup)
+and performs a `PUT /HealthcareService/{id}` with the updated data. The processing report
+records the outcome as `UPDATED` for each successfully modified row.
 
 ---
 
