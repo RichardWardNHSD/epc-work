@@ -212,7 +212,11 @@ NHSD-End-User-Organisation-ODS: A1001
 #### Response — HealthcareService exists (200 OK, total: 1)
 
 If a matching HealthcareService is found, **do not create a new one**. The existing resource
-id can be used to update it via `PUT /HealthcareService/{id}` if needed.
+id can be used to update it via `PUT /HealthcareService/{id}` if needed. The Lambda compares
+the CSV data against the existing resource — if the data matches (same name, same Endpoints),
+the row is recorded as `SKIPPED` in the processing report. If the data differs (e.g.,
+different Endpoint associations or a name change), the Lambda proceeds to update the resource
+and records the row as `UPDATED`.
 
 ```json
 {
@@ -265,7 +269,30 @@ id can be used to update it via `PUT /HealthcareService/{id}` if needed.
 }
 ```
 
-Proceed to Step 3.
+Proceed to Step 3 (create).
+
+#### Error handling in Step 2
+
+If the `GET /HealthcareService` call fails (e.g., due to an authentication error, a timeout,
+or an unexpected server error), the Lambda records the row as `FAILED` in the processing
+report and moves to the next row. It does **not** attempt to create or update the
+HealthcareService.
+
+| API Response | Lambda Action | Processing Report |
+|--------------|---------------|-------------------|
+| `200 OK`, `total: 0` | Proceed to Step 3 (create) | — |
+| `200 OK`, `total: 1`, data matches CSV | Skip — no changes needed | `SKIPPED` — "Already exists with matching data" |
+| `200 OK`, `total: 1`, data differs from CSV | Proceed to update (`PUT`) | `UPDATED` (after successful PUT) |
+| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
+| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
+| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
+
+> **Note:** Validation of the `EndpointId` is also performed in this step. If an
+> `EndpointId` is provided in the CSV, the Lambda calls `GET /Endpoint/{EndpointId}` to
+> confirm it exists. If the Endpoint does not exist (`404`), the row is recorded as `FAILED`
+> with detail "Endpoint {EndpointId} not found" — the HealthcareService is not created or
+> updated without a valid Endpoint reference.
 
 ---
 
