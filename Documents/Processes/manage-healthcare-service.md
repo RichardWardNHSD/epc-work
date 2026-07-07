@@ -119,10 +119,51 @@ aws s3 cp epc-healthcareservices-2026-07-07.csv \
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
 CSV:
 
-1. **Check whether the HealthcareService already exists** (Step 2 below)
-2. **Create the HealthcareService** if it does not exist (Step 3 below), or **update** it
+1. **Validate EndpointId references** (Step 1b below) — confirm each referenced Endpoint
+   exists in the EPC before proceeding
+2. **Check whether the HealthcareService already exists** (Step 2 below)
+3. **Create the HealthcareService** if it does not exist (Step 3 below), or **update** it
    if it already exists and the data has changed
-3. **Record the outcome** in the processing report
+4. **Record the outcome** in the processing report
+
+---
+
+### Step 1b — Validate EndpointId references
+
+If the CSV row includes one or more `EndpointId` values, the pipeline validates that each
+referenced Endpoint exists in the EPC before proceeding. This prevents the creation of a
+HealthcareService that references a non-existent Endpoint.
+
+For each `EndpointId` in the row, the pipeline calls:
+
+#### Request
+
+```http
+GET /Endpoint/{EndpointId} HTTP/1.1
+Host: sandbox.api.service.nhs.uk
+Accept: application/fhir+json
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+X-Request-Id: {auto-generated-uuid}
+X-Correlation-Id: {batch-correlation-id}
+NHSD-End-User-Organisation-ODS: A1001
+```
+
+#### Pipeline behaviour
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK` | Endpoint exists — proceed to Step 2 | — |
+| `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint {EndpointId} not found" |
+| `401` / `403` | Auth error — do not proceed | `FAILED` — "Authentication/authorisation error validating Endpoint {EndpointId}" |
+| `5XX` / timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Unable to validate Endpoint {EndpointId} after 3 retries" |
+
+> **Note:** If the `EndpointId` column is empty (no Endpoints to associate), this step is
+> skipped and the pipeline proceeds directly to Step 2. A HealthcareService can be created
+> without Endpoint associations.
+
+> **Note:** If multiple EndpointIds are provided (brace-delimited), **all** must pass
+> validation. If any single EndpointId fails, the entire row is recorded as `FAILED` —
+> the HealthcareService is not partially created with only the valid Endpoints.
 
 #### Processing report
 
@@ -283,12 +324,6 @@ and moves to the next row. It does **not** attempt to create or update the Healt
 | `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
 | `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
 | Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
-
-> **Note:** Validation of the `EndpointId` is also performed in this step. If an
-> `EndpointId` is provided in the CSV, the Lambda calls `GET /Endpoint/{EndpointId}` to
-> confirm it exists. If the Endpoint does not exist (`404`), the row is recorded as `FAILED`
-> with detail "Endpoint {EndpointId} not found" — the HealthcareService is not created or
-> updated without a valid Endpoint reference.
 
 ---
 
