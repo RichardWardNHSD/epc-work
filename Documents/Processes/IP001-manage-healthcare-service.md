@@ -48,7 +48,7 @@ The run/maintain team collects the required information and prepares a CSV file.
 | Column | Required | Description | Provided by | Example |
 |--------|----------|-------------|-------------|---------|
 | `ODSCode` | **Mandatory** | ODS code of the organisation that provides this service | Supplier / Commissioner | `A1001` |
-| `ServiceId` | **Mandatory** | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
+| `ServiceId` | **Mandatory** | Service identifier(s). May be a single value or multiple identifiers in brace-delimited format. | DoS / Commissioner | `2000099999` or `{2000099999,SVC-INT-001}` |
 | `ServiceName` | Optional | Human-readable name of the service | Supplier / Commissioner | `Anytown Urgent Treatment Centre` |
 | `EndpointId` | Optional | FHIR resource id of the Endpoint to associate | EPC (from Template/Endpoint creation) | `e1a2b3c4-0000-0000-0000-000000000001` |
 
@@ -62,6 +62,14 @@ A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-0000000
 
 > **Note:** `EndpointId` is optional. A HealthcareService can be created without any
 > associated Endpoints. Endpoints can be associated later via an update.
+
+> **Note:** `ServiceId` can be a single identifier or multiple identifiers in
+> brace-delimited format (e.g., `{2000099999,SVC-INT-001}`). When multiple identifiers
+> are provided, each is stored as a separate entry in the FHIR `identifier[]` array on
+> the HealthcareService. The first identifier uses system
+> `https://fhir.nhs.uk/Id/dos-service-id`; additional identifiers may use different
+> systems as agreed with the programme. This supports services that are identified in
+> multiple directories or by multiple identifier schemes.
 
 The CSV may contain multiple rows — one per service. Each row is processed independently.
 
@@ -426,7 +434,7 @@ The run/maintain team collects the updated information and prepares a CSV file.
 | Column | Required | Description | Provided by | Example |
 |--------|----------|-------------|-------------|---------|
 | `ODSCode` | **Mandatory** | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
-| `ServiceId` | **Mandatory** | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
+| `ServiceId` | **Mandatory** | Service identifier(s). May be a single value or multiple identifiers in brace-delimited format. | DoS / Commissioner | `2000099999` or `{2000099999,SVC-INT-001}` |
 | `ServiceName` | Optional | Updated human-readable name | Supplier / Commissioner | `Anytown UTC (Extended Hours)` |
 | `EndpointId` | Optional | Full set of Endpoint(s) to associate | EPC | `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}` |
 
@@ -718,7 +726,7 @@ The run/maintain team collects the required information and prepares a CSV file.
 | Column | Required | Description | Provided by | Example |
 |--------|----------|-------------|-------------|---------|
 | `ODSCode` | **Mandatory** | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
-| `ServiceId` | **Mandatory** | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
+| `ServiceId` | **Mandatory** | Service identifier(s). May be a single value or multiple identifiers in brace-delimited format. | DoS / Commissioner | `2000099999` or `{2000099999,SVC-INT-001}` |
 | `DeleteType` | Optional | Type of deletion: `soft` or `hard` (defaults to `soft` if omitted) | Run/maintain team | `soft` |
 
 ```csv
