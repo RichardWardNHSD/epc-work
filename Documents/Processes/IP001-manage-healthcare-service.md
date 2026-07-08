@@ -193,7 +193,7 @@ as the search parameter.
 
 | CSV column | Used as | Notes |
 |------------|---------|-------|
-| `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID |
+| `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID is assumed but could be be a different service, as per csv structure above |
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 
 ##### Request
@@ -306,11 +306,21 @@ the resource `id`.
 | CSV column | Maps to payload field | Example value |
 |------------|-----------------------|---------------|
 | `ODSCode` | `providedBy.identifier.value` | `A1001` |
-| `ServiceId` | `identifier[].value` | `2000099999` |
+| `ServiceId` | `identifier[].value` (one entry per identifier — see below) | `2000099999` or `{2000099999,https://fhir.nhs.uk/Id/ods-organization-code\|A1001}` |
 | `ServiceName` | `name` | `Anytown Urgent Treatment Centre` |
 | `EndpointId` | `endpoint[].reference` | `Endpoint/e1a2b3c4-0000-0000-0000-000000000001` |
 
 `ODSCode` is also used as the `NHSD-End-User-Organisation-ODS` request header.
+
+> **Note:** `ServiceId` may contain a single identifier or multiple identifiers in
+> brace-delimited format. Each identifier becomes a separate entry in the `identifier[]`
+> array. The system `https://fhir.nhs.uk/Id/dos-service-id` is assumed for any value that
+> does not explicitly state a system. A different system can be stated per identifier
+> using the `system|value` token format — this means a single HealthcareService can carry
+> identifiers from multiple different systems (e.g., a DoS service ID alongside an
+> internal reference or a different national identifier). See
+> [Note: identifier format and system assumption](#note-identifier-format-and-system-assumption)
+> above for full examples.
 
 ##### Payload field reference
 
@@ -319,8 +329,8 @@ the resource `id`.
 | `resourceType` | Static | Always `HealthcareService` |
 | `meta.lastUpdated` | Runtime | Current date/time in `yyyy-MM-DDThh:mm:ss+hh:mm` format |
 | `meta.profile` | Static | `https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService` |
-| `identifier[].system` | Static | Always `https://fhir.nhs.uk/Id/dos-service-id` |
-| `identifier[].value` | **CSV `ServiceId`** | e.g. `2000099999` |
+| `identifier[].system` | **CSV `ServiceId`** (assumed or explicit) | `https://fhir.nhs.uk/Id/dos-service-id` unless a different system is explicitly stated per identifier |
+| `identifier[].value` | **CSV `ServiceId`** | One `identifier[]` entry is created per value in `ServiceId` — single value produces one entry, brace-delimited values produce multiple entries |
 | `active` | Static | Always `true` on creation |
 | `name` | **CSV `ServiceName`** | e.g. `Anytown Urgent Treatment Centre` |
 | `providedBy.identifier.system` | Static | Always `https://fhir.nhs.uk/Id/ods-organization-code` |
@@ -341,7 +351,7 @@ X-Correlation-Id: d4e5f6g7-4444-5555-6666-777788889999
 NHSD-End-User-Organisation-ODS: A1001
 ```
 
-##### Request payload
+##### Request payload — single identifier
 
 ```json
 {
@@ -356,6 +366,45 @@ NHSD-End-User-Organisation-ODS: A1001
     {
       "system": "https://fhir.nhs.uk/Id/dos-service-id",
       "value": "2000099999"
+    }
+  ],
+  "active": true,
+  "name": "Anytown Urgent Treatment Centre",
+  "providedBy": {
+    "identifier": {
+      "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+      "value": "A1001"
+    }
+  },
+  "endpoint": [
+    {
+      "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001"
+    }
+  ]
+}
+```
+
+##### Request payload — multiple identifiers, mixed systems
+
+Built from `ServiceId: {2000099999,https://fhir.nhs.uk/Id/ods-organization-code|A1001}`:
+
+```json
+{
+  "resourceType": "HealthcareService",
+  "meta": {
+    "lastUpdated": "2026-06-18T10:00:00+00:00",
+    "profile": [
+      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+    ]
+  },
+  "identifier": [
+    {
+      "system": "https://fhir.nhs.uk/Id/dos-service-id",
+      "value": "2000099999"
+    },
+    {
+      "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+      "value": "A1001"
     }
   ],
   "active": true,
