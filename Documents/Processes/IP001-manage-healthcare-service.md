@@ -193,7 +193,7 @@ as the search parameter.
 
 | CSV column | Used as | Notes |
 |------------|---------|-------|
-| `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID is assumed but could be be a different service, as per csv structure above |
+| `ServiceId` | `identifier` query parameter | Used to check if HealthcareService already exists — system rules as per [identifier format](#note-identifier-format-and-system-assumption) |
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 
 ##### Request
@@ -609,7 +609,7 @@ The pipeline locates the existing HealthcareService using `GET /HealthcareServic
 
 | CSV column | Used as | Notes |
 |------------|---------|-------|
-| `ServiceId` | `identifier` query parameter | The primary lookup key — DoS Service ID |
+| `ServiceId` | `identifier` query parameter | Used to locate the HealthcareService — system rules as per [identifier format](#note-identifier-format-and-system-assumption) |
 | `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
 
 ##### Request
@@ -653,12 +653,17 @@ is used in the path. All fields from the CSV are used to construct the complete 
 
 ##### How the CSV data is used
 
+The CSV-to-payload mapping follows the same rules as
+[Creating a HealthcareService — How the CSV data is used](#how-the-csv-data-is-used).
+The key difference for updates is that `PUT` is a full replacement — every field must be
+provided, and the `endpoint[]` array represents the **complete** set of associations.
+
 | CSV column | Maps to payload field | Notes |
 |------------|-----------------------|-------|
 | `ODSCode` | `providedBy.identifier.value` and `NHSD-End-User-Organisation-ODS` header | |
-| `ServiceId` | `identifier[].value` | |
+| `ServiceId` | `identifier[]` | Single or multiple values — same system/parsing rules as Create (see [identifier format](#note-identifier-format-and-system-assumption)) |
 | `ServiceName` | `name` | The updated value |
-| `EndpointId` | `endpoint[].reference` | Full set of Endpoint references — replaces the existing list |
+| `EndpointId` | `endpoint[].reference` | Full set of Endpoint references — **replaces** the existing list. Omitted Endpoints are disassociated. |
 
 ##### Request
 
