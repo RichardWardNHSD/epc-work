@@ -75,9 +75,12 @@ token format. This is consistent with the `system|value` pattern used elsewhere 
 document (e.g., query parameters).
 
 **Example — single identifier (system assumed):**
+
+```csv
+ODSCode,ServiceId,ServiceName,EndpointId
+A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001
 ```
-ServiceId: 2000099999
-```
+
 Produces:
 ```json
 "identifier": [
@@ -86,9 +89,12 @@ Produces:
 ```
 
 **Example — multiple identifiers, same system assumed:**
+
+```csv
+ODSCode,ServiceId,ServiceName,EndpointId
+A1001,{2000099999,2000088888},Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001
 ```
-ServiceId: {2000099999,2000088888}
-```
+
 Produces:
 ```json
 "identifier": [
@@ -98,9 +104,12 @@ Produces:
 ```
 
 **Example — multiple identifiers, different systems explicitly stated:**
+
+```csv
+ODSCode,ServiceId,ServiceName,EndpointId
+A1001,{2000099999,https://fhir.nhs.uk/Id/ods-organization-code|A1001},Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001
 ```
-ServiceId: {2000099999,https://fhir.nhs.uk/Id/ods-organization-code|A1001}
-```
+
 Produces:
 ```json
 "identifier": [
