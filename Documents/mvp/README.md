@@ -26,7 +26,7 @@ The EPC MVP delivers:
 
 | Capability | Detail |
 |---|---|
-| Consumer endpoint lookup | `GET /Endpoint` by HealthcareService, with `_has` and `_include` patterns |
+| Consumer endpoint lookup | `GET /Endpoint` by HealthcareService, with `_has` pattern |
 | Template management | Create, update, soft/hard delete Endpoint Templates |
 | Endpoint management | Create, update status/period, soft/hard delete child Endpoints |
 | HealthcareService management | Create, update, associate/disassociate Endpoints |
