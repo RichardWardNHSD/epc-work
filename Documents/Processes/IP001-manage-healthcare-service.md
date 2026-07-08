@@ -126,11 +126,6 @@ The CSV may contain multiple rows — one per service. Each row is processed ind
 Multiple Endpoints can be associated with a single HealthcareService by including multiple
 `EndpointId` values wrapped in braces and separated by commas: `{id1,id2,id3}`.
 
-> ⚠️ **Proposed format — awaiting engineering confirmation:** The proposed delimiter for
-> multiple `EndpointId` values is brace-wrapped comma-separated:
-> `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}`.
-> This avoids ambiguity with the CSV column delimiter. Engineering to confirm this is
-> straightforward to parse in the Lambda before implementation proceeds.
 
 ##### Example: Multiple Endpoints
 
@@ -312,13 +307,7 @@ the resource `id`.
 
 `ODSCode` is also used as the `NHSD-End-User-Organisation-ODS` request header.
 
-> **Note:** `ServiceId` may contain a single identifier or multiple identifiers in
-> brace-delimited format. Each identifier becomes a separate entry in the `identifier[]`
-> array. The system `https://fhir.nhs.uk/Id/dos-service-id` is assumed for any value that
-> does not explicitly state a system. A different system can be stated per identifier
-> using the `system|value` token format — this means a single HealthcareService can carry
-> identifiers from multiple different systems (e.g., a DoS service ID alongside an
-> internal reference or a different national identifier). See
+> **Note:** `ServiceId` may contain a single identifier or multiple identifiers in > brace-delimited format.  See
 > [Note: identifier format and system assumption](#note-identifier-format-and-system-assumption)
 > above for full examples.
 
@@ -1109,7 +1098,4 @@ The API returns FHIR `OperationOutcome` resources for errors:
 
 | Document | Description |
 |----------|-------------|
-| [Managing Endpoint Templates](./manage-endpoint-template.md) | Creating and managing the parent Templates that Endpoints inherit from |
-| [Searching for Endpoint Information by Service ID](./search-endpoint-by-service-id.md) | Consumer-facing patterns for retrieving Endpoints via HealthcareService |
-| [DUEC Endpoints](./duec-endpoints.md) | DUEC-specific HealthcareService and multi-Endpoint patterns |
-| [Endpoint Ordering using the FHIR List Resource](./endpoint-ordering-with-list.md) | How endpoint priority is managed via the List resource |
+| TBC| Creating and managing the parent Templates that Endpoints inherit from |
