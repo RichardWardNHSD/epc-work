@@ -547,14 +547,12 @@ A1001,2000099999,Anytown UTC (Extended Hours),{e1a2b3c4-0000-0000-0000-000000000
 
 The CSV may contain multiple rows — one per service. Each row is processed independently.
 
-Multiple Endpoints can be associated with a single HealthcareService by including multiple
-`EndpointId` values wrapped in braces and separated by commas: `{id1,id2,id3}`.
-
-> ⚠️ **Proposed format — awaiting engineering confirmation:** The proposed delimiter for
-> multiple `EndpointId` values is brace-wrapped comma-separated:
-> `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}`.
-> This avoids ambiguity with the CSV column delimiter. Engineering to confirm this is
-> straightforward to parse in the Lambda before implementation proceeds.
+> **Note:** The rules for multiple `ServiceId` values and multiple `EndpointId` values
+> (brace-delimited format, system assumptions, and engineering confirmation status) are
+> the same as for creating a HealthcareService. See
+> [Note: identifier format and system assumption](#note-identifier-format-and-system-assumption)
+> and the [multiple Endpoints note](#creating-a-healthcareservice) in the Create section
+> for full details and examples.
 
 > **Note:** The `endpoint[]` array in the PUT payload represents the **complete** set of
 > Endpoint associations. To add a new Endpoint, include it alongside the existing ones.
