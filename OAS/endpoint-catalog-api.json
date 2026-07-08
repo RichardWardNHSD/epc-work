@@ -315,7 +315,7 @@
           "HealthcareService"
         ],
         "summary": "Create a HealthcareService",
-        "description": "Create a single HealthcareService resource.  \n",
+        "description": "Create a single HealthcareService resource.\n\nThe API validates all `endpoint[]` references in the request body before writing the resource. If any referenced Endpoint does not exist, the request is rejected with a `422 Unprocessable Entity` response and the HealthcareService is not created.\n\nThis validation is performed server-side — callers do not need to pre-validate Endpoint references before submitting the request.",
         "operationId": "createHealthcareService",
         "responses": {
           "200": {
@@ -377,7 +377,7 @@
           "HealthcareService"
         ],
         "summary": "Update a Specific HealthcareService",
-        "description": "Creates a new current version for an existing resource [(update)](https://www.hl7.org/fhir/http.html#update) or creates an initial version if no resource already exists for the given id [(new)](https://www.hl7.org/fhir/http.html#upsert).",
+        "description": "Creates a new current version for an existing resource [(update)](https://www.hl7.org/fhir/http.html#update) or creates an initial version if no resource already exists for the given id [(new)](https://www.hl7.org/fhir/http.html#upsert).\n\nThe API validates all `endpoint[]` references in the request body before writing the resource. If any referenced Endpoint does not exist, the request is rejected with a `422 Unprocessable Entity` response and the HealthcareService is not updated.\n\nThis validation is performed server-side — callers do not need to pre-validate Endpoint references before submitting the request.",
         "operationId": "replaceHealthcareService",
         "responses": {
           "200": {
@@ -2337,7 +2337,7 @@
         }
       },
       "4XX": {
-        "description": "Client error. The request could not be processed due to an issue with the request itself.\n\n| HTTP status | Error code | Description |\n| ----------- | ---------- | ----------- |\n| 400 | BAD_REQUEST | The request is malformed or missing required fields |\n| 401 | UNAUTHORIZED | Missing or invalid bearer token |\n| 403 | FORBIDDEN | The authenticated caller is not authorised for this operation |\n| 404 | NOT_FOUND | The requested resource does not exist |\n| 409 | CONFLICT | A duplicate resource exists or a conflict was detected |\n| 422 | UNPROCESSABLE_ENTITY | The request body failed validation |\n| 429 | TOO_MANY_REQUESTS | Rate limit exceeded |",
+        "description": "Client error. The request could not be processed due to an issue with the request itself.\n\n| HTTP status | Error code | Description |\n| ----------- | ---------- | ----------- |\n| 400 | BAD_REQUEST | The request is malformed or missing required fields |\n| 401 | UNAUTHORIZED | Missing or invalid bearer token |\n| 403 | FORBIDDEN | The authenticated caller is not authorised for this operation |\n| 404 | NOT_FOUND | The requested resource does not exist |\n| 409 | CONFLICT | A duplicate resource exists or a conflict was detected |\n| 422 | UNPROCESSABLE_ENTITY | The request body failed validation (e.g., an `endpoint[]` reference points to a non-existent Endpoint) |\n| 429 | TOO_MANY_REQUESTS | Rate limit exceeded |",
         "content": {
           "application/fhir+json": {
             "schema": {
