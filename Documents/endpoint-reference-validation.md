@@ -175,4 +175,4 @@ consumers query the HealthcareService, not when it is written.
 | Document | Description |
 |----------|-------------|
 | [Managing HealthcareServices](./Processes/IP001-manage-healthcare-service.md) | Full CRUD lifecycle including pipeline behaviour |
-| [Endpoint Catalogue API OAS](../OAS/endpoint-catalog-api.json) | OpenAPI specification with validation described in POST/PUT operation descriptions |
+| TBC| OpenAPI specification with validation described in POST/PUT operation descriptions |
