@@ -45,12 +45,12 @@ The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the organisation that provides this service | Supplier / Commissioner | `A1001` |
-| `ServiceId` | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
-| `ServiceName` | Human-readable name of the service | Supplier / Commissioner | `Anytown Urgent Treatment Centre` |
-| `EndpointId` | FHIR resource id of the Endpoint to associate (optional) | EPC (from Template/Endpoint creation) | `e1a2b3c4-0000-0000-0000-000000000001` |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the organisation that provides this service | Supplier / Commissioner | `A1001` |
+| `ServiceId` | **Mandatory** | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
+| `ServiceName` | Optional | Human-readable name of the service | Supplier / Commissioner | `Anytown Urgent Treatment Centre` |
+| `EndpointId` | Optional | FHIR resource id of the Endpoint to associate | EPC (from Template/Endpoint creation) | `e1a2b3c4-0000-0000-0000-000000000001` |
 
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId
@@ -423,12 +423,12 @@ The run/maintain team collects the updated information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
-| `ServiceId` | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
-| `ServiceName` | Updated human-readable name | Supplier / Commissioner | `Anytown UTC (Extended Hours)` |
-| `EndpointId` | Full set of Endpoint(s) to associate (optional) | EPC | `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}` |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
+| `ServiceId` | **Mandatory** | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
+| `ServiceName` | Optional | Updated human-readable name | Supplier / Commissioner | `Anytown UTC (Extended Hours)` |
+| `EndpointId` | Optional | Full set of Endpoint(s) to associate | EPC | `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}` |
 
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId
@@ -715,11 +715,11 @@ The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
-| `ServiceId` | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
-| `DeleteType` | Type of deletion: `soft` or `hard` | Run/maintain team | `soft` |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
+| `ServiceId` | **Mandatory** | DoS Service ID for the service | DoS / Commissioner | `2000099999` |
+| `DeleteType` | Optional | Type of deletion: `soft` or `hard` (defaults to `soft` if omitted) | Run/maintain team | `soft` |
 
 ```csv
 ODSCode,ServiceId,DeleteType
