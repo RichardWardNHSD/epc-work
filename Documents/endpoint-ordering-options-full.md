@@ -141,6 +141,61 @@ PUT payload differs from the existing List's subject, the API rejects the reques
 To move priority ordering to a different HealthcareService, retire the existing List
 (set `status` to `retired`) and create a new one for the target service.
 
+### Reference validation on write
+
+On both `POST /List` and `PUT /List/{id}`, the EPC validates that all references in the
+payload point to resources that **exist** in the catalogue:
+
+- **`List.subject`** — the referenced HealthcareService must exist
+- **`List.entry[].item`** — every referenced Endpoint must exist
+
+If any reference cannot be resolved, the request is rejected with `422 Unprocessable Entity`
+and the List is not created or updated.
+
+**Error response — HealthcareService does not exist:**
+
+```json
+{
+  "resourceType": "OperationOutcome",
+  "issue": [{
+    "severity": "error",
+    "code": "not-found",
+    "details": {
+      "coding": [{
+        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+        "code": "REFERENCE_NOT_FOUND"
+      }]
+    },
+    "diagnostics": "Referenced HealthcareService does not exist: HealthcareService/9f2c6f12-1a6d-4d9c-a111-999999999999",
+    "expression": ["List.subject"]
+  }]
+}
+```
+
+**Error response — Endpoint does not exist:**
+
+```json
+{
+  "resourceType": "OperationOutcome",
+  "issue": [{
+    "severity": "error",
+    "code": "not-found",
+    "details": {
+      "coding": [{
+        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+        "code": "REFERENCE_NOT_FOUND"
+      }]
+    },
+    "diagnostics": "Referenced Endpoint does not exist: Endpoint/e1a2b3c4-0000-0000-0000-999999999999",
+    "expression": ["List.entry[0].item"]
+  }]
+}
+```
+
+> **Note:** This is a pure existence check — it confirms the referenced resources exist.
+> It does not check Endpoint status, period validity, or whether the Endpoint is associated
+> with the HealthcareService. Those are query-time concerns, not write-time constraints.
+
 ---
 
 ## API operations
