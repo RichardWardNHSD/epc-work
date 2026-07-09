@@ -88,6 +88,59 @@ HealthcareService (id: 9f2c6f12-1a6d-4d9c-a111-123456789abc)
 The `List` sits alongside this, providing the curated ordered view. No changes are required to
 existing `Endpoint` or `HealthcareService` resources.
 
+### Constraint: One List per HealthcareService
+
+A `List` can only be associated with **one** HealthcareService (via `List.subject`). This is
+a 1:1 relationship — each HealthcareService has at most one `current` List.
+
+**On `POST /List` (create):**
+
+If a `current` List already exists for the HealthcareService referenced in `List.subject`,
+the API rejects the request with `409 Conflict`:
+
+```json
+{
+  "resourceType": "OperationOutcome",
+  "issue": [{
+    "severity": "error",
+    "code": "conflict",
+    "details": {
+      "coding": [{
+        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+        "code": "LIST_ALREADY_EXISTS"
+      }]
+    },
+    "diagnostics": "A current List already exists for HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc. Update the existing List or retire it before creating a new one."
+  }]
+}
+```
+
+**On `PUT /List/{id}` (update):**
+
+The `List.subject` reference cannot be changed on an update. If the `List.subject` in the
+PUT payload differs from the existing List's subject, the API rejects the request with
+`422 Unprocessable Entity`:
+
+```json
+{
+  "resourceType": "OperationOutcome",
+  "issue": [{
+    "severity": "error",
+    "code": "business-rule",
+    "details": {
+      "coding": [{
+        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+        "code": "SUBJECT_IMMUTABLE"
+      }]
+    },
+    "diagnostics": "List.subject cannot be changed. The List is permanently bound to HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc."
+  }]
+}
+```
+
+To move priority ordering to a different HealthcareService, retire the existing List
+(set `status` to `retired`) and create a new one for the target service.
+
 ---
 
 ## API operations
