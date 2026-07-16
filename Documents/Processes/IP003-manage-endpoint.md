@@ -237,7 +237,9 @@ the processing report and moves to the next row. The Template must be created fi
 #### Step 2b — Check whether an Endpoint already exists
 
 Before creating an Endpoint, the pipeline checks that one does not already exist for this
-HealthcareService and Template combination with an overlapping period.
+HealthcareService and Template combination with an overlapping period. See
+[EPC-INV007 — Duplicates](https://nhsd-confluence.digital.nhs.uk/spaces/RA/pages/1373777154/EPC-INV007+-+Duplicates#EPCINV007Duplicates-WhatisaduplicateEndpoint%3F)
+for the full definition of what constitutes a duplicate Endpoint.
 
 ##### Request
 
