@@ -1,6 +1,11 @@
-# Managing Endpoint Templates
+# Managing Endpoint Templates (BaRS)
 
 ## Overview
+
+> **Scope:** This document describes the process for managing **BaRS Endpoint Templates
+> only** — specifically Templates with `connectionType` of `hl7-fhir-rest` and
+> `payloadType` of `bars`. Other Template types (if introduced in future) will be
+> documented separately.
 
 A multi-tenanted supplier deploys a single instance of their system that serves many
 HealthcareServices simultaneously. All those services share the same technical endpoint — the
@@ -8,9 +13,9 @@ same URL, connection type, and payload type. Rather than duplicating this data a
 Endpoint record, the Endpoint Catalogue uses an **Endpoint Template** as the single source of
 truth.
 
-The run/maintain team creates one Template per supplier product. That Template is then used
-as the parent when individual Endpoint records are created for each HealthcareService. Child
-Endpoints store only two fields of their own — `status` and `period`. Everything else
+The run/maintain team creates one BaRS Template per supplier product. That Template is then
+used as the parent when individual Endpoint records are created for each HealthcareService.
+Child Endpoints store only two fields of their own — `status` and `period`. Everything else
 (`connectionType`, `payloadType`, `address`, `name`, `header`, `managingOrganization`) is
 resolved at read time from the parent Template. This means if the supplier changes their URL
 or upgrades their product, only the Template needs updating — the change is immediately
@@ -40,10 +45,10 @@ In the Endpoint Catalogue, a Template carries:
 | Field | Purpose |
 |-------|---------|
 | `identifier` | The product identity — a unique Product Id for the supplier product |
-| `name` | Human-readable name (e.g., `Endpoint Template` for BaRS; may vary for other Template types) |
+| `name` | Human-readable name — always `Endpoint Template` for BaRS |
 | `status` | Whether the Template is currently active |
-| `connectionType` | The technical protocol — `hl7-fhir-rest` for BaRS, but may differ for other Template types |
-| `payloadType` | The message standard — `bars` for BaRS, but may differ for other Template types |
+| `connectionType` | The technical protocol — always `hl7-fhir-rest` for BaRS |
+| `payloadType` | The message standard — always `bars` for BaRS |
 | `address` | The target URL of the Endpoint |
 | `managingOrganization` | The supplier organisation (ODS code) that owns the Template |
 | `header` | Always `public` |
@@ -313,13 +318,13 @@ static values set by the processing pipeline.
 | `identifier[].system` | Static | Always `https://fhir.nhs.uk/id/product-id` |
 | `identifier[].value` | **CSV `ProductId`** | e.g. `PinnaclePharmOutcomes-v2024.12.12` ⚠️ |
 | `status` | Static | Always `active` |
-| `name` | Static (BaRS) | `Endpoint Template` for BaRS Templates. May vary for other Template types. |
+| `name` | Static | Always `Endpoint Template` |
 | `connectionType.coding[].system` | Static | `http://terminology.hl7.org/CodeSystem/endpoint-connection-type` |
-| `connectionType.coding[].code` | Static (BaRS) | `hl7-fhir-rest` for BaRS Templates. May vary for other Template types. |
-| `connectionType.coding[].display` | Static (BaRS) | `HL7 FHIR` for BaRS Templates. May vary for other Template types. |
+| `connectionType.coding[].code` | Static | `hl7-fhir-rest` |
+| `connectionType.coding[].display` | Static | `HL7 FHIR` |
 | `payloadType[].coding[].system` | Static | `http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc` |
-| `payloadType[].coding[].code` | Static (BaRS) | `bars` for BaRS Templates. May vary for other Template types. |
-| `payloadType[].coding[].display` | Static (BaRS) | `BaRS` for BaRS Templates. May vary for other Template types. |
+| `payloadType[].coding[].code` | Static | `bars` |
+| `payloadType[].coding[].display` | Static | `BaRS` |
 | `managingOrganization[].identifier.system` | Static | Always `https://fhir.nhs.uk/Id/ods-organization-code` |
 | `managingOrganization[].identifier.value` | **CSV `ODSCode`** | e.g. `R778` |
 | `address` | **CSV `Address`** | e.g. `https://myService.nhs.uk/Base/Address` |
