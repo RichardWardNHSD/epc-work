@@ -1,6 +1,11 @@
-# Managing Endpoints
+# Managing Endpoints (BaRS)
 
 ## Overview
+
+> **Scope:** This document describes the process for managing **BaRS Endpoints only** —
+> specifically child Endpoints linked to BaRS Endpoint Templates (`connectionType` of
+> `hl7-fhir-rest` and `payloadType` of `bars`). Other Endpoint types (if introduced in
+> future) will be documented separately.
 
 An `Endpoint` resource represents a specific technical connection for a `HealthcareService`
 in the Endpoint Catalogue. Each Endpoint is a child of an **Endpoint Template** — it inherits
@@ -11,8 +16,8 @@ own: `status` and `period`.
 The run/maintain team creates Endpoint records when onboarding a service, and manages their
 lifecycle through status changes, period adjustments, and supplier switches.
 
-> **Note:** An Endpoint Template must exist before an Endpoint can be created. See
-> [Managing Endpoint Templates](./manage-endpoint-template.md) for Template creation.
+> **Note:** A BaRS Endpoint Template must exist before an Endpoint can be created. See
+> [Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md) for Template creation.
 > A HealthcareService must also exist (or be created simultaneously) for the Endpoint to
 > be discoverable. See [Managing HealthcareServices](./manage-healthcare-service.md).
 
@@ -39,34 +44,33 @@ any further writes.
 
 ---
 
-## Process
+## Creating an Endpoint
 
 ### Step 1 — Gather the required data
 
-The run/maintain team collects the required information and prepares a CSV file. This CSV
-is the input to the create process — it is uploaded to an S3 bucket which triggers the
-processing pipeline before Step 2 begins.
+The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the supplier organisation that owns the Template | Supplier | `R778` |
-| `ProductId` | Product ID identifying the parent Template | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
-| `ServiceId` | DoS Service ID of the HealthcareService this Endpoint serves | DoS / Commissioner | `2000099999` |
-| `Name` | Human-readable name for the Endpoint (optional) | Run/maintain | `Shirley Pharmacy BaRS Endpoint` |
-| `Status` | Initial status of the Endpoint | Run/maintain | `active` |
-| `PeriodStart` | Start date/time for the Endpoint's validity (optional) | Run/maintain | `2026-07-01T00:00:00+00:00` |
-| `PeriodEnd` | End date/time for the Endpoint's validity (optional) | Run/maintain | |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the supplier organisation that owns the Template | Supplier | `R778` |
+| `ProductId` | **Mandatory** | Product ID identifying the parent Template | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
+| `ServiceId` | **Mandatory** | DoS Service ID of the HealthcareService this Endpoint serves | DoS / Commissioner | `2000099999` |
+| `Name` | Optional | Human-readable name for the Endpoint | Run/maintain | `Shirley Pharmacy BaRS Endpoint` |
+| `Status` | **Mandatory** | Initial status of the Endpoint | Run/maintain | `active` |
+| `PeriodStart` | Optional | Start date/time for the Endpoint's validity | Run/maintain | `2026-07-01T00:00:00+00:00` |
+| `PeriodEnd` | Optional | End date/time for the Endpoint's validity | Run/maintain | |
 
 ```csv
 ODSCode,ProductId,ServiceId,Name,Status,PeriodStart,PeriodEnd
 R778,PinnaclePharmOutcomes-v2024.12.12,2000099999,Shirley Pharmacy BaRS Endpoint,active,2026-07-01T00:00:00+00:00,
 ```
 
+> **Naming convention:** `epc-endpoint-create-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-endpoint-create-2026-07-07T093000.csv`)
+
 The CSV may contain multiple rows — one per Endpoint. Each row is processed independently.
-The file is uploaded to the designated S3 bucket by the run/maintain team before any API
-calls are made.
 
 > **Note:** `PeriodStart` and `PeriodEnd` are both optional. If neither is set, the
 > Endpoint has no time constraint — availability is governed by `status` alone. If only
@@ -74,12 +78,58 @@ calls are made.
 
 ---
 
-### Step 2 — Locate the parent Template
+### Step 2 — Upload the CSV to S3
 
-The Endpoint must reference a parent Template. The processing pipeline looks up the
+Upload the CSV to the designated S3 bucket. This triggers the `epc-endpoint-processor`
+Lambda function automatically.
+
+#### Using the AWS CLI
+
+```bash
+aws s3 cp epc-endpoint-create-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/endpoints/create/epc-endpoint-create-2026-07-07T093000.csv
+```
+
+#### Using the AWS Console
+
+1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/endpoints/create/`
+2. Click **Upload**
+3. Select the CSV file
+4. Click **Upload**
+
+> **What happens on upload:** The S3 `PutObject` event triggers the
+> `epc-endpoint-processor` Lambda function. The Lambda reads the CSV and processes each
+> row independently, executing Steps 2a, 2b, 2c, and 3 for every row.
+>
+> **After processing:** The CSV file is moved from the `incoming/` folder to an
+> `archive/` folder in the same S3 bucket and retained for 30 days before automatic
+> deletion.
+
+---
+
+### Pipeline processing (automated)
+
+> **Note:** Lambda names used in this document (e.g., `epc-endpoint-processor`)
+> are illustrative examples and may not reflect the actual deployed Lambda function names.
+
+The `epc-endpoint-processor` Lambda executes the following for **each row** in the
+CSV:
+
+---
+
+#### Step 2a — Locate the parent Template
+
+The Endpoint must reference a parent BaRS Template. The processing pipeline looks up the
 Template using the `ProductId` from the CSV.
 
-#### Request
+##### How the CSV data is used
+
+| CSV column | Used as | Notes |
+|------------|---------|-------|
+| `ProductId` | `productId` query parameter | The primary lookup key — identifies the supplier product |
+| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
+
+##### Request
 
 ```http
 GET /Endpoint/$template?productId=PinnaclePharmOutcomes-v2024.12.12&ConnectionType=http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest&PayloadType=http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars HTTP/1.1
@@ -91,7 +141,7 @@ X-Correlation-Id: b2c3d4e5-2222-3333-4444-555566667777
 NHSD-End-User-Organisation-ODS: R778
 ```
 
-#### Response — 200 OK (Template found)
+##### Response — 200 OK (Template found)
 
 ```json
 {
@@ -156,7 +206,7 @@ Extract the Template `id` from `entry[0].resource.id` — in this example,
 `5fce3e6a-ba37-4289-84d1-cc3ebdb992f5`. This is used as the `extension[].valueReference.reference`
 value when creating the child Endpoint in Step 4.
 
-#### Response — 200 OK (Template not found)
+##### Response — 200 OK (Template not found)
 
 ```json
 {
@@ -167,17 +217,29 @@ value when creating the child Endpoint in Step 4.
 }
 ```
 
-If no Template is found, the Endpoint cannot be created. The Template must be created first
-— see [Managing Endpoint Templates](./manage-endpoint-template.md).
+If no Template is found, the Endpoint cannot be created. The pipeline records `FAILED` in
+the processing report and moves to the next row. The Template must be created first — see
+[Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md).
+
+##### Pipeline behaviour — Error responses
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK`, `total: 1` | Extract Template `id` — proceed to Step 2b | — |
+| `200 OK`, `total: 0` | Template not found — do not proceed | `FAILED` — "Template not found for ProductId {ProductId}" |
+| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
+| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
+| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
 
 ---
 
-### Step 3 — Check whether an Endpoint already exists
+#### Step 2b — Check whether an Endpoint already exists
 
 Before creating an Endpoint, the pipeline checks that one does not already exist for this
 HealthcareService and Template combination with an overlapping period.
 
-#### Request
+##### Request
 
 ```http
 GET /Endpoint?_has:HealthcareService:endpoint:_id={healthcareServiceId}&identifier=https://fhir.nhs.uk/id/product-id|PinnaclePharmOutcomes-v2024.12.12 HTTP/1.1
@@ -189,7 +251,7 @@ X-Correlation-Id: d4e5f6g7-4444-5555-6666-777788889999
 NHSD-End-User-Organisation-ODS: R778
 ```
 
-#### Response — 200 OK (No existing Endpoint — safe to create)
+##### Pipeline behaviour — No existing Endpoint (200 OK, total: 0)
 
 ```json
 {
@@ -200,9 +262,9 @@ NHSD-End-User-Organisation-ODS: R778
 }
 ```
 
-Proceed to Step 4.
+Proceed to Step 3.
 
-#### Response — 200 OK (Endpoint already exists)
+##### Pipeline behaviour — Endpoint already exists (200 OK, total: 1)
 
 ```json
 {
@@ -276,17 +338,20 @@ Proceed to Step 4.
 ```
 
 If an active Endpoint already exists with an overlapping period, **do not create a new
-one** — attempting to do so will result in a `409 Conflict`. Update the existing Endpoint
-instead using `PUT /Endpoint/{id}` (see [Updating an Endpoint](#updating-an-endpoint)).
+one** — attempting to do so will result in a `409 Conflict`. The pipeline skips the row
+and records `SKIPPED` in the processing report.
 
 ---
 
-### Step 4 — Create the Endpoint
+#### Step 3 — Create the Endpoint
 
 Call `POST /Endpoint` with the Endpoint payload. The EPC assigns the resource `id` and
 resolves inherited fields from the parent Template.
 
-#### How the CSV data is used
+> **Note:** The EPC validates the parent Template reference internally when processing the
+> POST request. The pipeline does not need to pre-validate — this is handled server-side.
+
+##### How the CSV data is used
 
 | CSV column | Maps to payload field | Notes |
 |------------|-----------------------|-------|
@@ -298,7 +363,7 @@ resolves inherited fields from the parent Template.
 | `PeriodStart` | `period.start` | Optional — omit if not set |
 | `PeriodEnd` | `period.end` | Optional — omit if not set |
 
-#### Payload field reference
+##### Payload field reference
 
 | Field | Source | Value / Notes |
 |-------|--------|---------------|
@@ -321,7 +386,7 @@ resolves inherited fields from the parent Template.
 > from the Template at read time. Do not include these inherited fields in the payload.
 > The `name` field is set directly on the child Endpoint (not inherited).
 
-#### Request
+##### Request
 
 ```http
 POST /Endpoint HTTP/1.1
@@ -334,7 +399,7 @@ X-Correlation-Id: f6g7h8i9-6666-7777-8888-999900001111
 NHSD-End-User-Organisation-ODS: R778
 ```
 
-#### Request payload
+##### Request payload
 
 ```json
 {
@@ -368,7 +433,7 @@ NHSD-End-User-Organisation-ODS: R778
 }
 ```
 
-#### Response — 200 OK
+##### Response — 200 OK
 
 The EPC returns the created Endpoint with its assigned `id` and all inherited fields
 resolved from the parent Template.
@@ -436,7 +501,56 @@ resolved from the parent Template.
 }
 ```
 
-### Step 5 — Associate the Endpoint with a HealthcareService
+---
+
+### Processing report
+
+After all rows are processed, the Lambda writes a report to S3:
+
+```
+s3://epc-switch-processing-prod/reports/endpoints/create/epc-endpoint-create-2026-07-07T093000-report.csv
+```
+
+#### Report CSV structure
+
+```csv
+ODSCode,ProductId,ServiceId,Name,Status,Detail
+R778,PinnaclePharmOutcomes-v2024.12.12,2000099999,Shirley Pharmacy BaRS Endpoint,CREATED,
+R778,PinnaclePharmOutcomes-v2024.12.12,2000088888,Anytown Pharmacy BaRS Endpoint,SKIPPED,Endpoint already exists
+R778,UnknownProduct-v1.0.0,2000077777,Anytown GP BaRS Endpoint,FAILED,Template not found for ProductId UnknownProduct-v1.0.0
+```
+
+#### Status values
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| `CREATED` | Endpoint created successfully | No action needed |
+| `SKIPPED` | Endpoint already exists (overlapping period with same Template) | No action needed |
+| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+#### Retrieving the report
+
+```bash
+aws s3 cp \
+  s3://epc-switch-processing-prod/reports/endpoints/create/epc-endpoint-create-2026-07-07T093000-report.csv \
+  ./epc-endpoint-create-2026-07-07T093000-report.csv
+```
+
+Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/endpoints/create/`
+
+#### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-endpoint-create-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/endpoints/create/epc-endpoint-create-2026-07-07T093000-fixes.csv
+```
+
+---
+
+### Step 4 — Associate the Endpoint with a HealthcareService
 
 After creation, the Endpoint must be associated with a HealthcareService to be discoverable
 by consumers. Update the HealthcareService's `endpoint[]` array to include a reference to
@@ -454,7 +568,7 @@ Template.
 
 ### Changing status
 
-#### Request
+##### Request
 
 ```http
 PUT /Endpoint/ep-a1b2c3d4-0000-0000-0000-111122223333 HTTP/1.1
@@ -500,7 +614,7 @@ NHSD-End-User-Organisation-ODS: R778
 }
 ```
 
-#### Response — 200 OK
+##### Response — 200 OK
 
 Returns the updated Endpoint with the new status and all inherited fields resolved from
 the parent Template.
@@ -575,7 +689,7 @@ the parent Template.
 
 To expire an Endpoint (e.g. ahead of a supplier switch), set `period.end`:
 
-#### Request
+##### Request
 
 ```http
 PUT /Endpoint/ep-a1b2c3d4-0000-0000-0000-111122223333 HTTP/1.1
@@ -622,7 +736,7 @@ NHSD-End-User-Organisation-ODS: R778
 }
 ```
 
-#### Response — 200 OK
+##### Response — 200 OK
 
 Returns the updated Endpoint with the period end date set and all inherited fields resolved.
 
@@ -767,13 +881,13 @@ After switch:
 
 ### CSV structure for supplier switches
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the pharmacy | Master Switch Log | `FH123` |
-| `ServiceId` | DoS Service ID of the pharmacy service | Master Switch Log | `2000099999` |
-| `OldProductId` | Product ID of the outgoing supplier | Master Switch Log | `PROD-SONAR-001` |
-| `NewProductId` | Product ID of the incoming supplier | Master Switch Log | `PROD-PHARM-001` |
-| `SwitchDate` | Effective date of the switch | Master Switch Log | `2026-07-01` |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the pharmacy | Master Switch Log | `FH123` |
+| `ServiceId` | **Mandatory** | DoS Service ID of the pharmacy service | Master Switch Log | `2000099999` |
+| `OldProductId` | **Mandatory** | Product ID of the outgoing supplier | Master Switch Log | `PROD-SONAR-001` |
+| `NewProductId` | **Mandatory** | Product ID of the incoming supplier | Master Switch Log | `PROD-PHARM-001` |
+| `SwitchDate` | **Mandatory** | Effective date of the switch | Master Switch Log | `2026-07-01` |
 
 ```csv
 ODSCode,ServiceId,OldProductId,NewProductId,SwitchDate
@@ -822,7 +936,7 @@ NHSD-End-User-Organisation-ODS: FH123
 Extract the new Endpoint `id` (e.g. `ep-002`).
 
 > **Note:** If the new supplier does not yet have an Endpoint for this `connectionType`
-> and `payloadType`, one must be created first. See [Creating an Endpoint](#step-4--create-the-endpoint)
+> and `payloadType`, one must be created first. See [Creating an Endpoint](#creating-an-endpoint)
 > above.
 
 ---
@@ -1027,15 +1141,39 @@ for full detail.
 
 ## Error responses
 
+The API returns FHIR `OperationOutcome` resources for errors:
+
 | HTTP Status | Meaning |
 |-------------|---------|
-| 200 | Success |
+| 200 | Success — resource returned or Bundle with results |
 | 400 | Bad request — invalid parameter or payload |
 | 401 | Unauthorised — missing or invalid Bearer token |
 | 403 | Forbidden — valid token but insufficient permissions |
 | 404 | Not found — no Endpoint with the specified `id` |
 | 409 | Conflict — duplicate Endpoint (overlapping period with same Template) |
-| 5XX | Server error |
+| 4XX | Other client error — see OperationOutcome for details |
+| 5XX | Server error — see OperationOutcome for details |
+
+```json
+{
+  "resourceType": "OperationOutcome",
+  "issue": [
+    {
+      "severity": "error",
+      "code": "conflict",
+      "details": {
+        "coding": [
+          {
+            "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+            "code": "PROXY_CONFLICT"
+          }
+        ]
+      },
+      "diagnostics": "An active Endpoint already exists for this HealthcareService and Template with an overlapping period"
+    }
+  ]
+}
+```
 
 ---
 
@@ -1043,7 +1181,7 @@ for full detail.
 
 | Document | Description |
 |----------|-------------|
-| [Managing Endpoint Templates](./manage-endpoint-template.md) | Creating and managing parent Templates |
+| [Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md) | Creating and managing parent BaRS Templates |
 | [Managing HealthcareServices](./manage-healthcare-service.md) | Creating services and managing Endpoint associations |
 | [Endpoint Visibility: Status and Period](./endpoint-visibility-status-and-period.md) | Full status/period lifecycle rules |
 | [DUEC Endpoints](./duec-endpoints.md) | Multi-Endpoint and priority ordering patterns |
