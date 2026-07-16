@@ -302,6 +302,28 @@ The Lambda extracts the new Endpoint `id` (e.g., `ep-new-supplier-001`).
 > **If the Endpoint does not exist:** The row is marked as `FAILED — Endpoint not found`
 > in the processing report. No changes are made.
 
+#### Step 2c — Validate the Endpoint period covers the SwitchDate
+
+Before proceeding with the switch, the pipeline validates that the new Endpoint's `period`
+is compatible with the `SwitchDate` from the CSV. An Endpoint that is not visible on the
+switch date would result in a successful API call but no working route for consumers.
+
+The pipeline checks:
+
+| Condition | Rule | Outcome if violated |
+|-----------|------|---------------------|
+| `period.start` is set | Must be ≤ `SwitchDate` | `FAILED` — "Endpoint period.start ({value}) is after SwitchDate ({SwitchDate})" |
+| `period.end` is set | Must be ≥ `SwitchDate` | `FAILED` — "Endpoint period.end ({value}) is before SwitchDate ({SwitchDate})" |
+| Neither `period.start` nor `period.end` is set | No constraint — always valid | Proceed to Step 3 |
+| Endpoint `status` is not `active` | Must be `active` | `FAILED` — "Endpoint status is {status}, expected active" |
+
+> **Why this matters:** The EPC's visibility rules require that the current date/time is
+> within the Endpoint's `period` for it to be returned to consumers. If the switch succeeds
+> but the Endpoint's period doesn't cover the switch date, the pharmacy will have no
+> visible Endpoint — routing will fail silently. This validation prevents that scenario.
+
+If validation passes, proceed to Step 3.
+
 #### Step 3 — Update the HealthcareService endpoint reference
 
 The Lambda issues a `PUT /HealthcareService/{id}` to replace the old Endpoint reference
@@ -363,6 +385,8 @@ NHSD-End-User-Organisation-ODS: X26
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
 | `200 OK` | Switch successful | `SUCCESS` |
+| Period validation failed | Do not proceed — Endpoint not visible on SwitchDate | `FAILED` — "Endpoint period does not cover SwitchDate" |
+| Endpoint status not `active` | Do not proceed | `FAILED` — "Endpoint status is {status}, expected active" |
 | `404 Not Found` (HealthcareService) | Do not proceed | `FAILED` — "Service not found" |
 | `404 Not Found` (Endpoint) | Do not proceed | `FAILED` — "Endpoint not found" |
 | `409 Conflict` | Do not proceed | `FAILED` — "Conflict (concurrent update)" |
@@ -414,6 +438,8 @@ Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/`
 |----------------|--------|
 | `Service not found` | Confirm DoS Service ID is correct; check if HealthcareService needs to be created |
 | `Endpoint not found` | Confirm the new supplier's Product ID is correct and their Endpoint Template + Endpoint exist |
+| `Endpoint period does not cover SwitchDate` | Check the Endpoint's `period.start` / `period.end` — either update the Endpoint period or correct the `SwitchDate` in the CSV |
+| `Endpoint status is {status}, expected active` | The new supplier's Endpoint is not active — contact the supplier or activate the Endpoint before re-submitting |
 | `Conflict` | Investigate concurrent modification; re-submit the row |
 | `Server error after 3 retries` | Escalate to development team — likely an infrastructure issue |
 
