@@ -59,19 +59,19 @@ file.
 
 #### CSV structure
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the supplier organisation that will own and manage the Template | Supplier | `R778` |
-| `ProductId` | Unique identifier for the supplier product ⚠️ | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
-| `Address` | The target URL of the Endpoint | Supplier | `https://myService.nhs.uk/Base/Address` |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the supplier organisation that will own and manage the Template | Supplier | `R778` |
+| `ProductId` | **Mandatory** | Unique identifier for the supplier product ⚠️ | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
+| `Address` | **Mandatory** | The target URL of the Endpoint | Supplier | `https://myService.nhs.uk/Base/Address` |
 
 ```csv
 ODSCode,ProductId,Address
 R778,PinnaclePharmOutcomes-v2024.12.12,https://myService.nhs.uk/Base/Address
 ```
 
-> **Naming convention:** `epc-endpoint-template-create-YYYY-MM-DD.csv` (e.g.,
-> `epc-endpoint-template-create-2026-07-07.csv`)
+> **Naming convention:** `epc-endpoint-template-create-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-endpoint-template-create-2026-07-07T093000.csv`)
 
 > ⚠️ **Product Id format — under investigation:** The format of the Product Id (currently
 > documented as a concatenation of product name and version, e.g.
@@ -92,8 +92,8 @@ Lambda function automatically.
 #### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-endpoint-template-create-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/create/epc-endpoint-template-create-2026-07-07.csv
+aws s3 cp epc-endpoint-template-create-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/create/epc-endpoint-template-create-2026-07-07T093000.csv
 ```
 
 #### Using the AWS Console
@@ -106,6 +106,10 @@ aws s3 cp epc-endpoint-template-create-2026-07-07.csv \
 > **What happens on upload:** The S3 `PutObject` event triggers the
 > `epc-endpoint-template-processor` Lambda function. The Lambda reads the CSV and processes
 > each row independently, executing Steps 2a, 2b, and 3 for every row.
+>
+> **After processing:** The CSV file is moved from the `incoming/` folder to an
+> `archive/` folder in the same S3 bucket and retained for 30 days before automatic
+> deletion.
 
 ---
 
@@ -451,7 +455,7 @@ if the Template is updated or deleted later.
 After all rows are processed, the Lambda writes a report to S3:
 
 ```
-s3://epc-switch-processing-prod/reports/endpoint-templates/create/epc-endpoint-template-create-2026-07-07-report.csv
+s3://epc-switch-processing-prod/reports/endpoint-templates/create/epc-endpoint-template-create-2026-07-07T093000-report.csv
 ```
 
 #### Report CSV structure
@@ -475,8 +479,8 @@ R778,InvalidProduct,,FAILED,Invalid Address
 
 ```bash
 aws s3 cp \
-  s3://epc-switch-processing-prod/reports/endpoint-templates/create/epc-endpoint-template-create-2026-07-07-report.csv \
-  ./epc-endpoint-template-create-2026-07-07-report.csv
+  s3://epc-switch-processing-prod/reports/endpoint-templates/create/epc-endpoint-template-create-2026-07-07T093000-report.csv \
+  ./epc-endpoint-template-create-2026-07-07T093000-report.csv
 ```
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/endpoint-templates/create/`
@@ -487,8 +491,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-endpoint-template-create-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/create/epc-endpoint-template-create-2026-07-07-fixes.csv
+aws s3 cp epc-endpoint-template-create-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/create/epc-endpoint-template-create-2026-07-07T093000-fixes.csv
 ```
 
 ---
@@ -512,19 +516,19 @@ file.
 
 #### CSV structure
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the supplier organisation | Supplier | `R778` |
-| `ProductId` | Unique identifier for the supplier product ⚠️ | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
-| `Address` | The new target URL of the Endpoint | Supplier | `https://myService-new.nhs.uk/Base/Address` |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the supplier organisation | Supplier | `R778` |
+| `ProductId` | **Mandatory** | Unique identifier for the supplier product ⚠️ | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
+| `Address` | **Mandatory** | The new target URL of the Endpoint | Supplier | `https://myService-new.nhs.uk/Base/Address` |
 
 ```csv
 ODSCode,ProductId,Address
 R778,PinnaclePharmOutcomes-v2024.12.12,https://myService-new.nhs.uk/Base/Address
 ```
 
-> **Naming convention:** `epc-endpoint-template-update-YYYY-MM-DD.csv` (e.g.,
-> `epc-endpoint-template-update-2026-07-07.csv`)
+> **Naming convention:** `epc-endpoint-template-update-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-endpoint-template-update-2026-07-07T093000.csv`)
 
 The CSV may contain multiple rows. Each row is processed independently.
 
@@ -542,8 +546,8 @@ Lambda function automatically.
 #### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-endpoint-template-update-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/update/epc-endpoint-template-update-2026-07-07.csv
+aws s3 cp epc-endpoint-template-update-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/update/epc-endpoint-template-update-2026-07-07T093000.csv
 ```
 
 #### Using the AWS Console
@@ -556,6 +560,10 @@ aws s3 cp epc-endpoint-template-update-2026-07-07.csv \
 > **What happens on upload:** The S3 `PutObject` event triggers the
 > `epc-endpoint-template-processor` Lambda function. The Lambda reads the CSV and processes
 > each row independently, executing Steps 2a, 2b, and 3 for every row.
+>
+> **After processing:** The CSV file is moved from the `incoming/` folder to an
+> `archive/` folder in the same S3 bucket and retained for 30 days before automatic
+> deletion.
 
 ---
 
@@ -774,7 +782,7 @@ immediately visible on every child Endpoint — no further writes are required.
 After all rows are processed, the Lambda writes a report to S3:
 
 ```
-s3://epc-switch-processing-prod/reports/endpoint-templates/update/epc-endpoint-template-update-2026-07-07-report.csv
+s3://epc-switch-processing-prod/reports/endpoint-templates/update/epc-endpoint-template-update-2026-07-07T093000-report.csv
 ```
 
 #### Report CSV structure
@@ -796,8 +804,8 @@ R778,UnknownProduct-v1.0.0,https://other.nhs.uk/Base,FAILED,Template not found f
 
 ```bash
 aws s3 cp \
-  s3://epc-switch-processing-prod/reports/endpoint-templates/update/epc-endpoint-template-update-2026-07-07-report.csv \
-  ./epc-endpoint-template-update-2026-07-07-report.csv
+  s3://epc-switch-processing-prod/reports/endpoint-templates/update/epc-endpoint-template-update-2026-07-07T093000-report.csv \
+  ./epc-endpoint-template-update-2026-07-07T093000-report.csv
 ```
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/endpoint-templates/update/`
@@ -808,8 +816,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-endpoint-template-update-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/update/epc-endpoint-template-update-2026-07-07-fixes.csv
+aws s3 cp epc-endpoint-template-update-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/update/epc-endpoint-template-update-2026-07-07T093000-fixes.csv
 ```
 
 ---
@@ -876,19 +884,19 @@ The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Description | Provided by | Example |
-|--------|-------------|-------------|---------|
-| `ODSCode` | ODS code of the supplier organisation | Supplier | `R778` |
-| `ProductId` | Unique identifier for the supplier product ⚠️ | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
-| `DeleteType` | Type of deletion: `soft` or `hard` | Run/maintain team | `soft` |
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the supplier organisation | Supplier | `R778` |
+| `ProductId` | **Mandatory** | Unique identifier for the supplier product ⚠️ | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
+| `DeleteType` | Optional | Type of deletion: `soft` or `hard` (defaults to `soft` if omitted) | Run/maintain team | `soft` |
 
 ```csv
 ODSCode,ProductId,DeleteType
 R778,PinnaclePharmOutcomes-v2024.12.12,soft
 ```
 
-> **Naming convention:** `epc-endpoint-template-delete-YYYY-MM-DD.csv` (e.g.,
-> `epc-endpoint-template-delete-2026-07-07.csv`)
+> **Naming convention:** `epc-endpoint-template-delete-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-endpoint-template-delete-2026-07-07T093000.csv`)
 
 The CSV may contain multiple rows — one per Template. Each row is processed independently.
 
@@ -905,8 +913,8 @@ Lambda function automatically.
 #### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-endpoint-template-delete-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07.csv
+aws s3 cp epc-endpoint-template-delete-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07T093000.csv
 ```
 
 #### Using the AWS Console
@@ -919,6 +927,10 @@ aws s3 cp epc-endpoint-template-delete-2026-07-07.csv \
 > **What happens on upload:** The S3 `PutObject` event triggers the
 > `epc-endpoint-template-processor` Lambda function. The Lambda reads the CSV and processes
 > each row independently.
+>
+> **After processing:** The CSV file is moved from the `incoming/` folder to an
+> `archive/` folder in the same S3 bucket and retained for 30 days before automatic
+> deletion.
 
 ---
 
@@ -1149,7 +1161,7 @@ The Template is permanently removed. No response body is returned. The pipeline 
 After all rows are processed, the Lambda writes a report to S3:
 
 ```
-s3://epc-switch-processing-prod/reports/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07-report.csv
+s3://epc-switch-processing-prod/reports/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07T093000-report.csv
 ```
 
 #### Report CSV structure
@@ -1174,8 +1186,8 @@ R778,UnknownProduct-v3.0.0,soft,FAILED,Template not found
 
 ```bash
 aws s3 cp \
-  s3://epc-switch-processing-prod/reports/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07-report.csv \
-  ./epc-endpoint-template-delete-2026-07-07-report.csv
+  s3://epc-switch-processing-prod/reports/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07T093000-report.csv \
+  ./epc-endpoint-template-delete-2026-07-07T093000-report.csv
 ```
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/endpoint-templates/delete/`
@@ -1186,8 +1198,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-endpoint-template-delete-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07-fixes.csv
+aws s3 cp epc-endpoint-template-delete-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07T093000-fixes.csv
 ```
 
 ---

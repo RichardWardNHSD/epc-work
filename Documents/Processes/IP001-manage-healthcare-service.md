@@ -57,8 +57,8 @@ ODSCode,ServiceId,ServiceName,EndpointId
 A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-000000000001
 ```
 
-> **Naming convention:** `epc-healthcareservice-create-YYYY-MM-DD.csv` (e.g.,
-> `epc-healthcareservice-create-2026-07-07.csv`)
+> **Naming convention:** `epc-healthcareservice-create-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-healthcareservice-create-2026-07-07T093000.csv`)
 
 > **Note:** `EndpointId` is optional. A HealthcareService can be created without any
 > associated Endpoints. Endpoints can be associated later via an update.
@@ -147,8 +147,8 @@ Lambda function automatically.
 #### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-healthcareservice-create-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/create/epc-healthcareservice-create-2026-07-07.csv
+aws s3 cp epc-healthcareservice-create-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/create/epc-healthcareservice-create-2026-07-07T093000.csv
 ```
 
 #### Using the AWS Console
@@ -275,14 +275,14 @@ The pipeline proceeds to Step 3 (create the HealthcareService).
 If the lookup call fails, the pipeline records the row as `FAILED` in the processing report
 and moves to the next row. It does **not** attempt to create the HealthcareService.
 
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK`, `total: 0` | Proceed to Step 3 (create) | — |
-| `200 OK`, `total: 1` | Skip — already exists | `SKIPPED` — "Already exists" |
-| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
-| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
+| API Response         | Pipeline Action                                                                | Processing Report Entry                                  |
+| ----------------------| --------------------------------------------------------------------------------| ----------------------------------------------------------|
+| `200 OK`, `total: 0` | Proceed to Step 3 (create)                                                     | —                                                        |
+| `200 OK`, `total: 1` | Skip — already exists                                                          | `SKIPPED` — "Already exists"                             |
+| `401 Unauthorized`   | Do not proceed                                                                 | `FAILED` — "Authentication error on lookup"              |
+| `403 Forbidden`      | Do not proceed                                                                 | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `5XX Server Error`   | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries"      |
+| Network timeout      | Retry up to 3 times; if still failing, do not proceed                          | `FAILED` — "Timeout on lookup after 3 retries"           |
 
 ---
 
@@ -456,7 +456,7 @@ is needed for updates, endpoint association changes, and deletion.
 After all rows are processed, the Lambda writes a report to S3:
 
 ```
-s3://epc-switch-processing-prod/reports/healthcareservices/create/epc-healthcareservice-create-2026-07-07-report.csv
+s3://epc-switch-processing-prod/reports/healthcareservices/create/epc-healthcareservice-create-2026-07-07T093000-report.csv
 ```
 
 #### Report CSV structure
@@ -480,8 +480,8 @@ A1001,2000077777,Anytown GP,{e3c4d5e6-0000-0000-0000-000000000001},FAILED,Endpoi
 
 ```bash
 aws s3 cp \
-  s3://epc-switch-processing-prod/reports/healthcareservices/create/epc-healthcareservice-create-2026-07-07-report.csv \
-  ./epc-healthcareservice-create-2026-07-07-report.csv
+  s3://epc-switch-processing-prod/reports/healthcareservices/create/epc-healthcareservice-create-2026-07-07T093000-report.csv \
+  ./epc-healthcareservice-create-2026-07-07T093000-report.csv
 ```
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/create/`
@@ -492,8 +492,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-healthcareservice-create-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/create/epc-healthcareservice-create-2026-07-07-fixes.csv
+aws s3 cp epc-healthcareservice-create-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/create/epc-healthcareservice-create-2026-07-07T093000-fixes.csv
 ```
 
 ---
@@ -531,8 +531,8 @@ ODSCode,ServiceId,ServiceName,EndpointId
 A1001,2000099999,Anytown UTC (Extended Hours),{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}
 ```
 
-> **Naming convention:** `epc-healthcareservice-update-YYYY-MM-DD.csv` (e.g.,
-> `epc-healthcareservice-update-2026-07-07.csv`)
+> **Naming convention:** `epc-healthcareservice-update-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-healthcareservice-update-2026-07-07T093000.csv`)
 
 The CSV may contain multiple rows — one per service. Each row is processed independently.
 
@@ -557,8 +557,8 @@ Lambda function automatically.
 #### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-healthcareservice-update-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/update/epc-healthcareservice-update-2026-07-07.csv
+aws s3 cp epc-healthcareservice-update-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/update/epc-healthcareservice-update-2026-07-07T093000.csv
 ```
 
 #### Using the AWS Console
@@ -750,7 +750,7 @@ Returns the updated HealthcareService.
 After all rows are processed, the Lambda writes a report to S3:
 
 ```
-s3://epc-switch-processing-prod/reports/healthcareservices/update/epc-healthcareservice-update-2026-07-07-report.csv
+s3://epc-switch-processing-prod/reports/healthcareservices/update/epc-healthcareservice-update-2026-07-07T093000-report.csv
 ```
 
 #### Report CSV structure
@@ -772,8 +772,8 @@ A1001,2000077777,Anytown GP,,FAILED,HealthcareService not found for ServiceId 20
 
 ```bash
 aws s3 cp \
-  s3://epc-switch-processing-prod/reports/healthcareservices/update/epc-healthcareservice-update-2026-07-07-report.csv \
-  ./epc-healthcareservice-update-2026-07-07-report.csv
+  s3://epc-switch-processing-prod/reports/healthcareservices/update/epc-healthcareservice-update-2026-07-07T093000-report.csv \
+  ./epc-healthcareservice-update-2026-07-07T093000-report.csv
 ```
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/update/`
@@ -784,8 +784,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-healthcareservice-update-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/update/epc-healthcareservice-update-2026-07-07-fixes.csv
+aws s3 cp epc-healthcareservice-update-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/update/epc-healthcareservice-update-2026-07-07T093000-fixes.csv
 ```
 
 ---
@@ -825,8 +825,8 @@ ODSCode,ServiceId,DeleteType
 A1001,2000099999,soft
 ```
 
-> **Naming convention:** `epc-healthcareservice-delete-YYYY-MM-DD.csv` (e.g.,
-> `epc-healthcareservice-delete-2026-07-07.csv`)
+> **Naming convention:** `epc-healthcareservice-delete-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-healthcareservice-delete-2026-07-07T093000.csv`)
 
 The CSV may contain multiple rows — one per service. Each row is processed independently.
 
@@ -843,8 +843,8 @@ Lambda function automatically.
 #### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-healthcareservice-delete-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07.csv
+aws s3 cp epc-healthcareservice-delete-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07T093000.csv
 ```
 
 #### Using the AWS Console
@@ -1001,7 +1001,7 @@ records `DELETED` in the processing report.
 After all rows are processed, the Lambda writes a report to S3:
 
 ```
-s3://epc-switch-processing-prod/reports/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07-report.csv
+s3://epc-switch-processing-prod/reports/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07T093000-report.csv
 ```
 
 #### Report CSV structure
@@ -1025,8 +1025,8 @@ A1001,2000077777,hard,FAILED,Insufficient permissions for hard delete
 
 ```bash
 aws s3 cp \
-  s3://epc-switch-processing-prod/reports/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07-report.csv \
-  ./epc-healthcareservice-delete-2026-07-07-report.csv
+  s3://epc-switch-processing-prod/reports/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07T093000-report.csv \
+  ./epc-healthcareservice-delete-2026-07-07T093000-report.csv
 ```
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/healthcareservices/delete/`
@@ -1037,8 +1037,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-healthcareservice-delete-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07-fixes.csv
+aws s3 cp epc-healthcareservice-delete-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/healthcareservices/delete/epc-healthcareservice-delete-2026-07-07T093000-fixes.csv
 ```
 
 ---

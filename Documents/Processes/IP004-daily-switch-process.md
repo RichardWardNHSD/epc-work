@@ -208,7 +208,7 @@ FKV30,2000017778,PROD-POSITIVE-001,PROD-PHARMOUTCOMES-001,2026-07-07
 FH123,2000099999,PROD-PHARMOUTCOMES-001,PROD-CEGEDIM-001,2026-07-07
 ```
 
-> **Naming convention:** `epc-switches-YYYY-MM-DD.csv` (e.g., `epc-switches-2026-07-07.csv`)
+> **Naming convention:** `epc-switches-YYYY-MM-DDTHHmmss.csv` (e.g., `epc-switches-2026-07-07T093000.csv`)
 
 > **Validation is performed by the Lambda after upload:** The R&M team does not need to
 > pre-check that each `ServiceId` or `NewProductId` exists in the EPC. The Lambda validates
@@ -227,8 +227,8 @@ automatically.
 ##### Using the AWS CLI
 
 ```bash
-aws s3 cp epc-switches-2026-07-07.csv \
-  s3://epc-switch-processing-prod/incoming/epc-switches-2026-07-07.csv
+aws s3 cp epc-switches-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/epc-switches-2026-07-07T093000.csv
 ```
 
 ##### Using the AWS Console
@@ -359,7 +359,7 @@ NHSD-End-User-Organisation-ODS: X26
 After all rows are processed, the Lambda writes a report to S3:
 
 ```
-s3://epc-switch-processing-prod/reports/epc-switches-2026-07-07-report.csv
+s3://epc-switch-processing-prod/reports/epc-switches-2026-07-07T093000-report.csv
 ```
 
 Report CSV structure:
@@ -379,8 +379,8 @@ The R&M team retrieves the processing report from S3:
 
 ```bash
 aws s3 cp \
-  s3://epc-switch-processing-prod/reports/epc-switches-2026-07-07-report.csv \
-  ./epc-switches-2026-07-07-report.csv
+  s3://epc-switch-processing-prod/reports/epc-switches-2026-07-07T093000-report.csv \
+  ./epc-switches-2026-07-07T093000-report.csv
 ```
 
 Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/`
@@ -401,8 +401,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-switches-2026-07-07-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/epc-switches-2026-07-07-fixes.csv
+aws s3 cp epc-switches-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/epc-switches-2026-07-07T093000-fixes.csv
 ```
 
 The pipeline will re-process only those rows.
