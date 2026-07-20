@@ -277,7 +277,7 @@ Built payload:
 }
 ```
 
-**Output:** `template_log` — map of `TemplateId → EPC catalog_id`
+**Output:** `template_log` — map of `TemplateId → { catalog_id, product_id }`
 
 ---
 
@@ -308,6 +308,8 @@ response = table.scan(
 | FHIR Field | Example Value | Source | How to derive |
 |------------|--------------|--------|---------------|
 | `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
+| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | Copied from parent Template | Use the same Product ID value that was resolved for the parent Template in Step 2. No separate lookup required — copy from the Template payload already built for this TemplateId. |
 | `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension linking child to parent Template. |
 | `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | `int_endpoints.TemplateId` → `template_log` | Take the `TemplateId` UUID from the source item. Look it up in `template_log` (output of Step 2) to get the EPC `catalog_id`. Format as `"Endpoint/{catalog_id}"`. If not found in log, skip this record. |
 | `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
@@ -321,7 +323,6 @@ These fields are inherited from the parent Template at read time — do NOT incl
 
 | Field | Reason |
 |-------|--------|
-| `identifier` | Inherited from parent Template (Product ID lives on the Template) |
 | `address` | Inherited from parent Template |
 | `connectionType` | Inherited from parent Template |
 | `payloadType` | Inherited from parent Template |
@@ -345,7 +346,7 @@ ServiceId:              2000114950
 ```
 
 Resolved values:
-- `TemplateId "26a1070e-..."` → template_log → catalog_id `"5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"`
+- `TemplateId "26a1070e-..."` → template_log → catalog_id `"5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"`, Product ID `"CegedimPharmacyServices-v6.0"`
 - `Active true` → `"active"`
 - `StartDate` → direct copy
 - `EndDate` empty → omit `period.end`
@@ -354,6 +355,10 @@ Built payload:
 ```json
 {
   "resourceType": "Endpoint",
+  "identifier": [{
+    "system": "https://fhir.nhs.uk/id/product-id",
+    "value": "CegedimPharmacyServices-v6.0"
+  }],
   "extension": [{
     "url": "http://hl7.org",
     "valueReference": {

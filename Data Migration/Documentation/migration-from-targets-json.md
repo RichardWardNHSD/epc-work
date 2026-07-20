@@ -353,7 +353,7 @@ Enrichment resolved:
 }
 ```
 
-**Output:** `template_log` — map of `normalised_url → EPC catalog_id`
+**Output:** `template_log` — map of `normalised_url → { catalog_id, product_id }`
 
 ---
 
@@ -373,17 +373,18 @@ In the EPC model, each Template needs at least one child Endpoint to be routable
 | FHIR Field | Example Value | Source | How to derive |
 |------------|--------------|--------|---------------|
 | `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
+| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | Copied from parent Template | Use the same Product ID value that was sent to the Template in Step 1. No separate lookup required — copy from the Template payload already built for this URL. |
 | `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension. |
 | `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."` | `template_log` | Look up the normalised URL in `template_log` to get the parent Template's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
 | `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
 | `status` | `"active"` | Static | Always `"active"` — the URL is in the live routing file, so the endpoint is active. |
 | `period.start` | `"2026-07-20T00:00:00Z"` | Static (migration date) | Use the migration execution date. targets.json doesn't carry start dates. |
 
-### Fields NOT included (inherited from Template)
+### Fields NOT included (inherited from Template at read time)
 
 | Field | Reason |
 |-------|--------|
-| `identifier` | Inherited from parent Template (Product ID lives on the Template) |
 | `address` | Inherited from parent Template |
 | `connectionType` | Inherited from parent Template |
 | `payloadType` | Inherited from parent Template |
@@ -398,6 +399,10 @@ For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `temp
 ```json
 {
   "resourceType": "Endpoint",
+  "identifier": [{
+    "system": "https://fhir.nhs.uk/id/product-id",
+    "value": "CegedimPharmacyServices-v6.0"
+  }],
   "extension": [{
     "url": "http://hl7.org",
     "valueReference": {
