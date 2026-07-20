@@ -378,8 +378,67 @@ In the EPC model, each Template needs at least one child Endpoint to be routable
 | `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension. |
 | `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."` | `template_log` | Look up the normalised URL in `template_log` to get the parent Template's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
 | `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
-| `status` | `"active"` | Static | Always `"active"` — the URL is in the live routing file, so the endpoint is active. |
-| `period.start` | `"2026-07-20T00:00:00Z"` | Static (migration date) | Use the migration execution date. targets.json doesn't carry start dates. |
+| `status` | `"active"` | `endpoint_details` or Static | Look up `service_id` in `endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If service_id not found, default to `"active"` (it's in the live routing file). |
+| `period.start` | `"2026-06-01T16:04:05.168Z"` | `endpoint_details` or migration date | See decision note below. |
+| `period.end` | `"2026-04-22T15:40:17.423Z"` | `endpoint_details` (if populated) | See decision note below. **Only include if populated.** |
+
+### Decision: How to resolve `period.start` and `period.end`
+
+targets.json has no concept of start or end dates — every entry is implicitly "active now". However, child Endpoints in the EPC require a `period.start` and optionally `period.end`. There are two options:
+
+#### Option 1: Default to migration date (simple)
+
+Set `period.start` to the migration execution date for all endpoints. Omit `period.end`.
+
+- **Pros:** Simple, no dependency on `int_endpoints` data quality, no additional DynamoDB scan
+- **Cons:** Loses historical information about when the endpoint was actually activated; all endpoints appear to have started on the same day
+
+#### Option 2: Resolve from int_endpoints (recommended)
+
+For each `service_id` in targets.json, find matching records in `int_endpoints` (by `ServiceId`) and derive the period from those records.
+
+**Logic:**
+1. Query `int_endpoints` for all items where `ServiceId == service_id` and `DataStatus == 0`
+2. If multiple items exist (e.g., endpoint was re-onboarded), use the **most recent active** record — latest `StartDate` with no `EndDate`, or if all have `EndDate`, use the one with the latest `LastUpdated`
+3. Copy `StartDate` → `period.start`
+4. If `EndDate` is populated, copy to `period.end` (unlikely for services in targets.json since they're actively routed, but handles edge cases)
+5. If `StartDate` is empty on the matched record, fall back to migration date
+
+If no matching record found in `int_endpoints` at all, fall back to Option 1 (migration date).
+
+```python
+MIGRATION_DATE = "2026-07-20T00:00:00Z"
+
+def resolve_period(service_id, endpoint_details):
+    """
+    Resolve period for a service.
+    Option 2: use int_endpoints data, with migration date as fallback.
+    """
+    details = endpoint_details.get(service_id)
+    
+    if not details:
+        # No int_endpoints record — fall back to migration date
+        return {"start": MIGRATION_DATE}, "fallback_no_record"
+    
+    period = {}
+    
+    if details["start_date"]:
+        period["start"] = details["start_date"]
+    else:
+        # Record exists but StartDate is empty — use migration date
+        period["start"] = MIGRATION_DATE
+    
+    if details["end_date"]:
+        period["end"] = details["end_date"]
+    
+    return period, "resolved"
+```
+
+#### Recommendation
+
+Use **Option 2** — resolve from `int_endpoints` where possible, with migration date as fallback. This preserves historical accuracy while ensuring no endpoint is missing a `period.start`.
+
+Expected coverage: most service IDs in targets.json will have a matching `int_endpoints` record. Services without a match are likely new additions to the flat file that weren't yet onboarded to the EPC — these get the migration date.
 
 ### Fields NOT included (inherited from Template at read time)
 
@@ -412,12 +471,12 @@ For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `temp
   }],
   "status": "active",
   "period": {
-    "start": "2026-07-20T00:00:00Z"
+    "start": "2026-06-01T16:04:05.168Z"
   }
 }
 ```
 
-**Output:** `endpoint_log` — map of `normalised_url → endpoint_catalog_id`
+**Output:** `endpoint_log` — map of `service_id → endpoint_catalog_id`
 
 ---
 
@@ -427,7 +486,7 @@ For each key-value pair in `service_to_url`, create a HealthcareService that ref
 
 **For each service_id, url pair in `service_to_url`:**
 
-1. Normalise the URL and look up in `endpoint_log` to get the child Endpoint's `catalog_id`
+1. Look up `service_id` in `endpoint_log` to get the child Endpoint's `catalog_id`
 2. Resolve provider organisation ODS code from `provider_lookup` (built in Step 0b)
 3. Resolve service name from `provider_lookup` (built in Step 0b)
 4. Build the FHIR HealthcareService payload
@@ -455,7 +514,7 @@ These are required fields. If a service_id is not found in `provider_lookup`, lo
 | `name` | `"Pharm+: Victoria Pharmacy Golders Green"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `name` field. If not found, log as a migration gap — this must be resolved. Strip surrounding quotes. |
 | `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI. |
 | `providedBy.identifier.value` | `"FLG23"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as a migration gap — must be resolved before go-live. |
-| `endpoint[0].reference` | `"Endpoint/abc123-..."` | `endpoint_log` | Normalise the URL from targets.json (lowercase, strip trailing slash). Look up in `endpoint_log` to get the child Endpoint's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
+| `endpoint[0].reference` | `"Endpoint/abc123-..."` | `endpoint_log` | Look up `service_id` in `endpoint_log` to get the child Endpoint's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
 
 ### Example payload
 
@@ -463,7 +522,7 @@ For targets.json entry: `"2000017562": "https://bars-prod-ygm04.cegedim.thirdpar
 
 Enrichment resolved:
 - `provider_lookup["2000017562"]` → `{ provider_ods: "FE284", name: "Pharm+: Boots Pharmacy Bromley" }`
-- `endpoint_log["bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4"]` → catalog_id `"0cb21027-a246-43e6-9c7a-35b17163eab1"`
+- `endpoint_log["2000017562"]` → catalog_id `"0cb21027-a246-43e6-9c7a-35b17163eab1"`
 
 ```json
 {
@@ -640,12 +699,12 @@ sequenceDiagram
 |------|---------|---------------|-------|
 | Step 0 (parse + enrich) | 4,000+ services, ~13 URLs | 0 (DynamoDB only) | 4 table scans (orgs, templates, endpoints, healthcareservices) |
 | Step 1 (templates) | ~13 unique URLs | ~13 POSTs | One template per unique supplier URL |
-| Step 2 (child endpoints) | ~13 | ~13 POSTs | One child per template |
+| Step 2 (child endpoints) | ~4,000+ | ~4,000+ POSTs | One child endpoint per service ID (with period from int_endpoints) |
 | Step 3 (HealthcareServices) | ~4,000+ | ~4,000+ POSTs | One per service ID |
 | Step 4 (validation) | ~4,000+ | ~4,000+ GETs | One query per service ID |
-| **Total** | | **~8,000+ API calls** | |
+| **Total** | | **~12,000+ API calls** | |
 
-At ~10 requests/second, estimated runtime: ~13 minutes.
+At ~10 requests/second, estimated runtime: ~20 minutes.
 
 This is significantly fewer API calls than the full int_ table migration because:
 - Only ~13 Templates/Endpoints (not thousands — one per URL, not one per service)
@@ -679,8 +738,8 @@ This is significantly fewer API calls than the full int_ table migration because
 | Inactive services included | Yes | No — only actively routed services |
 | Provider organisation | From int_healthcareservices.ProviderOrganisationId | Required — resolved from int_healthcareservices in Step 0b |
 | Service name | From int_healthcareservices.Name | Required — resolved from int_healthcareservices in Step 0b |
-| Endpoint per service | Dedicated endpoint per service | Shared endpoint per URL (all services on same URL share one endpoint) |
-| Total API calls | ~14,000 | ~8,000 |
+| Endpoint per service | Dedicated endpoint per service | Dedicated endpoint per service (period resolved from int_endpoints) |
+| Total API calls | ~14,000 | ~12,000+ |
 | Complexity | Higher (more data, more lookups) | Lower (flat file drives everything) |
 
 ---
@@ -694,7 +753,7 @@ This is significantly fewer API calls than the full int_ table migration because
 | `providedBy` optional | No — required | Provider resolution is built in Step 0b from int_healthcareservices. Any gaps must be resolved before go-live. |
 | `name` optional | No — required (with fallback for gaps) | Resolved from int_healthcareservices in Step 0b. Missing names are logged as gaps. |
 | URL matching strategy | Case-insensitive, strip trailing slash, strip scheme for comparison | Source data has inconsistent casing |
-| Period.start for child endpoints | Migration date | No historical start date available from targets.json |
+| Period.start for child endpoints | Resolve from int_endpoints (Option 2), migration date as fallback | Preserves historical start date where available; ensures no missing values |
 
 ---
 
