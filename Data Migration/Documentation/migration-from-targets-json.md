@@ -47,7 +47,7 @@ Each key-value pair represents:
 ```mermaid
 flowchart TD
     TJ[targets.json] --> PARSE[Parse: extract unique URLs + service-to-URL pairs]
-    PARSE --> ENRICH[Enrich: resolve supplier metadata from int_ tables]
+    PARSE --> ENRICH[Enrich: resolve supplier metadata + provider organisations]
     ENRICH --> S1[Step 1: Create Endpoint Templates per unique URL]
     S1 --> S2[Step 2: Create child Endpoints per unique URL]
     S2 --> S3[Step 3: Create HealthcareServices per service ID]
@@ -57,11 +57,13 @@ flowchart TD
         INT_EP[int_endpoints]
         INT_TPL[int_endpoint_templates]
         INT_ORG[int_organisations]
+        INT_HCS[int_healthcareservices]
     end
 
     ENRICH --> INT_EP
     ENRICH --> INT_TPL
     ENRICH --> INT_ORG
+    ENRICH --> INT_HCS
 ```
 
 ---
@@ -73,8 +75,9 @@ flowchart TD
 | `targets.json` | Current production routing file | Required |
 | EPC API available | Target environment (INT or DEV) accessible | Required |
 | API credentials | Bearer token or OAuth2 client credentials for EPC API | Required |
-| AWS access | IAM role/credentials with read access to `int_` DynamoDB tables (for enrichment) | Required |
+| AWS access | IAM role/credentials with read access to `int_` DynamoDB tables (for enrichment and provider resolution) | Required |
 | Product ID mapping | Short codes (ygm04, AC0, etc.) → agreed EPC Product IDs | Required |
+| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup | Required (built in Step 0) |
 | Migration log store | Persistent map of `source_id → catalog_id` for cross-referencing between steps | Required |
 
 ---
@@ -115,6 +118,72 @@ print(f"Unique endpoint URLs: {len(unique_urls)}")
 **Output:**
 - `service_to_url`: dict of ~4,000+ entries
 - `unique_urls`: list of ~13 unique URLs
+
+---
+
+## Step 0b: Build Provider Organisation Lookup (Required)
+
+targets.json does not contain the provider organisation (the pharmacy, hospital, or service that delivers care). This must be resolved before Step 3, so it is built as part of Step 0.
+
+**Source:** `int_healthcareservices` DynamoDB table + `int_organisations` (for ODS code resolution)
+
+**Action:** Scan `int_healthcareservices` and build a dictionary keyed by `ServiceId` that maps each service to its provider organisation ODS code and service name.
+
+```python
+hcs_table = dynamodb.Table('int_healthcareservices')
+
+# Build service_id → provider organisation + service name lookup
+provider_lookup = {}
+response = hcs_table.scan(
+    FilterExpression=Attr('DataStatus').eq(0)
+)
+for item in response['Items']:
+    service_id = item.get('ServiceId', '')
+    provider_org_id = item.get('ProviderOrganisationId', '')
+    org = org_lookup.get(provider_org_id, {})
+    provider_lookup[service_id] = {
+        "provider_ods": org.get('ods_code', ''),
+        "provider_name": org.get('name', ''),
+        "name": item.get('Name', '').strip('"'),
+    }
+
+# Handle pagination
+while 'LastEvaluatedKey' in response:
+    response = hcs_table.scan(
+        FilterExpression=Attr('DataStatus').eq(0),
+        ExclusiveStartKey=response['LastEvaluatedKey']
+    )
+    for item in response['Items']:
+        service_id = item.get('ServiceId', '')
+        provider_org_id = item.get('ProviderOrganisationId', '')
+        org = org_lookup.get(provider_org_id, {})
+        provider_lookup[service_id] = {
+            "provider_ods": org.get('ods_code', ''),
+            "provider_name": org.get('name', ''),
+            "name": item.get('Name', '').strip('"'),
+        }
+
+print(f"Provider lookup entries: {len(provider_lookup)}")
+```
+
+**Validation:** After building, check coverage against targets.json:
+
+```python
+missing_providers = []
+for service_id in service_to_url.keys():
+    if service_id not in provider_lookup:
+        missing_providers.append(service_id)
+
+if missing_providers:
+    print(f"WARNING: {len(missing_providers)} services in targets.json have no provider in int_healthcareservices")
+    print(f"These will be created without providedBy — must be resolved before go-live")
+else:
+    print("All services have provider organisation resolved")
+```
+
+**Output:** `provider_lookup` — dict of `service_id → { provider_ods, provider_name, name }`
+
+This is a **required** pre-requisite for Step 3. Any services missing from this lookup must be flagged for manual resolution before migration is considered complete.
 
 ---
 
@@ -360,36 +429,20 @@ For each key-value pair in `service_to_url`, create a HealthcareService that ref
 **For each service_id, url pair in `service_to_url`:**
 
 1. Normalise the URL and look up in `endpoint_log` to get the child Endpoint's `catalog_id`
-2. Resolve provider organisation ODS code (optional enrichment — see below)
-3. Build the FHIR HealthcareService payload
-4. Call: `POST /HealthcareService`
-5. Record: `{ service_id: hcs_catalog_id }` in `hcs_log`
+2. Resolve provider organisation ODS code from `provider_lookup` (built in Step 0b)
+3. Resolve service name from `provider_lookup` (built in Step 0b)
+4. Build the FHIR HealthcareService payload
+5. Call: `POST /HealthcareService`
+6. Record: `{ service_id: hcs_catalog_id }` in `hcs_log`
 
-### Provider Organisation Resolution (Enrichment)
+### Provider Organisation (from Step 0b)
 
-targets.json does not contain the provider organisation (pharmacy/hospital). To populate `providedBy`, we can optionally enrich from `int_healthcareservices`:
+The `provider_lookup` dictionary built in Step 0b provides:
+- `provider_ods` — the ODS code of the provider organisation (pharmacy/hospital)
+- `provider_name` — the organisation name
+- `name` — the human-readable service name
 
-```python
-hcs_table = dynamodb.Table('int_healthcareservices')
-
-# Build service_id → provider ODS lookup
-provider_lookup = {}
-response = hcs_table.scan(
-    FilterExpression=Attr('DataStatus').eq(0)
-)
-for item in response['Items']:
-    service_id = item.get('ServiceId', '')
-    provider_org_id = item.get('ProviderOrganisationId', '')
-    org = org_lookup.get(provider_org_id, {})
-    provider_lookup[service_id] = {
-        "provider_ods": org.get('ods_code', ''),
-        "provider_name": org.get('name', ''),
-        "name": item.get('Name', '').strip('"'),
-    }
-# Handle pagination...
-```
-
-If enrichment is not available or not desired, `providedBy` can be omitted and populated later.
+These are required fields. If a service_id is not found in `provider_lookup`, log it as a migration gap that must be resolved.
 
 ### Payload Parameter Table
 
@@ -400,9 +453,9 @@ If enrichment is not available or not desired, `providedBy` can be omitted and p
 | `identifier[0].system` | `"https://fhir.nhs.uk/Id/dos-service-id"` | Static | Always `"https://fhir.nhs.uk/Id/dos-service-id"` — this is the identifier system used by the BaRS proxy to query the EPC. |
 | `identifier[0].value` | `"2000017562"` | `targets.json` key | Direct copy of the service ID key from the JSON. |
 | `active` | `true` | Static | Always `true` — the service is in the live routing file, so it's active. |
-| `name` | `"Pharm+: Victoria Pharmacy Golders Green"` | `provider_lookup` (enrichment) | Look up `service_id` in `provider_lookup`. Use the `name` field. If not found, use `"Service {service_id}"` as a fallback. Strip surrounding quotes. |
-| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI. Only include `providedBy` if provider ODS is resolved. |
-| `providedBy.identifier.value` | `"FLG23"` | `provider_lookup` (enrichment) | Look up `service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, omit the entire `providedBy` block. |
+| `name` | `"Pharm+: Victoria Pharmacy Golders Green"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `name` field. If not found, log as a migration gap — this must be resolved. Strip surrounding quotes. |
+| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI. |
+| `providedBy.identifier.value` | `"FLG23"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as a migration gap — must be resolved before go-live. |
 | `endpoint[0].reference` | `"Endpoint/abc123-..."` | `endpoint_log` | Normalise the URL from targets.json (lowercase, strip trailing slash). Look up in `endpoint_log` to get the child Endpoint's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
 
 ### Example payload
@@ -543,7 +596,8 @@ sequenceDiagram
     Script->>Script: Extract service_to_url + unique_urls
     Script->>DDB: Scan int_organisations (build org_lookup)
     Script->>DDB: Scan int_endpoint_templates (build url_metadata)
-    Script->>DDB: Scan int_healthcareservices (build provider_lookup)
+    Script->>DDB: Scan int_healthcareservices (build provider_lookup — REQUIRED)
+    Script->>Script: Validate provider_lookup covers all service IDs in targets.json
 
     Note over Script: Step 1 - Templates (~13 URLs)
     loop For each unique URL
@@ -585,7 +639,7 @@ sequenceDiagram
 
 | Step | Records | EPC API Calls | Notes |
 |------|---------|---------------|-------|
-| Step 0 (parse + enrich) | 4,000+ services, ~13 URLs | 0 (DynamoDB only) | 3 table scans |
+| Step 0 (parse + enrich) | 4,000+ services, ~13 URLs | 0 (DynamoDB only) | 4 table scans (orgs, templates, endpoints, healthcareservices) |
 | Step 1 (templates) | ~13 unique URLs | ~13 POSTs | One template per unique supplier URL |
 | Step 2 (child endpoints) | ~13 | ~13 POSTs | One child per template |
 | Step 3 (HealthcareServices) | ~4,000+ | ~4,000+ POSTs | One per service ID |
@@ -606,7 +660,7 @@ This is significantly fewer API calls than the full int_ table migration because
 |-------|--------|
 | **URL not found in url_metadata** (enrichment miss) | Log warning. If ProductId/ODS can be inferred from URL pattern (e.g., `ygm04` in hostname), use that. Otherwise skip and flag for manual resolution. |
 | **ProductId not in PRODUCT_ID_MAP** | Log as unmapped, skip the template creation, and all services using that URL will fail in Step 3. Add to "needs mapping" report. |
-| **provider_lookup miss** (service not in int_healthcareservices) | Create HealthcareService without `providedBy` and without `name` (use fallback). Log for later enrichment. |
+| **provider_lookup miss** (service not in int_healthcareservices) | Log as migration gap. Create HealthcareService without `providedBy` temporarily but flag as **must-resolve** before go-live. These gaps must be zero for migration to be considered complete. |
 | Template POST fails (409 conflict / already exists) | Query by ProductId to get existing catalog_id. Use that in template_log. Continue. |
 | Endpoint POST fails | Log and skip. Services referencing this URL will have no endpoint reference. |
 | HealthcareService POST fails | Log service_id and error. Continue with next. |
@@ -624,8 +678,8 @@ This is significantly fewer API calls than the full int_ table migration because
 | Child Endpoints created | One per endpoint row (~5,000) | One per unique URL (~13) |
 | HealthcareServices created | One per HCS row (~5,000, includes inactive) | One per targets.json entry (~4,000, all active) |
 | Inactive services included | Yes | No — only actively routed services |
-| Provider organisation | From int_healthcareservices.ProviderOrganisationId | Optional enrichment from same table |
-| Service name | From int_healthcareservices.Name | Optional enrichment (fallback: generic name) |
+| Provider organisation | From int_healthcareservices.ProviderOrganisationId | Required — resolved from int_healthcareservices in Step 0b |
+| Service name | From int_healthcareservices.Name | Required — resolved from int_healthcareservices in Step 0b |
 | Endpoint per service | Dedicated endpoint per service | Shared endpoint per URL (all services on same URL share one endpoint) |
 | Total API calls | ~14,000 | ~8,000 |
 | Complexity | Higher (more data, more lookups) | Lower (flat file drives everything) |
@@ -638,8 +692,8 @@ This is significantly fewer API calls than the full int_ table migration because
 |----------|--------|-----------|
 | One child Endpoint per URL (shared) vs one per service | One per URL (shared) | targets.json shows many services using the same URL. Creating thousands of identical endpoints is wasteful. |
 | All services set to `active: true` | Yes | They're in the live routing file — by definition, they're active. |
-| `providedBy` optional | Yes | targets.json doesn't contain this. Enrichment is best-effort. Missing it doesn't break routing. |
-| `name` optional | Yes (with fallback) | Same — enrichment is best-effort. A service without a name still routes correctly. |
+| `providedBy` optional | No — required | Provider resolution is built in Step 0b from int_healthcareservices. Any gaps must be resolved before go-live. |
+| `name` optional | No — required (with fallback for gaps) | Resolved from int_healthcareservices in Step 0b. Missing names are logged as gaps. |
 | URL matching strategy | Case-insensitive, strip trailing slash, strip scheme for comparison | Source data has inconsistent casing |
 | Period.start for child endpoints | Migration date | No historical start date available from targets.json |
 
