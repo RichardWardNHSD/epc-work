@@ -268,33 +268,80 @@ Built payload:
 2. If template not found in log (e.g., because it had placeholder address), skip or flag for review
 3. Resolve `ProductId` → EPC Product Identifier via `PRODUCT_ID_MAP` (same lookup as Step 2)
 4. Map `Active` → status (`true` → `active`, `false` → `off`)
-5. Build FHIR Endpoint payload:
+5. Build FHIR Endpoint payload (see parameter table below)
+6. Call: `POST /Endpoint`
+7. Record response: `{ source_endpoint_id: response.id, service_id: row.ServiceId, healthcare_service_id: row.HealthcareServiceId }` in migration log
 
+### Payload Parameter Table
+
+| FHIR Field | Example Value | Source | How to derive |
+|------------|--------------|--------|---------------|
+| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
+| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `int_endpoints.ProductId` → `PRODUCT_ID_MAP` | Take the `ProductId` column (e.g., `ygm04`), look it up in `PRODUCT_ID_MAP`. This must match the Product ID used for the parent Template in Step 2. |
+| `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension linking child to parent Template. |
+| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | `int_endpoints.TemplateId` → `template_log` | Take the `TemplateId` UUID from the source row. Look it up in `template_log` (output of Step 2) to get the EPC `catalog_id`. Format as `"Endpoint/{catalog_id}"`. If not found in log, skip this record. |
+| `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
+| `status` | `"active"` | `int_endpoints.Active` | Map boolean: `true` → `"active"`, `false` → `"off"`. If `Active` is `true` but `EndDate` is in the past, consider setting to `"off"`. |
+| `period.start` | `"2026-06-01T16:04:05.168Z"` | `int_endpoints.StartDate` | Direct copy from `StartDate` column (ISO 8601 format). If empty/null, use the migration execution date as a fallback (e.g., `"2026-07-20T00:00:00Z"`). |
+| `period.end` | `"2026-04-22T15:40:17.423Z"` | `int_endpoints.EndDate` | Direct copy from `EndDate` column. **Only include this field if EndDate is populated.** If empty, omit entirely (open-ended period). |
+
+### Fields NOT included in child Endpoint payload
+
+These fields are inherited from the parent Template at read time — do NOT include them:
+
+| Field | Reason |
+|-------|--------|
+| `address` | Inherited from parent Template |
+| `connectionType` | Inherited from parent Template |
+| `payloadType` | Inherited from parent Template |
+| `managingOrganization` | Inherited from parent Template |
+| `name` | Inherited from parent Template |
+| `header` | Inherited from parent Template |
+
+### Example payload (built from source data)
+
+Source row:
+```
+EndpointId:             16c8e0f4-538b-4d13-80e0-dbec070ddbcf
+Active:                 true
+StartDate:              2026-06-01T16:04:05.168Z
+EndDate:                (empty)
+TemplateId:             26a1070e-c4d3-4ad3-887d-e63635497bd5
+HealthcareServiceId:    3adc94a9-9d60-48d5-8d0f-d321854f023e
+ManagingOrganisationId: 2f594ac5-6bc8-4241-af41-ae0f92b88949
+ProductId:              ygm04
+ServiceId:              2000114950
+```
+
+Resolved values:
+- `ProductId "ygm04"` → PRODUCT_ID_MAP → `"CegedimPharmacyServices-v6.0"`
+- `TemplateId "26a1070e-..."` → template_log → catalog_id `"5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"`
+- `Active true` → `"active"`
+- `StartDate` → direct copy
+- `EndDate` empty → omit `period.end`
+
+Built payload:
 ```json
 {
   "resourceType": "Endpoint",
   "identifier": [{
     "system": "https://fhir.nhs.uk/id/product-id",
-    "value": "{mapped_product_id}"
+    "value": "CegedimPharmacyServices-v6.0"
   }],
   "extension": [{
     "url": "http://hl7.org",
     "valueReference": {
-      "reference": "Endpoint/{template_catalog_id}",
+      "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
       "display": "Parent Template Endpoint"
     }
   }],
-  "status": "{active|off}",
+  "status": "active",
   "period": {
-    "start": "{start_date or migration_date}"
+    "start": "2026-06-01T16:04:05.168Z"
   }
 }
 ```
-
-   Include `period.end` only if `EndDate` is populated.
-
-6. Call: `POST /Endpoint`
-7. Record response: `{ source_endpoint_id: response.id, service_id: row.ServiceId, healthcare_service_id: row.HealthcareServiceId }` in migration log
 
 **Output:** `endpoint_log` — map of `EndpointId → { catalog_id, service_id, healthcare_service_id }`
 
@@ -312,32 +359,80 @@ Built payload:
 2. Find associated Endpoints: look up all entries in `endpoint_log` where `healthcare_service_id == row.HealthcareServiceId`
 3. Build array of endpoint references from matched catalog_ids
 4. Clean `Name` (strip surrounding quotes)
-5. Build FHIR HealthcareService payload:
+5. Build FHIR HealthcareService payload (see parameter table below)
+6. Call: `POST /HealthcareService`
+7. Record response: `{ source_hcs_id: response.id, service_id: row.ServiceId }` in migration log
 
+### Payload Parameter Table
+
+| FHIR Field | Example Value | Source | How to derive |
+|------------|--------------|--------|---------------|
+| `resourceType` | `"HealthcareService"` | Static | Always `"HealthcareService"` |
+| `meta.profile[0]` | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static | Always this profile URI |
+| `identifier[0].system` | `"https://fhir.nhs.uk/Id/dos-service-id"` | `int_healthcareservices.ServiceIdType` | The source column contains `"https://fhir.nhs.uk/id/service-id"` (lowercase). Normalise to `"https://fhir.nhs.uk/Id/dos-service-id"` — this is the canonical system the BaRS proxy uses to query. |
+| `identifier[0].value` | `"2000023201"` | `int_healthcareservices.ServiceId` | Direct copy from `ServiceId` column. This is the DoS service identifier (numeric string). |
+| `active` | `true` | `int_healthcareservices.Active` | Direct copy of boolean value (`true` or `false`). Note: many records are `false` — still migrate them as inactive services in the catalogue. |
+| `name` | `"Pharm+: Victoria Pharmacy Golders Green, Barnet, London"` | `int_healthcareservices.Name` | Copy from `Name` column. **Strip surrounding triple-quotes** — source data sometimes wraps names in `"""..."""`. Apply: `name.strip('"')` or regex to remove leading/trailing quote characters. |
+| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI |
+| `providedBy.identifier.value` | `"FLG23"` | `int_healthcareservices.ProviderOrganisationId` → `org_lookup` | Take the `ProviderOrganisationId` UUID, look it up in `org_lookup` (built in Step 1). Return the `ODSCode` value. This is the **provider** organisation (pharmacy, hospital, etc.) — NOT the supplier. If not found, log warning and use empty string or skip. |
+| `endpoint[]` | `[{"reference": "Endpoint/abc123..."}]` | `endpoint_log` (from Step 3) | Query `endpoint_log` for all entries where `healthcare_service_id` matches the current row's `HealthcareServiceId`. For each match, build a reference object: `{"reference": "Endpoint/{catalog_id}"}`. If no matches found, set to empty array `[]` and log a warning. |
+
+### How endpoint association works
+
+The link between a HealthcareService and its Endpoints is resolved via the `endpoint_log` from Step 3:
+
+```
+int_healthcareservices.HealthcareServiceId
+    ↕ matches
+int_endpoints.HealthcareServiceId (recorded in endpoint_log as healthcare_service_id)
+    → endpoint_log.catalog_id
+    → "Endpoint/{catalog_id}"
+```
+
+A single HealthcareService may have zero, one, or multiple associated Endpoints (e.g., if it has been re-onboarded to a new supplier, or supports multiple use cases).
+
+### Example payload (built from source data)
+
+Source row:
+```
+HealthcareServiceId:    e79e7a8a-eb25-4939-8635-56d43e71f292
+ServiceId:              2000023201
+Active:                 false
+Name:                   """Pharm+: Victoria Pharmacy Golders Green, Barnet, London"""
+ProviderOrganisationId: 281b316c-3a38-41dc-8d52-12c55e4c72a5
+ServiceIdType:          https://fhir.nhs.uk/id/service-id
+```
+
+Resolved values:
+- `ProviderOrganisationId "281b316c-..."` → org_lookup → ODSCode `"FLG23"`
+- `ServiceIdType` → normalised to `"https://fhir.nhs.uk/Id/dos-service-id"`
+- `Name` → strip quotes → `"Pharm+: Victoria Pharmacy Golders Green, Barnet, London"`
+- `HealthcareServiceId "e79e7a8a-..."` → search endpoint_log → found 1 match with catalog_id `"0cb21027-a246-43e6-9c7a-35b17163eab1"`
+
+Built payload:
 ```json
 {
   "resourceType": "HealthcareService",
+  "meta": {
+    "profile": ["https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"]
+  },
   "identifier": [{
     "system": "https://fhir.nhs.uk/Id/dos-service-id",
-    "value": "{service_id}"
+    "value": "2000023201"
   }],
-  "active": true|false,
-  "name": "{cleaned_name}",
+  "active": false,
+  "name": "Pharm+: Victoria Pharmacy Golders Green, Barnet, London",
   "providedBy": {
     "identifier": {
       "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-      "value": "{provider_ods_code}"
+      "value": "FLG23"
     }
   },
   "endpoint": [
-    {"reference": "Endpoint/{catalog_id_1}"},
-    {"reference": "Endpoint/{catalog_id_2}"}
+    {"reference": "Endpoint/0cb21027-a246-43e6-9c7a-35b17163eab1"}
   ]
 }
 ```
-
-6. Call: `POST /HealthcareService`
-7. Record response: `{ source_hcs_id: response.id, service_id: row.ServiceId }` in migration log
 
 **Output:** `hcs_log` — map of `HealthcareServiceId → { catalog_id, service_id }`
 
