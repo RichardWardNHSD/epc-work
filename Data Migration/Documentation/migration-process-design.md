@@ -174,14 +174,57 @@ No API calls in this step.
 
 1. Resolve `ManagingOrganisationId` → ODS code via `org_lookup`
 2. Resolve `ProductId` → EPC Product Identifier via `PRODUCT_ID_MAP` (see "Resolving ProductId" section above). If the short code is unknown, log an error and skip.
-3. Build FHIR Endpoint payload:
+3. Build FHIR Endpoint payload (see parameter table below)
+4. Call: `POST /Endpoint/$template`
+5. Record response: `{ source_template_id: response.id }` in migration log
 
+### Payload Parameter Table
+
+| FHIR Field | Example Value | Source | How to derive |
+|------------|--------------|--------|---------------|
+| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
+| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `int_endpoint_templates.ProductId` → `PRODUCT_ID_MAP` | Take the `ProductId` column (e.g., `ygm04`), look it up in `PRODUCT_ID_MAP` to get the agreed EPC Product Identifier. Case-insensitive lookup recommended. If not found, skip and log. |
+| `status` | `"active"` | Static | Always `"active"` for templates being migrated. Templates with `DataStatus != 0` are excluded by the filter. |
+| `connectionType.coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"` | Static | Always this system URI. Note: some source rows have `https://` — normalise to `http://`. |
+| `connectionType.coding[0].code` | `"hl7-fhir-rest"` | `int_endpoint_templates.ConnectionType` | Source value is always `"BARS"` — map to `"hl7-fhir-rest"` (the FHIR standard code for REST endpoints). |
+| `connectionType.coding[0].display` | `"HL7 FHIR"` | Static | Always `"HL7 FHIR"` |
+| `payloadType[0].coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static | Always this system URI |
+| `payloadType[0].coding[0].code` | `"bars"` | `int_endpoint_templates.ConnectionType` | Source value is always `"BARS"` — map to lowercase `"bars"` for the payload type code. |
+| `payloadType[0].coding[0].display` | `"BaRS"` | Static | Always `"BaRS"` |
+| `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI |
+| `managingOrganization[0].identifier.value` | `"RK5"` | `int_endpoint_templates.ManagingOrganisationId` → `int_organisations.ODSCode` | Take the `ManagingOrganisationId` UUID, look it up in `org_lookup` (built from `int_organisations.csv` in Step 1). Return the `ODSCode` value. If not found, log error and skip. |
+| `address` | `"https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk"` | `int_endpoint_templates.Address` | Direct copy from the `Address` column. Must be a valid URL (rows with `"addressHere"` are excluded by the filter). Ensure `https://` prefix is present — some source rows omit the scheme. |
+| `header` | `"public"` | `int_endpoint_templates.IsPrivate` | Map boolean: `false` → `"public"`, `true` → `"private"`. This controls visibility in the catalogue. |
+
+### Example payload (built from source data)
+
+Source row:
+```
+TemplateId:              c45831fe-f701-433d-abdf-9d91858f705b
+ProductId:              RK5
+Address:                bars-prod-rk5.nervecentre.thirdparty.nhs.uk
+ConnectionSystem:       http://terminology.hl7.org/CodeSystem/endpoint-connection-type
+ConnectionType:         BARS
+IsPrivate:              false
+ManagingOrganisationId: 21b2d67e-0323-4064-8246-118a635d20e9
+Name:                   Sherwood Forest Hospitals
+```
+
+Resolved values:
+- `ProductId "RK5"` → PRODUCT_ID_MAP → `"NervecentreBaRS-v9.2"`
+- `ManagingOrganisationId "21b2d67e-..."` → org_lookup → ODSCode `"RK5"`
+- `Address` → prepend `https://` → `"https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk"`
+- `IsPrivate false` → `"public"`
+- `ConnectionType "BARS"` → connectionType code `"hl7-fhir-rest"`, payloadType code `"bars"`
+
+Built payload:
 ```json
 {
   "resourceType": "Endpoint",
   "identifier": [{
     "system": "https://fhir.nhs.uk/id/product-id",
-    "value": "{mapped_product_id}"
+    "value": "NervecentreBaRS-v9.2"
   }],
   "status": "active",
   "connectionType": {
@@ -201,16 +244,13 @@ No API calls in this step.
   "managingOrganization": [{
     "identifier": {
       "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-      "value": "{ods_code}"
+      "value": "RK5"
     }
   }],
-  "address": "{template_address}",
-  "header": "{public|private}"
+  "address": "https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk",
+  "header": "public"
 }
 ```
-
-4. Call: `POST /Endpoint/$template`
-5. Record response: `{ source_template_id: response.id }` in migration log
 
 **Output:** `template_log` — map of `TemplateId → EPC catalog_id`
 
