@@ -10,7 +10,7 @@ Populate the new Endpoint Catalogue (EPC) using data from the existing `int_` Dy
 
 ```mermaid
 flowchart LR
-    subgraph Source["Source Data (int_ tables)"]
+    subgraph Source["Source Data (DynamoDB int_ tables)"]
         ORG[int_organisations]
         TPL[int_endpoint_templates]
         EP[int_endpoints]
@@ -58,9 +58,10 @@ flowchart LR
 | Item | Description | Status |
 |------|-------------|--------|
 | EPC API available | Target environment (INT or DEV) accessible | Required |
-| API credentials | Bearer token or OAuth2 client credentials | Required |
+| API credentials | Bearer token or OAuth2 client credentials for EPC API | Required |
+| AWS access | IAM role/credentials with read access to the `int_` DynamoDB tables in the source account | Required |
 | Product ID mapping | Short codes (ygm04, AC0, etc.) → agreed Product IDs | Required (see below) |
-| Organisation ODS lookup | `int_organisations.csv` loaded as in-memory map | Built from source data |
+| Organisation ODS lookup | `int_organisations` DynamoDB table scanned into in-memory map | Built from source data |
 | Migration log store | Persistent map of `source_id → catalog_id` for cross-referencing between steps | Required |
 
 ---
@@ -142,33 +143,57 @@ def resolve_product_id(short_code: str) -> str:
 
 ## Step 1: Build the Organisation Lookup
 
-**Input:** `int_organisations.csv`
+**Source:** `int_organisations` DynamoDB table
 
-**Action:** Load into memory as a dictionary keyed by `OrganisationId`.
+**Action:** Scan the table and load into memory as a dictionary keyed by `OrganisationId`.
 
 ```python
 # Pseudocode
+import boto3
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('int_organisations')
+
 org_lookup = {}
-for row in int_organisations:
-    org_lookup[row.OrganisationId] = {
-        "ods_code": row.ODSCode,
-        "name": row.Name,
-        "is_supplier": row.IsSupplierOnly,
-        "active": row.Active
+response = table.scan()
+for item in response['Items']:
+    org_lookup[item['OrganisationId']] = {
+        "ods_code": item.get('ODSCode', ''),
+        "name": item.get('Name', ''),
+        "is_supplier": item.get('IsSupplierOnly', False),
+        "active": item.get('Active', False)
     }
+
+# Handle pagination for large tables
+while 'LastEvaluatedKey' in response:
+    response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+    for item in response['Items']:
+        org_lookup[item['OrganisationId']] = {
+            "ods_code": item.get('ODSCode', ''),
+            "name": item.get('Name', ''),
+            "is_supplier": item.get('IsSupplierOnly', False),
+            "active": item.get('Active', False)
+        }
 ```
 
 **Output:** `org_lookup` dictionary — used by all subsequent steps to resolve UUIDs to ODS codes.
 
-No API calls in this step.
+No EPC API calls in this step.
 
 ---
 
 ## Step 2: Create Endpoint Templates
 
-**Input:** `int_endpoint_templates.csv`
+**Source:** `int_endpoint_templates` DynamoDB table
 
-**Filter:** `DataStatus = 0` and `Address != "addressHere"` (exclude placeholders without real URLs)
+**Query:** Scan with `FilterExpression`: `DataStatus = 0 AND Address <> "addressHere"`
+
+```python
+table = dynamodb.Table('int_endpoint_templates')
+response = table.scan(
+    FilterExpression=Attr('DataStatus').eq(0) & Attr('Address').ne('addressHere')
+)
+```
 
 **For each template row:**
 
@@ -184,17 +209,17 @@ No API calls in this step.
 |------------|--------------|--------|---------------|
 | `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
 | `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `int_endpoint_templates.ProductId` → `PRODUCT_ID_MAP` | Take the `ProductId` column (e.g., `ygm04`), look it up in `PRODUCT_ID_MAP` to get the agreed EPC Product Identifier. Case-insensitive lookup recommended. If not found, skip and log. |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `int_endpoint_templates.ProductId` → `PRODUCT_ID_MAP` | Take the `ProductId` attribute (e.g., `ygm04`), look it up in `PRODUCT_ID_MAP` to get the agreed EPC Product Identifier. Case-insensitive lookup recommended. If not found, skip and log. |
 | `status` | `"active"` | Static | Always `"active"` for templates being migrated. Templates with `DataStatus != 0` are excluded by the filter. |
-| `connectionType.coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"` | Static | Always this system URI. Note: some source rows have `https://` — normalise to `http://`. |
+| `connectionType.coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"` | Static | Always this system URI. Note: some source items have `https://` — normalise to `http://`. |
 | `connectionType.coding[0].code` | `"hl7-fhir-rest"` | `int_endpoint_templates.ConnectionType` | Source value is always `"BARS"` — map to `"hl7-fhir-rest"` (the FHIR standard code for REST endpoints). |
 | `connectionType.coding[0].display` | `"HL7 FHIR"` | Static | Always `"HL7 FHIR"` |
 | `payloadType[0].coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static | Always this system URI |
 | `payloadType[0].coding[0].code` | `"bars"` | `int_endpoint_templates.ConnectionType` | Source value is always `"BARS"` — map to lowercase `"bars"` for the payload type code. |
 | `payloadType[0].coding[0].display` | `"BaRS"` | Static | Always `"BaRS"` |
 | `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI |
-| `managingOrganization[0].identifier.value` | `"RK5"` | `int_endpoint_templates.ManagingOrganisationId` → `int_organisations.ODSCode` | Take the `ManagingOrganisationId` UUID, look it up in `org_lookup` (built from `int_organisations.csv` in Step 1). Return the `ODSCode` value. If not found, log error and skip. |
-| `address` | `"https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk"` | `int_endpoint_templates.Address` | Direct copy from the `Address` column. Must be a valid URL (rows with `"addressHere"` are excluded by the filter). Ensure `https://` prefix is present — some source rows omit the scheme. |
+| `managingOrganization[0].identifier.value` | `"RK5"` | `int_endpoint_templates.ManagingOrganisationId` → `int_organisations.ODSCode` | Take the `ManagingOrganisationId` UUID, look it up in `org_lookup` (built from `int_organisations` table in Step 1). Return the `ODSCode` value. If not found, log error and skip. |
+| `address` | `"https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk"` | `int_endpoint_templates.Address` | Direct copy from the `Address` attribute. Must be a valid URL (items with `"addressHere"` are excluded by the filter). Ensure `https://` prefix is present — some source items omit the scheme. |
 | `header` | `"public"` | `int_endpoint_templates.IsPrivate` | Map boolean: `false` → `"public"`, `true` → `"private"`. This controls visibility in the catalogue. |
 
 ### Example payload (built from source data)
@@ -258,9 +283,16 @@ Built payload:
 
 ## Step 3: Create Child Endpoints
 
-**Input:** `int_endpoints.csv`
+**Source:** `int_endpoints` DynamoDB table
 
-**Filter:** `DataStatus = 0`
+**Query:** Scan with `FilterExpression`: `DataStatus = 0`
+
+```python
+table = dynamodb.Table('int_endpoints')
+response = table.scan(
+    FilterExpression=Attr('DataStatus').eq(0)
+)
+```
 
 **For each endpoint row:**
 
@@ -278,13 +310,13 @@ Built payload:
 |------------|--------------|--------|---------------|
 | `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
 | `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `int_endpoints.ProductId` → `PRODUCT_ID_MAP` | Take the `ProductId` column (e.g., `ygm04`), look it up in `PRODUCT_ID_MAP`. This must match the Product ID used for the parent Template in Step 2. |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `int_endpoints.ProductId` → `PRODUCT_ID_MAP` | Take the `ProductId` attribute (e.g., `ygm04`), look it up in `PRODUCT_ID_MAP`. This must match the Product ID used for the parent Template in Step 2. |
 | `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension linking child to parent Template. |
-| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | `int_endpoints.TemplateId` → `template_log` | Take the `TemplateId` UUID from the source row. Look it up in `template_log` (output of Step 2) to get the EPC `catalog_id`. Format as `"Endpoint/{catalog_id}"`. If not found in log, skip this record. |
+| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | `int_endpoints.TemplateId` → `template_log` | Take the `TemplateId` UUID from the source item. Look it up in `template_log` (output of Step 2) to get the EPC `catalog_id`. Format as `"Endpoint/{catalog_id}"`. If not found in log, skip this record. |
 | `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
 | `status` | `"active"` | `int_endpoints.Active` | Map boolean: `true` → `"active"`, `false` → `"off"`. If `Active` is `true` but `EndDate` is in the past, consider setting to `"off"`. |
-| `period.start` | `"2026-06-01T16:04:05.168Z"` | `int_endpoints.StartDate` | Direct copy from `StartDate` column (ISO 8601 format). If empty/null, use the migration execution date as a fallback (e.g., `"2026-07-20T00:00:00Z"`). |
-| `period.end` | `"2026-04-22T15:40:17.423Z"` | `int_endpoints.EndDate` | Direct copy from `EndDate` column. **Only include this field if EndDate is populated.** If empty, omit entirely (open-ended period). |
+| `period.start` | `"2026-06-01T16:04:05.168Z"` | `int_endpoints.StartDate` | Direct copy from `StartDate` attribute (ISO 8601 format). If empty/null, use the migration execution date as a fallback (e.g., `"2026-07-20T00:00:00Z"`). |
+| `period.end` | `"2026-04-22T15:40:17.423Z"` | `int_endpoints.EndDate` | Direct copy from `EndDate` attribute. **Only include this field if EndDate is populated.** If empty, omit entirely (open-ended period). |
 
 ### Fields NOT included in child Endpoint payload
 
@@ -349,9 +381,16 @@ Built payload:
 
 ## Step 4: Create HealthcareServices
 
-**Input:** `int_healthcareservices.csv`
+**Source:** `int_healthcareservices` DynamoDB table
 
-**Filter:** `DataStatus = 0`
+**Query:** Scan with `FilterExpression`: `DataStatus = 0`
+
+```python
+table = dynamodb.Table('int_healthcareservices')
+response = table.scan(
+    FilterExpression=Attr('DataStatus').eq(0)
+)
+```
 
 **For each healthcare service row:**
 
@@ -369,10 +408,10 @@ Built payload:
 |------------|--------------|--------|---------------|
 | `resourceType` | `"HealthcareService"` | Static | Always `"HealthcareService"` |
 | `meta.profile[0]` | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static | Always this profile URI |
-| `identifier[0].system` | `"https://fhir.nhs.uk/Id/dos-service-id"` | `int_healthcareservices.ServiceIdType` | The source column contains `"https://fhir.nhs.uk/id/service-id"` (lowercase). Normalise to `"https://fhir.nhs.uk/Id/dos-service-id"` — this is the canonical system the BaRS proxy uses to query. |
-| `identifier[0].value` | `"2000023201"` | `int_healthcareservices.ServiceId` | Direct copy from `ServiceId` column. This is the DoS service identifier (numeric string). |
+| `identifier[0].system` | `"https://fhir.nhs.uk/Id/dos-service-id"` | `int_healthcareservices.ServiceIdType` | The source attribute contains `"https://fhir.nhs.uk/id/service-id"` (lowercase). Normalise to `"https://fhir.nhs.uk/Id/dos-service-id"` — this is the canonical system the BaRS proxy uses to query. |
+| `identifier[0].value` | `"2000023201"` | `int_healthcareservices.ServiceId` | Direct copy from `ServiceId` attribute. This is the DoS service identifier (numeric string). |
 | `active` | `true` | `int_healthcareservices.Active` | Direct copy of boolean value (`true` or `false`). Note: many records are `false` — still migrate them as inactive services in the catalogue. |
-| `name` | `"Pharm+: Victoria Pharmacy Golders Green, Barnet, London"` | `int_healthcareservices.Name` | Copy from `Name` column. **Strip surrounding triple-quotes** — source data sometimes wraps names in `"""..."""`. Apply: `name.strip('"')` or regex to remove leading/trailing quote characters. |
+| `name` | `"Pharm+: Victoria Pharmacy Golders Green, Barnet, London"` | `int_healthcareservices.Name` | Copy from `Name` attribute. **Strip surrounding triple-quotes** — source data sometimes wraps names in `"""..."""`. Apply: `name.strip('"')` or regex to remove leading/trailing quote characters. |
 | `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI |
 | `providedBy.identifier.value` | `"FLG23"` | `int_healthcareservices.ProviderOrganisationId` → `org_lookup` | Take the `ProviderOrganisationId` UUID, look it up in `org_lookup` (built in Step 1). Return the `ODSCode` value. This is the **provider** organisation (pharmacy, hospital, etc.) — NOT the supplier. If not found, log warning and use empty string or skip. |
 | `endpoint[]` | `[{"reference": "Endpoint/abc123..."}]` | `endpoint_log` (from Step 3) | Query `endpoint_log` for all entries where `healthcare_service_id` matches the current row's `HealthcareServiceId`. For each match, build a reference object: `{"reference": "Endpoint/{catalog_id}"}`. If no matches found, set to empty array `[]` and log a warning. |
@@ -538,17 +577,17 @@ Each step produces a log entry. Store these persistently (JSON file or database)
 ```mermaid
 sequenceDiagram
     participant Script as Migration Script
-    participant CSV as Source CSVs
+    participant DDB as DynamoDB (int_ tables)
     participant EPC as EPC API
     participant Log as Migration Log
 
     Note over Script: Step 1 - Load Lookups
-    Script->>CSV: Read int_organisations.csv
+    Script->>DDB: Scan int_organisations
     Script->>Script: Build org_lookup dictionary
 
     Note over Script: Step 2 - Templates
-    Script->>CSV: Read int_endpoint_templates.csv
-    loop For each template
+    Script->>DDB: Scan int_endpoint_templates (DataStatus=0, Address≠addressHere)
+    loop For each template item
         Script->>Script: Resolve ODS code, map ProductId
         Script->>EPC: POST /Endpoint/$template
         EPC-->>Script: 201 Created {id}
@@ -556,8 +595,8 @@ sequenceDiagram
     end
 
     Note over Script: Step 3 - Endpoints
-    Script->>CSV: Read int_endpoints.csv
-    loop For each endpoint
+    Script->>DDB: Scan int_endpoints (DataStatus=0)
+    loop For each endpoint item
         Script->>Log: Lookup parent template catalog_id
         Script->>EPC: POST /Endpoint
         EPC-->>Script: 201 Created {id}
@@ -565,8 +604,8 @@ sequenceDiagram
     end
 
     Note over Script: Step 4 - HealthcareServices
-    Script->>CSV: Read int_healthcareservices.csv
-    loop For each service
+    Script->>DDB: Scan int_healthcareservices (DataStatus=0)
+    loop For each service item
         Script->>Log: Lookup endpoint catalog_ids by HealthcareServiceId
         Script->>Script: Resolve provider ODS code
         Script->>EPC: POST /HealthcareService
@@ -575,7 +614,7 @@ sequenceDiagram
     end
 
     Note over Script: Step 5 - Validation
-    Script->>CSV: Read targets.json
+    Script->>Script: Load targets.json (from S3 or local)
     loop For each service_id in targets.json
         Script->>EPC: GET /HealthcareService?identifier=...&_include=endpoint
         EPC-->>Script: Bundle {HealthcareService + Endpoint}
@@ -591,25 +630,27 @@ sequenceDiagram
 
 | Resource | Count | API Calls |
 |----------|-------|-----------|
+| DynamoDB scans (source) | 4 tables | 4 scans (paginated) |
 | Endpoint Templates | ~50-100 (unique supplier/product combos) | ~100 POSTs |
 | Endpoints | ~4,000-5,000 (one per service per template) | ~5,000 POSTs |
 | HealthcareServices | ~4,000-5,000 (one per DoS service ID) | ~5,000 POSTs |
 | Validation queries | ~4,000 (one per targets.json entry) | ~4,000 GETs |
-| **Total API calls** | | **~14,000** |
+| **Total EPC API calls** | | **~14,000** |
 
-At ~10 requests/second, estimated runtime: ~25 minutes.
+At ~10 requests/second, estimated EPC API runtime: ~25 minutes.
+DynamoDB scans are fast (~seconds for tables of this size).
 
 ---
 
 ## Key Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Skip templates with `Address = "addressHere"` | Yes | No real URL = unusable in routing. Flag for supplier follow-up |
-| Migrate inactive HealthcareServices | Yes | Preserves full state; can be reactivated later |
-| URL comparison for validation | Case-insensitive, trailing-slash-tolerant | URLs in source data have inconsistent casing |
-| Handle endpoints with no template match | Log and skip | Can't create child without parent |
-| Multiple endpoints per HealthcareService | Include all active ones | Some services have multiple endpoints (e.g., different use cases) |
+| Decision                                      | Choice                                    | Rationale                                                         |
+| -----------------------------------------------| -------------------------------------------| -------------------------------------------------------------------|
+| Skip templates with `Address = "addressHere"` | Yes                                       | No real URL = unusable in routing. Flag for supplier follow-up    |
+| Migrate inactive HealthcareServices           | Yes                                       | Preserves full state; can be reactivated later                    |
+| URL comparison for validation                 | Case-insensitive, trailing-slash-tolerant | URLs in source data have inconsistent casing                      |
+| Handle endpoints with no template match       | Log and skip                              | Can't create child without parent                                 |
+| Multiple endpoints per HealthcareService      | Include all active ones                   | Some services have multiple endpoints (e.g., different use cases) |
 
 ---
 
