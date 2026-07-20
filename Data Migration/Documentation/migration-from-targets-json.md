@@ -121,7 +121,7 @@ print(f"Unique endpoint URLs: {len(unique_urls)}")
 
 ---
 
-## Step 0b: Build Provider Organisation Lookup (Required)
+## Step 0a: Build Provider Organisation Lookup (Required)
 
 targets.json does not contain the provider organisation (the pharmacy, hospital, or service that delivers care). This must be resolved before Step 3, so it is built as part of Step 0.
 
@@ -364,18 +364,15 @@ In the EPC model, each Template needs at least one child Endpoint to be routable
 **For each unique URL:**
 
 1. Look up the URL in `template_log` to get the parent Template's `catalog_id`
-2. Resolve `ProductId` → EPC Product Identifier (same as Step 1)
-3. Build the FHIR child Endpoint payload
-4. Call: `POST /Endpoint`
-5. Record: `{ url: endpoint_catalog_id }` in `endpoint_log`
+2. Build the FHIR child Endpoint payload
+3. Call: `POST /Endpoint`
+4. Record: `{ url: endpoint_catalog_id }` in `endpoint_log`
 
 ### Payload Parameter Table
 
 | FHIR Field | Example Value | Source | How to derive |
 |------------|--------------|--------|---------------|
 | `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
-| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `url_metadata.product_id` → `PRODUCT_ID_MAP` | Same resolved Product ID as the parent Template. |
 | `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension. |
 | `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."` | `template_log` | Look up the normalised URL in `template_log` to get the parent Template's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
 | `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
@@ -386,6 +383,7 @@ In the EPC model, each Template needs at least one child Endpoint to be routable
 
 | Field | Reason |
 |-------|--------|
+| `identifier` | Inherited from parent Template (Product ID lives on the Template) |
 | `address` | Inherited from parent Template |
 | `connectionType` | Inherited from parent Template |
 | `payloadType` | Inherited from parent Template |
@@ -400,10 +398,6 @@ For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `temp
 ```json
 {
   "resourceType": "Endpoint",
-  "identifier": [{
-    "system": "https://fhir.nhs.uk/id/product-id",
-    "value": "CegedimPharmacyServices-v6.0"
-  }],
   "extension": [{
     "url": "http://hl7.org",
     "valueReference": {
@@ -656,16 +650,16 @@ This is significantly fewer API calls than the full int_ table migration because
 
 ## Error Handling
 
-| Error | Action |
-|-------|--------|
-| **URL not found in url_metadata** (enrichment miss) | Log warning. If ProductId/ODS can be inferred from URL pattern (e.g., `ygm04` in hostname), use that. Otherwise skip and flag for manual resolution. |
-| **ProductId not in PRODUCT_ID_MAP** | Log as unmapped, skip the template creation, and all services using that URL will fail in Step 3. Add to "needs mapping" report. |
+| Error                                                            | Action                                                                                                                                                                                        |
+| ------------------------------------------------------------------| -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **URL not found in url_metadata** (enrichment miss)              | Log warning. If ProductId/ODS can be inferred from URL pattern (e.g., `ygm04` in hostname), use that. Otherwise skip and flag for manual resolution.                                          |
+| **ProductId not in PRODUCT_ID_MAP**                              | Log as unmapped, skip the template creation, and all services using that URL will fail in Step 3. Add to "needs mapping" report.                                                              |
 | **provider_lookup miss** (service not in int_healthcareservices) | Log as migration gap. Create HealthcareService without `providedBy` temporarily but flag as **must-resolve** before go-live. These gaps must be zero for migration to be considered complete. |
-| Template POST fails (409 conflict / already exists) | Query by ProductId to get existing catalog_id. Use that in template_log. Continue. |
-| Endpoint POST fails | Log and skip. Services referencing this URL will have no endpoint reference. |
-| HealthcareService POST fails | Log service_id and error. Continue with next. |
-| API rate limit (429) | Exponential backoff with jitter. Retry up to 3 times. |
-| Validation: URL mismatch | Log full detail (expected vs actual). Common causes: case difference, trailing slash, scheme mismatch. |
+| Template POST fails (409 conflict / already exists)              | Query by ProductId to get existing catalog_id. Use that in template_log. Continue.                                                                                                            |
+| Endpoint POST fails                                              | Log and skip. Services referencing this URL will have no endpoint reference.                                                                                                                  |
+| HealthcareService POST fails                                     | Log service_id and error. Continue with next.                                                                                                                                                 |
+| API rate limit (429)                                             | Exponential backoff with jitter. Retry up to 3 times.                                                                                                                                         |
+| Validation: URL mismatch                                         | Log full detail (expected vs actual). Common causes: case difference, trailing slash, scheme mismatch.                                                                                        |
 
 ---
 

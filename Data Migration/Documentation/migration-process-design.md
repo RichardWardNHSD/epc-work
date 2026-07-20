@@ -298,19 +298,16 @@ response = table.scan(
 
 1. Look up `TemplateId` in `template_log` to get the parent's `catalog_id`
 2. If template not found in log (e.g., because it had placeholder address), skip or flag for review
-3. Resolve `ProductId` → EPC Product Identifier via `PRODUCT_ID_MAP` (same lookup as Step 2)
-4. Map `Active` → status (`true` → `active`, `false` → `off`)
-5. Build FHIR Endpoint payload (see parameter table below)
-6. Call: `POST /Endpoint`
-7. Record response: `{ source_endpoint_id: response.id, service_id: row.ServiceId, healthcare_service_id: row.HealthcareServiceId }` in migration log
+3. Map `Active` → status (`true` → `active`, `false` → `off`)
+4. Build FHIR Endpoint payload (see parameter table below)
+5. Call: `POST /Endpoint`
+6. Record response: `{ source_endpoint_id: response.id, service_id: row.ServiceId, healthcare_service_id: row.HealthcareServiceId }` in migration log
 
 ### Payload Parameter Table
 
 | FHIR Field | Example Value | Source | How to derive |
 |------------|--------------|--------|---------------|
 | `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
-| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `int_endpoints.ProductId` → `PRODUCT_ID_MAP` | Take the `ProductId` attribute (e.g., `ygm04`), look it up in `PRODUCT_ID_MAP`. This must match the Product ID used for the parent Template in Step 2. |
 | `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension linking child to parent Template. |
 | `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | `int_endpoints.TemplateId` → `template_log` | Take the `TemplateId` UUID from the source item. Look it up in `template_log` (output of Step 2) to get the EPC `catalog_id`. Format as `"Endpoint/{catalog_id}"`. If not found in log, skip this record. |
 | `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
@@ -324,6 +321,7 @@ These fields are inherited from the parent Template at read time — do NOT incl
 
 | Field | Reason |
 |-------|--------|
+| `identifier` | Inherited from parent Template (Product ID lives on the Template) |
 | `address` | Inherited from parent Template |
 | `connectionType` | Inherited from parent Template |
 | `payloadType` | Inherited from parent Template |
@@ -347,7 +345,6 @@ ServiceId:              2000114950
 ```
 
 Resolved values:
-- `ProductId "ygm04"` → PRODUCT_ID_MAP → `"CegedimPharmacyServices-v6.0"`
 - `TemplateId "26a1070e-..."` → template_log → catalog_id `"5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"`
 - `Active true` → `"active"`
 - `StartDate` → direct copy
@@ -357,10 +354,6 @@ Built payload:
 ```json
 {
   "resourceType": "Endpoint",
-  "identifier": [{
-    "system": "https://fhir.nhs.uk/id/product-id",
-    "value": "CegedimPharmacyServices-v6.0"
-  }],
   "extension": [{
     "url": "http://hl7.org",
     "valueReference": {
