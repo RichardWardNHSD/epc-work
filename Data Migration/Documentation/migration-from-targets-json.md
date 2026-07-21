@@ -368,26 +368,6 @@ For each unique URL in `unique_urls`, create an Endpoint Template and then immed
 7. Call: `POST /Endpoint`
 8. Record: `{ url: { template_id, endpoint_id, product_id } }` in `endpoint_log`
 
-### Payload Parameter Table
-
-
-| FHIR Field                                  | Example Value                                                       | Source                                        | How to derive                                                                                                                          |
-| --------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `resourceType`                              | `"Endpoint"`                                                        | Static                                        | Always`"Endpoint"`                                                                                                                     |
-| `identifier[0].system`                      | `"https://fhir.nhs.uk/id/product-id"`                               | Static                                        | Always this system URI                                                                                                                 |
-| `identifier[0].value`                       | `"CegedimPharmacyServices-v6.0"`                                    | `url_metadata.product_id` → `PRODUCT_ID_MAP` | Look up the`product_id` for this URL from the enrichment step. Then resolve via `PRODUCT_ID_MAP` to the agreed EPC Product Identifier. |
-| `status`                                    | `"active"`                                                          | Static                                        | Always`"active"` — these URLs are in the live routing file.                                                                           |
-| `connectionType.coding[0].system`           | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"`  | Static                                        | Always this system URI                                                                                                                 |
-| `connectionType.coding[0].code`             | `"hl7-fhir-rest"`                                                   | Static                                        | Always`"hl7-fhir-rest"` — all BaRS endpoints are FHIR REST.                                                                           |
-| `connectionType.coding[0].display`          | `"HL7 FHIR"`                                                        | Static                                        | Always`"HL7 FHIR"`                                                                                                                     |
-| `payloadType[0].coding[0].system`           | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static                                        | Always this system URI                                                                                                                 |
-| `payloadType[0].coding[0].code`             | `"bars"`                                                            | Static                                        | Always`"bars"` — all entries in targets.json are BaRS routing.                                                                        |
-| `payloadType[0].coding[0].display`          | `"BaRS"`                                                            | Static                                        | Always`"BaRS"`                                                                                                                         |
-| `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"`                    | Static                                        | Always this system URI                                                                                                                 |
-| `managingOrganization[0].identifier.value`  | `"RK5"`                                                             | `url_metadata.managing_org_ods`               | The ODS code of the supplier organisation that manages this endpoint. Resolved during enrichment via`int_organisations`.               |
-| `address`                                   | `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`      | `targets.json` URL value                      | Direct copy of the URL from targets.json. Preserve original casing. Ensure`https://` scheme is present.                                |
-| `header`                                    | `"public"`                                                          | `url_metadata.is_private`                     | Map:`false` → `"public"`, `true` → `"private"`. Default to `"public"` if enrichment data is unavailable.                             |
-
 ### Worked Example: Full Step 1 Flow
 
 **Input:** URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` from `unique_urls`
@@ -422,6 +402,25 @@ product_id = PRODUCT_ID_MAP["YGM04"]
 ---
 
 **Step 1.3 — Build Template payload:**
+
+#### Template Payload Parameter Table
+
+| FHIR Field | Example Value | Source | How to derive |
+|------------|--------------|--------|---------------|
+| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
+| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `url_metadata.product_id` → `PRODUCT_ID_MAP` | Look up the `product_id` for this URL from the enrichment step. Then resolve via `PRODUCT_ID_MAP` to the agreed EPC Product Identifier. |
+| `status` | `"active"` | Static | Always `"active"` — these URLs are in the live routing file. |
+| `connectionType.coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"` | Static | Always this system URI |
+| `connectionType.coding[0].code` | `"hl7-fhir-rest"` | Static | Always `"hl7-fhir-rest"` — all BaRS endpoints are FHIR REST. |
+| `connectionType.coding[0].display` | `"HL7 FHIR"` | Static | Always `"HL7 FHIR"` |
+| `payloadType[0].coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static | Always this system URI |
+| `payloadType[0].coding[0].code` | `"bars"` | Static | Always `"bars"` — all entries in targets.json are BaRS routing. |
+| `payloadType[0].coding[0].display` | `"BaRS"` | Static | Always `"BaRS"` |
+| `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI |
+| `managingOrganization[0].identifier.value` | `"YGM04"` | `url_metadata.managing_org_ods` | The ODS code of the supplier organisation. Resolved during enrichment via `int_organisations`. |
+| `address` | `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"` | `targets.json` URL value | Direct copy of the URL from targets.json. Preserve original casing. Ensure `https://` scheme is present. |
+| `header` | `"public"` | `url_metadata.is_private` | Map: `false` → `"public"`, `true` → `"private"`. Default to `"public"` if enrichment data is unavailable. |
 
 ```json
 {
@@ -485,6 +484,22 @@ template_id = response.json()["id"]
 ---
 
 **Step 1.6 — Build child Endpoint payload using returned Template ID:**
+
+#### Child Endpoint Payload Parameter Table
+
+| FHIR Field | Example Value | Source | How to derive |
+|------------|--------------|--------|---------------|
+| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
+| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
+| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | Copied from Template payload (Step 1.3) | Same Product ID used on the parent Template. No separate lookup. |
+| `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension. |
+| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | **Response from Step 1.4** | The `id` returned from `POST /Endpoint/$template`. Format as `"Endpoint/{id}"`. |
+| `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
+| `status` | `"active"` | `endpoint_details` or Static | Look up service_id in `endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If not found, default `"active"`. |
+| `period.start` | `"2026-06-01T16:04:05.168Z"` | `endpoint_details` or migration date | From `int_endpoints.StartDate`. If empty, use migration date as fallback. See period decision note. |
+| `period.end` | _(omitted if empty)_ | `endpoint_details` (if populated) | From `int_endpoints.EndDate`. Only include if populated. |
+
+Fields **not** included (inherited from Template at read time): `address`, `connectionType`, `payloadType`, `managingOrganization`, `name`, `header`.
 
 ```json
 {
