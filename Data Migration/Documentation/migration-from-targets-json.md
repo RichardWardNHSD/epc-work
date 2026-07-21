@@ -808,13 +808,24 @@ for service_id, expected_url in service_to_url.items():
 
 # Check for missing Templates (unique URLs with no Template)
 for url in unique_urls:
-    # Query EPC for Template by address
+    normalised = url.lower().rstrip('/')
+    metadata = url_metadata.get(normalised, {})
+    product_id = PRODUCT_ID_MAP.get(metadata.get('product_id', '').upper(), '')
+    
+    if not product_id:
+        # Can't look up — no product ID mapping
+        missing_templates.append(url)
+        continue
+    
+    # Query EPC for Template by Product ID
     response = requests.get(
         f"{EPC_BASE}/Endpoint/$template",
-        params={"address": url},
+        params={
+            "Endpoint.identifier": f"https://fhir.nhs.uk/id/product-id|{product_id}"
+        },
         headers={"Authorization": f"Bearer {token}"}
     )
-    if response.status_code == 404 or not response.json().get("entry"):
+    if response.status_code != 200 or not response.json().get("entry"):
         missing_templates.append(url)
 
 print(f"Missing Templates: {len(missing_templates)}")
@@ -1017,10 +1028,11 @@ sequenceDiagram
     Script->>DDB: Scan int_endpoints (endpoint_details)
     Script->>DDB: Scan int_healthcareservices (provider_lookup)
 
-    Note over Script: Check Templates (unique URLs)
+    Note over Script: Check Templates (by ProductId)
     loop For each unique URL
-        Script->>EPC: GET /Endpoint/$template?address={url}
-        EPC-->>Script: 200 Found / 404 Not Found
+        Script->>Script: Resolve ProductId from url_metadata
+        Script->>EPC: GET /Endpoint/$template?Endpoint.identifier=https://fhir.nhs.uk/id/product-id|{product_id}
+        EPC-->>Script: 200 Found / 4XX Not Found
         alt Not Found
             Script->>Script: Add to missing_templates
         end
