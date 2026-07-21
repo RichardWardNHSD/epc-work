@@ -1,5 +1,17 @@
 # Migration Process Design: targets.json → EPC
 
+## Executive Summary
+
+| Step | What | Input | Output |
+|------|------|-------|--------|
+| **0** | Parse targets.json & enrich from DynamoDB | targets.json + int_ tables | `service_to_url`, `unique_urls`, `url_metadata`, `provider_lookup`, `endpoint_details` |
+| **1** | Create Endpoint Template + child Endpoint for each unique URL | ~13 unique URLs | Template ID + Endpoint ID per URL (from API responses) |
+| **2** | Create HealthcareService for each service ID | ~4,000+ service IDs | HealthcareService linked to its Endpoint |
+| **3** | Validate by querying the EPC and comparing against original targets.json | EPC API queries | Pass/fail report |
+| **4** | Delta detection — generate IP001/IP002/IP003 CSVs for anything missing | EPC API queries | CSVs for R&M team to action |
+
+---
+
 ## Objective
 
 Populate the new Endpoint Catalogue (EPC) using `targets.json` as the principal data source, enriched with supplier metadata from the `int_` DynamoDB tables. This approach treats the flat file as the source of truth for service-to-endpoint routing and builds the minimum viable EPC state to reproduce that routing.
