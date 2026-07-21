@@ -122,6 +122,38 @@ print(f"Unique endpoint URLs: {len(unique_urls)}")
 - `service_to_url`: dict of ~4,000+ entries
 - `unique_urls`: list of ~13 unique URLs
 
+**Example `service_to_url`:**
+```json
+{
+  "2000017562": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/",
+  "2000017594": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/",
+  "110549": "https://bars-prod-ygm06-pharmoutcomes.emis.thirdparty.nhs.uk",
+  "2000020742": "https://bars-prod-8hk48.sonar.thirdparty.nhs.uk",
+  "55": "https://BaRS-PROD-8JY34.WASPSoftware.thirdparty.nhs.uk/api/r4",
+  "104570": "https://bars-prod-8hq44.stratahealth.thirdparty.nhs.uk:3120/bars/",
+  "2000017778": "https://bars-prod-ygm17.positivesolutions.thirdparty.nhs.uk"
+}
+```
+
+**Example `unique_urls`:**
+```python
+[
+  "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/",
+  "https://bars-prod-ygm06-pharmoutcomes.emis.thirdparty.nhs.uk",
+  "https://bars-prod-8hk48.sonar.thirdparty.nhs.uk",
+  "https://BaRS-PROD-8JY34.WASPSoftware.thirdparty.nhs.uk/api/r4",
+  "https://bars-prod-ygm17.positivesolutions.thirdparty.nhs.uk",
+  "https://BARS-PROD-AC0.advanced.thirdparty.nhs.uk/fhirR4/api/bars",
+  "https://bars-prod-8hq44.stratahealth.thirdparty.nhs.uk:3120/bars/",
+  "https://bars-prod-8ht86.fortrus.thirdparty.nhs.uk/",
+  "https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk",
+  "https://BaRS-PROD-RX7.NWAS.nhs.uk",
+  "https://BARS-PROD-GA9.gmupca.nhs.uk/fhirr4/api/bars",
+  "https://BARS-PROD-Y01061.advanced.thirdparty.nhs.uk/fhirr4/api/bars",
+  "https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk:9999/booking-and-referral/FHIR/R4/"
+]
+```
+
 ---
 
 ## Step 0a: Build Provider Organisation Lookup (Required)
@@ -186,7 +218,33 @@ else:
 
 **Output:** `provider_lookup` — dict of `service_id → { provider_ods, provider_name, name }`
 
-This is a **required** pre-requisite for Step 3. Any services missing from this lookup must be flagged for manual resolution before migration is considered complete.
+**Example `provider_lookup`:**
+```json
+{
+  "2000017562": {
+    "provider_ods": "FE284",
+    "provider_name": "BOOTS UK LIMITED",
+    "name": "Pharm+: Boots Pharmacy Bromley"
+  },
+  "110549": {
+    "provider_ods": "FLJ73",
+    "provider_name": "WELL PHARMACY",
+    "name": "Pharm+: Well Pharmacy Andover"
+  },
+  "2000020742": {
+    "provider_ods": "FX465",
+    "provider_name": "COHENS CHEMIST",
+    "name": "Pharm+: Cohens Chemist Middlesbrough"
+  },
+  "55": {
+    "provider_ods": "RX898",
+    "provider_name": "ANYTOWN UTC",
+    "name": "Anytown Urgent Treatment Centre"
+  }
+}
+```
+
+This is a **required** pre-requisite for Step 2. Any services missing from this lookup must be flagged for manual resolution before migration is considered complete.
 
 ---
 
