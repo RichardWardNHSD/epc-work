@@ -263,57 +263,14 @@ for item in templates_response['Items']:
 
 ### Product ID Resolution
 
-Same as the main migration document — map short codes to agreed EPC Product Identifiers.
+See the dedicated document: **[Resolving ProductId](./resolving-product-id.md)**
 
-**This mapping must be stored as a persistent lookup file** so that it is available to any process (migration, delta detection, validation) regardless of whether they run together or independently.
-
-#### Persistent lookup file: `product-id-lookup.json`
-
-Store in a shared location (e.g., S3 bucket, repo, or config store) accessible to all migration/delta scripts:
-
-```json
-{
-  "ygm04": "CegedimPharmacyServices-v6.0",
-  "ygm06": "PinnaclePharmOutcomes-v2024.12.12",
-  "ygm17": "HXConsultBaRS-v2.0",
-  "8hk48": "SonarHealthBaRS-v4.0",
-  "8JY34": "WASPBaRSProvider-v1.0.1",
-  "AC0":   "Adastra-v3.46.00",
-  "Y01061": "Adastra-v3.46.00",
-  "8hq44": "StrataPathways-v12",
-  "8ht86": "AgyleBaRS-v2.6.5",
-  "RK5":   "NervecentreBaRS-v9.2",
-  "RX7":   "TBD-NWAS",
-  "GA9":   "TBD-GMUPCA"
-}
-```
-
-#### Loading the lookup
+This covers the mapping table, the persistent `product-id-lookup.json` file, and the `resolve_product_id()` function. The lookup file must be accessible to all scripts (migration, delta, validation).
 
 ```python
-import json
-
-def load_product_id_map(path="product-id-lookup.json"):
-    """
-    Load the Product ID mapping from a persistent file.
-    This file must be maintained by the R&M team and kept in sync
-    with the Product ID Mapping document.
-    """
-    with open(path) as f:
-        raw = json.load(f)
-    # Normalise keys to uppercase for case-insensitive lookup
-    return {k.upper(): v for k, v in raw.items()}
-
+from resolving_product_id import load_product_id_map
 PRODUCT_ID_MAP = load_product_id_map()
 ```
-
-#### Why persistent?
-
-- The **migration script** (Steps 0–4) uses it to build Templates and Endpoints
-- The **delta script** (Step 5) uses it to query the EPC by Product ID and to populate CSV files
-- The **validation script** may need it for reporting
-- These processes may run at different times, on different machines, or be triggered independently
-- A single source of truth avoids drift between processes
 
 ---
 
