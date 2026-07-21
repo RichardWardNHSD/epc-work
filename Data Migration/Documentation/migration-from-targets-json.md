@@ -388,15 +388,40 @@ For each unique URL in `unique_urls`, create an Endpoint Template and then immed
 | `address`                                   | `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`      | `targets.json` URL value                      | Direct copy of the URL from targets.json. Preserve original casing. Ensure`https://` scheme is present.                                |
 | `header`                                    | `"public"`                                                          | `url_metadata.is_private`                     | Map:`false` → `"public"`, `true` → `"private"`. Default to `"public"` if enrichment data is unavailable.                             |
 
-### Example payload
+### Worked Example: Full Step 1 Flow
 
-URL: `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/`
+**Input:** URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` from `unique_urls`
 
-Enrichment resolved:
+---
 
-- ProductId: `ygm04` → `"CegedimPharmacyServices-v6.0"`
-- ManagingOrg ODS: `"(resolved from org_lookup)"`  — e.g., supplier ODS for Cegedim
-- IsPrivate: `false` → `"public"`
+**Step 1.1 — Look up URL in `url_metadata`:**
+
+```python
+normalised = "bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4"
+metadata = url_metadata[normalised]
+# Returns:
+# {
+#   "address": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/",
+#   "product_id": "ygm04",
+#   "supplier_name": "Cegedim",
+#   "managing_org_id": "2f594ac5-6bc8-4241-af41-ae0f92b88949",
+#   "managing_org_ods": "YGM04",
+#   "is_private": False
+# }
+```
+
+---
+
+**Step 1.2 — Resolve ProductId:**
+
+```python
+product_id = PRODUCT_ID_MAP["YGM04"]
+# Returns: "CegedimPharmacyServices-v6.0"
+```
+
+---
+
+**Step 1.3 — Build Template payload:**
 
 ```json
 {
@@ -431,103 +456,35 @@ Enrichment resolved:
 }
 ```
 
-**Output:** `template_log` — map of `normalised_url → { catalog_id, product_id }`
+---
+
+**Step 1.4 — POST Template to EPC:**
+
+```
+POST /Endpoint/$template
+```
+
+**Response:** `201 Created`
+```json
+{
+  "resourceType": "Endpoint",
+  "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+  ...
+}
+```
 
 ---
 
-### Child Endpoint Payload (created immediately after Template success)
-
-The child Endpoint is created in the same iteration, using the `id` returned from `POST /Endpoint/$template`. There is no separate "Step 2" — Template and Endpoint are created as a pair.
-
-### Payload Parameter Table
-
-
-| FHIR Field                              | Example Value                         | Source                               | How to derive                                                                                                                                                                          |
-| ----------------------------------------- | --------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resourceType`                          | `"Endpoint"`                          | Static                               | Always`"Endpoint"`                                                                                                                                                                     |
-| `identifier[0].system`                  | `"https://fhir.nhs.uk/id/product-id"` | Static                               | Always this system URI                                                                                                                                                                 |
-| `identifier[0].value`                   | `"CegedimPharmacyServices-v6.0"`      | Copied from parent Template          | Use the same Product ID value that was sent to the Template in Step 1. No separate lookup required — copy from the Template payload already built for this URL.                       |
-| `extension[0].url`                      | `"http://hl7.org"`                    | Static                               | Always this URL — identifies the "basedOn" extension.                                                                                                                                 |
-| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."`             | **Response from `POST /Endpoint/$template`** | Use the `id` field from the Template creation response. Format as `"Endpoint/{response_id}"`. This is the EPC-assigned resource ID — **not** a value from the int_ tables. The child Endpoint is created immediately after the Template so this ID is in memory. |
-| `extension[0].valueReference.display`   | `"Parent Template Endpoint"`          | Static                               | Always`"Parent Template Endpoint"`                                                                                                                                                     |
-| `status`                                | `"active"`                            | `endpoint_details` or Static         | Look up`service_id` in `endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If service_id not found, default to `"active"` (it's in the live routing file). |
-| `period.start`                          | `"2026-06-01T16:04:05.168Z"`          | `endpoint_details` or migration date | See decision note below.                                                                                                                                                               |
-| `period.end`                            | `"2026-04-22T15:40:17.423Z"`          | `endpoint_details` (if populated)    | See decision note below.**Only include if populated.**                                                                                                                                 |
-
-### Decision: How to resolve `period.start` and `period.end`
-
-targets.json has no concept of start or end dates — every entry is implicitly "active now". However, child Endpoints in the EPC require a `period.start` and optionally `period.end`. There are two options:
-
-#### Option 1: Default to migration date (simple)
-
-Set `period.start` to the migration execution date for all endpoints. Omit `period.end`.
-
-- **Pros:** Simple, no dependency on `int_endpoints` data quality, no additional DynamoDB scan
-- **Cons:** Loses historical information about when the endpoint was actually activated; all endpoints appear to have started on the same day
-
-#### Option 2: Resolve from int_endpoints (recommended)
-
-For each `service_id` in targets.json, find matching records in `int_endpoints` (by `ServiceId`) and derive the period from those records.
-
-**Logic:**
-
-1. Query `int_endpoints` for all items where `ServiceId == service_id` and `DataStatus == 0`
-2. If multiple items exist (e.g., endpoint was re-onboarded), use the **most recent active** record — latest `StartDate` with no `EndDate`, or if all have `EndDate`, use the one with the latest `LastUpdated`
-3. Copy `StartDate` → `period.start`
-4. If `EndDate` is populated, copy to `period.end` (unlikely for services in targets.json since they're actively routed, but handles edge cases)
-5. If `StartDate` is empty on the matched record, fall back to migration date
-
-If no matching record found in `int_endpoints` at all, fall back to Option 1 (migration date).
+**Step 1.5 — Extract Template ID from response:**
 
 ```python
-MIGRATION_DATE = "2026-07-20T00:00:00Z"
-
-def resolve_period(service_id, endpoint_details):
-    """
-    Resolve period for a service.
-    Option 2: use int_endpoints data, with migration date as fallback.
-    """
-    details = endpoint_details.get(service_id)
-  
-    if not details:
-        # No int_endpoints record — fall back to migration date
-        return {"start": MIGRATION_DATE}, "fallback_no_record"
-  
-    period = {}
-  
-    if details["start_date"]:
-        period["start"] = details["start_date"]
-    else:
-        # Record exists but StartDate is empty — use migration date
-        period["start"] = MIGRATION_DATE
-  
-    if details["end_date"]:
-        period["end"] = details["end_date"]
-  
-    return period, "resolved"
+template_id = response.json()["id"]
+# "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
 ```
 
-#### Recommendation
+---
 
-Use **Option 2** — resolve from `int_endpoints` where possible, with migration date as fallback. This preserves historical accuracy while ensuring no endpoint is missing a `period.start`.
-
-Expected coverage: most service IDs in targets.json will have a matching `int_endpoints` record. Services without a match are likely new additions to the flat file that weren't yet onboarded to the EPC — these get the migration date.
-
-### Fields NOT included (inherited from Template at read time)
-
-
-| Field                  | Reason                         |
-| ------------------------ | -------------------------------- |
-| `address`              | Inherited from parent Template |
-| `connectionType`       | Inherited from parent Template |
-| `payloadType`          | Inherited from parent Template |
-| `managingOrganization` | Inherited from parent Template |
-| `name`                 | Inherited from parent Template |
-| `header`               | Inherited from parent Template |
-
-### Example payload
-
-For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `POST /Endpoint/$template` returned `id: "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"`:
+**Step 1.6 — Build child Endpoint payload using returned Template ID:**
 
 ```json
 {
@@ -549,6 +506,39 @@ For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `POST
   }
 }
 ```
+
+Note: `period.start` resolved from `endpoint_details` (see period decision note below). `extension[0].valueReference.reference` uses the `id` returned from step 1.4.
+
+---
+
+**Step 1.7 — POST child Endpoint to EPC:**
+
+```
+POST /Endpoint
+```
+
+**Response:** `201 Created`
+```json
+{
+  "resourceType": "Endpoint",
+  "id": "0cb21027-a246-43e6-9c7a-35b17163eab1",
+  ...
+}
+```
+
+---
+
+**Step 1.8 — Record in endpoint_log:**
+
+```python
+endpoint_log["bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4"] = {
+    "template_id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",   # from step 1.4 response
+    "endpoint_id": "0cb21027-a246-43e6-9c7a-35b17163eab1",   # from step 1.7 response
+    "product_id": "CegedimPharmacyServices-v6.0"
+}
+```
+
+---
 
 **Output:** `endpoint_log` — map of `normalised_url → { template_id (from response), endpoint_id (from response), product_id }`
 
