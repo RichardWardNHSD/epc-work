@@ -457,7 +457,7 @@ Expected coverage: most service IDs in targets.json will have a matching `int_en
 
 ### Example payload
 
-For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `template_log` gives catalog_id `"5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"`:
+For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `POST /Endpoint/$template` returned `id: "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"`:
 
 ```json
 {
