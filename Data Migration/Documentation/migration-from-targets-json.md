@@ -582,14 +582,54 @@ These are required fields. If a service_id is not found in `provider_lookup`, lo
 | `providedBy.identifier.value`  | `"FLG23"`                                                                | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as a migration gap — must be resolved before go-live.         |
 | `endpoint[0].reference`        | `"Endpoint/abc123-..."`                                                  | `endpoint_log`                   | Look up`service_id` in `endpoint_log` to get the child Endpoint's catalog_id. Format as `"Endpoint/{catalog_id}"`.                                       |
 
-### Example payload
+### Worked Example: Full Step 2 Flow
 
-For targets.json entry: `"2000017562": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`
+**Input:** targets.json entry `"2000017562": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`
 
-Enrichment resolved:
+---
 
-- `provider_lookup["2000017562"]` → `{ provider_ods: "FE284", name: "Pharm+: Boots Pharmacy Bromley" }`
-- `endpoint_log` for URL `bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4` → `endpoint_id: "0cb21027-a246-43e6-9c7a-35b17163eab1"` (returned from `POST /Endpoint`)
+**Step 2.1 — Look up Endpoint ID from `endpoint_log`:**
+
+```python
+normalised_url = "bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4"
+endpoint_entry = endpoint_log[normalised_url]
+# Returns:
+# {
+#   "template_id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+#   "endpoint_id": "0cb21027-a246-43e6-9c7a-35b17163eab1",
+#   "product_id": "CegedimPharmacyServices-v6.0"
+# }
+
+endpoint_reference = f"Endpoint/{endpoint_entry['endpoint_id']}"
+# "Endpoint/0cb21027-a246-43e6-9c7a-35b17163eab1"
+```
+
+---
+
+**Step 2.2 — Resolve provider organisation from `provider_lookup`:**
+
+```python
+provider = provider_lookup["2000017562"]
+# Returns:
+# {
+#   "provider_ods": "FE284",
+#   "provider_name": "BOOTS UK LIMITED",
+#   "name": "Pharm+: Boots Pharmacy Bromley"
+# }
+```
+
+---
+
+**Step 2.3 — Resolve service name from `provider_lookup`:**
+
+```python
+service_name = provider["name"]
+# "Pharm+: Boots Pharmacy Bromley"
+```
+
+---
+
+**Step 2.4 — Build HealthcareService payload:**
 
 ```json
 {
@@ -615,7 +655,34 @@ Enrichment resolved:
 }
 ```
 
-**Output:** `hcs_log` — map of `service_id → hcs_catalog_id`
+---
+
+**Step 2.5 — POST HealthcareService to EPC:**
+
+```
+POST /HealthcareService
+```
+
+**Response:** `201 Created`
+```json
+{
+  "resourceType": "HealthcareService",
+  "id": "a7d3f1b2-9e45-4c8a-b6d1-1234567890ab",
+  ...
+}
+```
+
+---
+
+**Step 2.6 — Record in `hcs_log`:**
+
+```python
+hcs_log["2000017562"] = "a7d3f1b2-9e45-4c8a-b6d1-1234567890ab"  # from POST response
+```
+
+---
+
+**Output:** `hcs_log` — map of `service_id → hcs_id (from POST /HealthcareService response)`
 
 ---
 
