@@ -582,21 +582,6 @@ The `provider_lookup` dictionary built in Step 0b provides:
 
 These are required fields. If a service_id is not found in `provider_lookup`, log it as a migration gap that must be resolved.
 
-### Payload Parameter Table
-
-
-| FHIR Field                     | Example Value                                                            | Source                           | How to derive                                                                                                                                            |
-| -------------------------------- | -------------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resourceType`                 | `"HealthcareService"`                                                    | Static                           | Always`"HealthcareService"`                                                                                                                              |
-| `meta.profile[0]`              | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static                           | Always this profile URI                                                                                                                                  |
-| `identifier[0].system`         | `"https://fhir.nhs.uk/Id/dos-service-id"`                                | Static                           | Always`"https://fhir.nhs.uk/Id/dos-service-id"` — this is the identifier system used by the BaRS proxy to query the EPC.                                |
-| `identifier[0].value`          | `"2000017562"`                                                           | `targets.json` key               | Direct copy of the service ID key from the JSON.                                                                                                         |
-| `active`                       | `true`                                                                   | Static                           | Always`true` — the service is in the live routing file, so it's active.                                                                                 |
-| `name`                         | `"Pharm+: Victoria Pharmacy Golders Green"`                              | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `name` field. If not found, log as a migration gap — this must be resolved. Strip surrounding quotes. |
-| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"`                         | Static                           | Always this system URI.                                                                                                                                  |
-| `providedBy.identifier.value`  | `"FLG23"`                                                                | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as a migration gap — must be resolved before go-live.         |
-| `endpoint[0].reference`        | `"Endpoint/abc123-..."`                                                  | `endpoint_log`                   | Look up the service's URL in `endpoint_log` to get the child Endpoint's `endpoint_id` (returned from `POST /Endpoint`). Format as `"Endpoint/{endpoint_id}"`. |
-
 ### Worked Example: Full Step 2 Flow
 
 **Input:** targets.json entry `"2000017562": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`
@@ -645,6 +630,20 @@ service_name = provider["name"]
 ---
 
 **Step 2.4 — Build HealthcareService payload:**
+
+#### HealthcareService Payload Parameter Table
+
+| FHIR Field | Example Value | Source | How to derive |
+|------------|--------------|--------|---------------|
+| `resourceType` | `"HealthcareService"` | Static | Always `"HealthcareService"` |
+| `meta.profile[0]` | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static | Always this profile URI |
+| `identifier[0].system` | `"https://fhir.nhs.uk/Id/dos-service-id"` | Static | Always `"https://fhir.nhs.uk/Id/dos-service-id"` — the identifier system the BaRS proxy uses to query the EPC. |
+| `identifier[0].value` | `"2000017562"` | `targets.json` key | Direct copy of the service ID key from the JSON. |
+| `active` | `true` | Static | Always `true` — the service is in the live routing file, so it's active. |
+| `name` | `"Pharm+: Boots Pharmacy Bromley"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `name` field. Strip surrounding quotes. If not found, log as migration gap. |
+| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI. |
+| `providedBy.identifier.value` | `"FE284"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as migration gap. |
+| `endpoint[0].reference` | `"Endpoint/0cb21027-a246-43e6-9c7a-35b17163eab1"` | `endpoint_log` (from Step 1) | Look up the service's URL in `endpoint_log` to get `endpoint_id` (returned from `POST /Endpoint` in Step 1.7). Format as `"Endpoint/{endpoint_id}"`. |
 
 ```json
 {
