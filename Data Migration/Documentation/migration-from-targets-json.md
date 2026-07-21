@@ -283,9 +283,9 @@ PRODUCT_ID_MAP = load_product_id_map()
 
 ---
 
-## Step 1: Create Endpoint Templates (one per unique URL)
+## Step 1: Create Endpoint Templates and Child Endpoints (one pair per unique URL)
 
-For each unique URL in `unique_urls`, create an Endpoint Template in the EPC. This represents the supplier's receiver system at that address.
+For each unique URL in `unique_urls`, create an Endpoint Template and then immediately create its child Endpoint. Since Template and Endpoint are 1:1 in this migration, we create them together — the child Endpoint uses the `id` returned from the Template creation response (not a value from the int_ tables).
 
 **For each unique URL:**
 
@@ -293,7 +293,10 @@ For each unique URL in `unique_urls`, create an Endpoint Template in the EPC. Th
 2. Resolve `ProductId` → EPC Product Identifier via `PRODUCT_ID_MAP`
 3. Build the FHIR Endpoint Template payload
 4. Call: `POST /Endpoint/$template`
-5. Record: `{ url: catalog_id }` in `template_log`
+5. On success: extract the `id` from the response — this is the Template's EPC resource ID
+6. Immediately build the child Endpoint payload, setting `extension[0].valueReference.reference` to `"Endpoint/{response_id}"`
+7. Call: `POST /Endpoint`
+8. Record: `{ url: { template_id, endpoint_id, product_id } }` in `endpoint_log`
 
 ### Payload Parameter Table
 
@@ -362,16 +365,9 @@ Enrichment resolved:
 
 ---
 
-## Step 2: Create Child Endpoints (one per unique URL)
+### Child Endpoint Payload (created immediately after Template success)
 
-In the EPC model, each Template needs at least one child Endpoint to be routable. Since targets.json doesn't carry per-service endpoint identity (just URL), we create **one child Endpoint per Template** — all services sharing that URL will reference the same child Endpoint.
-
-**For each unique URL:**
-
-1. Look up the URL in `template_log` to get the parent Template's `catalog_id`
-2. Build the FHIR child Endpoint payload
-3. Call: `POST /Endpoint`
-4. Record: `{ url: endpoint_catalog_id }` in `endpoint_log`
+The child Endpoint is created in the same iteration, using the `id` returned from `POST /Endpoint/$template`. There is no separate "Step 2" — Template and Endpoint are created as a pair.
 
 ### Payload Parameter Table
 
@@ -382,7 +378,7 @@ In the EPC model, each Template needs at least one child Endpoint to be routable
 | `identifier[0].system`                  | `"https://fhir.nhs.uk/id/product-id"` | Static                               | Always this system URI                                                                                                                                                                 |
 | `identifier[0].value`                   | `"CegedimPharmacyServices-v6.0"`      | Copied from parent Template          | Use the same Product ID value that was sent to the Template in Step 1. No separate lookup required — copy from the Template payload already built for this URL.                       |
 | `extension[0].url`                      | `"http://hl7.org"`                    | Static                               | Always this URL — identifies the "basedOn" extension.                                                                                                                                 |
-| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."`             | `template_log`                       | Look up the normalised URL in`template_log` to get the parent Template's catalog_id. Format as `"Endpoint/{catalog_id}"`.                                                              |
+| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."`             | **Response from `POST /Endpoint/$template`** | Use the `id` field from the Template creation response. Format as `"Endpoint/{response_id}"`. This is the EPC-assigned resource ID — **not** a value from the int_ tables. The child Endpoint is created immediately after the Template so this ID is in memory. |
 | `extension[0].valueReference.display`   | `"Parent Template Endpoint"`          | Static                               | Always`"Parent Template Endpoint"`                                                                                                                                                     |
 | `status`                                | `"active"`                            | `endpoint_details` or Static         | Look up`service_id` in `endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If service_id not found, default to `"active"` (it's in the live routing file). |
 | `period.start`                          | `"2026-06-01T16:04:05.168Z"`          | `endpoint_details` or migration date | See decision note below.                                                                                                                                                               |
@@ -484,11 +480,11 @@ For URL `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` where `temp
 }
 ```
 
-**Output:** `endpoint_log` — map of `service_id → endpoint_catalog_id`
+**Output:** `endpoint_log` — map of `normalised_url → { template_id (from response), endpoint_id (from response), product_id }`
 
 ---
 
-## Step 3: Create HealthcareServices (one per service ID in targets.json)
+## Step 2: Create HealthcareServices (one per service ID in targets.json)
 
 For each key-value pair in `service_to_url`, create a HealthcareService that references the child Endpoint for its URL.
 
@@ -563,11 +559,11 @@ Enrichment resolved:
 
 ---
 
-## Step 4: Validate — Rebuild targets.json from EPC
+## Step 3: Validate — Rebuild targets.json from EPC
 
 Query the EPC for every service ID from the original targets.json and verify the resolved Endpoint address matches.
 
-### 4a. Query the EPC
+### 3a. Query the EPC
 
 ```python
 import requests
@@ -603,7 +599,7 @@ for service_id, expected_url in service_to_url.items():
         errors.append(service_id)
 ```
 
-### 4b. Compare
+### 3b. Compare
 
 ```python
 def urls_match(url1, url2):
@@ -628,7 +624,7 @@ print(f"Mismatched: {len(differences)}")
 print(f"Not found: {len(errors)}")
 ```
 
-### 4c. Generate reconstructed targets.json
+### 3c. Generate reconstructed targets.json
 
 ```python
 output = {
@@ -640,7 +636,7 @@ with open('targets-reconstructed.json', 'w') as f:
     json.dump(output, f, indent=2)
 ```
 
-### 4d. Success Criteria
+### 3d. Success Criteria
 
 
 | Metric                                             | Target |
@@ -758,11 +754,11 @@ This is significantly fewer API calls than the full int_ table migration because
 
 ---
 
-## Step 5: Optional Delta Detection — Generate CSV Files for Missing Items
+## Step 4: Delta Detection — Generate CSV Files for Missing Items
 
-After Step 4 validation (or as a standalone process), compare targets.json against the current EPC state and generate CSV files in the IP001/IP002/IP003 format for any items that are missing. These CSVs can be handed to the R&M team to onboard the missing data via the standard pipeline.
+After Step 3 validation (or as a standalone process), compare targets.json against the current EPC state and generate CSV files in the IP001/IP002/IP003 format for any items that are missing. These CSVs can be handed to the R&M team to onboard the missing data via the standard pipeline.
 
-### 5a. Query the EPC for all service IDs in targets.json
+### 4a. Query the EPC for all service IDs in targets.json
 
 ```python
 missing_templates = []    # URLs with no Template in the EPC
@@ -832,7 +828,7 @@ print(f"Missing Endpoints: {len(missing_endpoints)}")
 print(f"Missing HealthcareServices: {len(missing_hcs)}")
 ```
 
-### 5b. Generate IP002 CSV — Missing Endpoint Templates
+### 4b. Generate IP002 CSV — Missing Endpoint Templates
 
 For each URL in `missing_templates`, generate a row in the IP002 format.
 
@@ -876,7 +872,7 @@ ODSCode,ProductId,Address
 YGM04,CegedimPharmacyServices-v6.0,https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/
 ```
 
-### 5c. Generate IP003 CSV — Missing Endpoints
+### 4c. Generate IP003 CSV — Missing Endpoints
 
 For each service_id in `missing_endpoints`, generate a row in the IP003 format.
 
@@ -930,7 +926,7 @@ ODSCode,ProductId,ServiceId,Name,Status,PeriodStart,PeriodEnd
 YGM04,CegedimPharmacyServices-v6.0,2000017562,Pharm+: Boots Pharmacy Bromley,active,2026-06-01T16:04:05.168Z,
 ```
 
-### 5d. Generate IP001 CSV — Missing HealthcareServices
+### 4d. Generate IP001 CSV — Missing HealthcareServices
 
 For each service_id in `missing_hcs`, generate a row in the IP001 format.
 
@@ -968,7 +964,7 @@ ODSCode,ServiceId,ServiceName,EndpointId
 FE284,2000017562,Pharm+: Boots Pharmacy Bromley,
 ```
 
-### 5e. Delta Summary Report
+### 4e. Delta Summary Report
 
 ```python
 report = {
@@ -997,7 +993,7 @@ with open(f"delta-report-{timestamp}.json", 'w') as f:
     json.dump(report, f, indent=2)
 ```
 
-### 5f. Handling UNKNOWN values
+### 4f. Handling UNKNOWN values
 
 Any row with `UNKNOWN` in the `ODSCode` or `ProductId` column indicates data that could not be resolved from the enrichment sources. The R&M team must manually fill these in before uploading the CSV to the pipeline.
 
