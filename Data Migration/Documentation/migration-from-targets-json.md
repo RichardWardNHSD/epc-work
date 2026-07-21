@@ -529,7 +529,7 @@ For targets.json entry: `"2000017562": "https://bars-prod-ygm04.cegedim.thirdpar
 Enrichment resolved:
 
 - `provider_lookup["2000017562"]` → `{ provider_ods: "FE284", name: "Pharm+: Boots Pharmacy Bromley" }`
-- `endpoint_log["2000017562"]` → catalog_id `"0cb21027-a246-43e6-9c7a-35b17163eab1"`
+- `endpoint_log` for URL `bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4` → `endpoint_id: "0cb21027-a246-43e6-9c7a-35b17163eab1"` (returned from `POST /Endpoint`)
 
 ```json
 {
