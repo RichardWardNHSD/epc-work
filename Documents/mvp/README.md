@@ -55,6 +55,9 @@ For detail on the R&M support infrastructure, see
 | 4 | Disaster Recovery (Full DR Plan)   | Multi-region failover, tested runbooks, scheduled DR exercises, formal RPO/RTO                | EPC-NF09 (Platinum service class)       | Serverless inherent resilience + PITR is sufficient for MVP. Full DR delivered at production readiness review. ⚠️**Requires a let (exemption) from Engineering CoE — MVP is not Red Lines compliant.** | **S**             | Mostly process and testing — runbook documentation, backup automation in CI/CD, scheduling quarterly exercises, no new infrastructure | [mvp-deferral-disaster-recovery.md](./mvp-deferral-disaster-recovery.md) |
 | 5 | Private Endpoint Address Redaction | `header: private` field triggering address omission for non-owner consumers                   | EPCSe001 AC4                            | Under discussion and may be struck from the spec. All MVP endpoints are public (BaRS). Adds conditional logic to every read path.                                                                         | **S**             | Conditional check on read path + ownership lookup per Endpoint. Small code change but touches every GET response.                      | [mvp-deferral-private-endpoint.md](./mvp-deferral-private-endpoint.md)   |
 
+> **Note:** Item 3 (Endpoint Ordering) has been implemented by the supplier and is no
+> longer deferred from the MVP. The deferral document is retained for historical context.
+
 ---
 
 ---
@@ -80,9 +83,12 @@ refinement, implementation, testing, and documentation — not just coding.
 | ---------------------------- | ------ |
 | RBAC                       | L    |
 | Observability (ODIN)       | M    |
-| Endpoint Ordering (List)   | M    |
+| ~~Endpoint Ordering (List)~~   | ~~M~~    |
 | Disaster Recovery          | S    |
 | Private Endpoint Redaction | S    |
+
+> **Note:** Endpoint Ordering (List) has been implemented by the supplier and no longer
+> contributes to effort savings. The remaining deferrals still apply.
 
 **Elapsed time saved:** *to be provided by supplier.*
 
