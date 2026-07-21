@@ -872,6 +872,63 @@ Any row with `UNKNOWN` in the `ODSCode` or `ProductId` column indicates data tha
 | `ODSCode` in IP001 (HealthcareService) | Look up service in DoS to find the providing organisation |
 | `Name` (blank) in IP001/IP003 | Look up service name in DoS or ask commissioner |
 
+### Delta Process Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Script as Delta Script
+    participant TJ as targets.json
+    participant EPC as EPC API
+    participant DDB as DynamoDB (int_ tables)
+    participant CSV as Output CSVs
+
+    Note over Script: Load source data
+    Script->>TJ: Load targets.json
+    Script->>Script: Extract service_to_url + unique_urls
+    Script->>DDB: Scan int_organisations (org_lookup)
+    Script->>DDB: Scan int_endpoint_templates (url_metadata)
+    Script->>DDB: Scan int_endpoints (endpoint_details)
+    Script->>DDB: Scan int_healthcareservices (provider_lookup)
+
+    Note over Script: Check Templates (unique URLs)
+    loop For each unique URL
+        Script->>EPC: GET /Endpoint/$template?address={url}
+        EPC-->>Script: 200 Found / 404 Not Found
+        alt Not Found
+            Script->>Script: Add to missing_templates
+        end
+    end
+
+    Note over Script: Check Services + Endpoints
+    loop For each service_id in targets.json
+        Script->>EPC: GET /HealthcareService?identifier=...{service_id}&_include=endpoint
+        EPC-->>Script: Bundle (may be empty)
+        alt No HealthcareService in bundle
+            Script->>Script: Add to missing_hcs
+        end
+        alt No active Endpoint with matching address
+            Script->>Script: Add to missing_endpoints
+        end
+    end
+
+    Note over Script: Generate CSVs for R&M
+    alt missing_templates > 0
+        Script->>Script: Resolve ODSCode + ProductId from url_metadata
+        Script->>CSV: Write epc-endpoint-template-create-{timestamp}.csv (IP002)
+    end
+    alt missing_endpoints > 0
+        Script->>Script: Resolve ODSCode, ProductId, PeriodStart from enrichment
+        Script->>CSV: Write epc-endpoint-create-{timestamp}.csv (IP003)
+    end
+    alt missing_hcs > 0
+        Script->>Script: Resolve provider ODS + name from provider_lookup
+        Script->>CSV: Write epc-healthcareservice-create-{timestamp}.csv (IP001)
+    end
+
+    Script->>CSV: Write delta-report-{timestamp}.json
+    Note over CSV: R&M reviews CSVs, fills UNKNOWN values, uploads to S3 pipeline
+```
+
 ---
 
 ## Execution Sequence Diagram
