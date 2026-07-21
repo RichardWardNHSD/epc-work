@@ -37,6 +37,7 @@ The `targets.json` file is the live routing configuration — it defines which D
 We only process the `https://fhir.nhs.uk/Id/dos-service-id` section. The `tests` section is ignored.
 
 Each key-value pair represents:
+
 - **Key:** DoS service ID (numeric string, e.g., `"2000017562"`)
 - **Value:** The supplier's FHIR receiver URL (e.g., `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`)
 
@@ -70,15 +71,16 @@ flowchart TD
 
 ## Pre-requisites
 
-| Item | Description | Status |
-|------|-------------|--------|
-| `targets.json` | Current production routing file | Required |
-| EPC API available | Target environment (INT or DEV) accessible | Required |
-| API credentials | Bearer token or OAuth2 client credentials for EPC API | Required |
-| AWS access | IAM role/credentials with read access to `int_` DynamoDB tables (for enrichment and provider resolution) | Required |
-| Product ID mapping | Short codes (ygm04, AC0, etc.) → agreed EPC Product IDs | Required |
-| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup | Required (built in Step 0) |
-| Migration log store | Persistent map of `source_id → catalog_id` for cross-referencing between steps | Required |
+
+| Item                             | Description                                                                                             | Status                     |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `targets.json`                   | Current production routing file                                                                         | Required                   |
+| EPC API available                | Target environment (INT or DEV) accessible                                                              | Required                   |
+| API credentials                  | Bearer token or OAuth2 client credentials for EPC API                                                   | Required                   |
+| AWS access                       | IAM role/credentials with read access to`int_` DynamoDB tables (for enrichment and provider resolution) | Required                   |
+| Product ID mapping               | Short codes (ygm04, AC0, etc.) → agreed EPC Product IDs                                                | Required                   |
+| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup       | Required (built in Step 0) |
+| Migration log store              | Persistent map of`source_id → catalog_id` for cross-referencing between steps                          | Required                   |
 
 ---
 
@@ -116,6 +118,7 @@ print(f"Unique endpoint URLs: {len(unique_urls)}")
 ```
 
 **Output:**
+
 - `service_to_url`: dict of ~4,000+ entries
 - `unique_urls`: list of ~13 unique URLs
 
@@ -227,7 +230,7 @@ for item in templates_response['Items']:
     address = item.get('Address', '')
     managing_org_id = item.get('ManagingOrganisationId', '')
     org = org_lookup.get(managing_org_id, {})
-    
+  
     url_metadata[address.lower().rstrip('/')] = {
         "address": address,
         "product_id": item.get('ProductId', ''),
@@ -241,21 +244,22 @@ for item in templates_response['Items']:
 
 ### URL to Supplier Metadata (Expected Output)
 
-| URL (normalised) | ProductId | Supplier Name | Managing Org ODS | Template Source |
-|------------------|-----------|---------------|------------------|----------------|
-| `bars-prod-ygm06-pharmoutcomes.emis.thirdparty.nhs.uk` | ygm06 | Pharmoutcomes | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4/` | ygm04 | Cegedim | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-8hk48.sonar.thirdparty.nhs.uk` | 8hk48 | Sonar | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-ygm17.positivesolutions.thirdparty.nhs.uk` | ygm17 | Positive Solutions | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-8jy34.waspsoftware.thirdparty.nhs.uk/api/r4` | 8JY34 | WASP | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-ac0.advanced.thirdparty.nhs.uk/fhirr4/api/bars` | AC0 | Advanced | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-8hq44.stratahealth.thirdparty.nhs.uk:3120/bars/` | 8hq44 | Strata Health | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-y01061.advanced.thirdparty.nhs.uk/fhirr4/api/bars` | Y01061 | Advanced | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-8ht86.fortrus.thirdparty.nhs.uk/` | 8ht86 | Fortrus | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-rk5.nervecentre.thirdparty.nhs.uk` | RK5 | Nervecentre | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-rx7.nwas.nhs.uk` | RX7 | NWAS | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-ga9.gmupca.nhs.uk/fhirr4/api/bars` | GA9 | GMUPCA | (from org_lookup) | int_endpoint_templates |
-| `bars-prod-rk5.nervecentre.thirdparty.nhs.uk:9999/...` | RK5 | Nervecentre | (from org_lookup) | int_endpoint_templates |
+
+| URL (normalised)                                              | ProductId | Supplier Name      | Managing Org ODS  | Template Source        |
+| --------------------------------------------------------------- | ----------- | -------------------- | ------------------- | ------------------------ |
+| `bars-prod-ygm06-pharmoutcomes.emis.thirdparty.nhs.uk`        | ygm06     | Pharmoutcomes      | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-ygm04.cegedim.thirdparty.nhs.uk/fhir/r4/`          | ygm04     | Cegedim            | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-8hk48.sonar.thirdparty.nhs.uk`                     | 8hk48     | Sonar              | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-ygm17.positivesolutions.thirdparty.nhs.uk`         | ygm17     | Positive Solutions | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-8jy34.waspsoftware.thirdparty.nhs.uk/api/r4`       | 8JY34     | WASP               | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-ac0.advanced.thirdparty.nhs.uk/fhirr4/api/bars`    | AC0       | Advanced           | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-8hq44.stratahealth.thirdparty.nhs.uk:3120/bars/`   | 8hq44     | Strata Health      | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-y01061.advanced.thirdparty.nhs.uk/fhirr4/api/bars` | Y01061    | Advanced           | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-8ht86.fortrus.thirdparty.nhs.uk/`                  | 8ht86     | Fortrus            | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-rk5.nervecentre.thirdparty.nhs.uk`                 | RK5       | Nervecentre        | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-rx7.nwas.nhs.uk`                                   | RX7       | NWAS               | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-ga9.gmupca.nhs.uk/fhirr4/api/bars`                 | GA9       | GMUPCA             | (from org_lookup) | int_endpoint_templates |
+| `bars-prod-rk5.nervecentre.thirdparty.nhs.uk:9999/...`        | RK5       | Nervecentre        | (from org_lookup) | int_endpoint_templates |
 
 ### Product ID Resolution
 
@@ -294,28 +298,30 @@ For each unique URL in `unique_urls`, create an Endpoint Template in the EPC. Th
 
 ### Payload Parameter Table
 
-| FHIR Field | Example Value | Source | How to derive |
-|------------|--------------|--------|---------------|
-| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
-| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `url_metadata.product_id` → `PRODUCT_ID_MAP` | Look up the `product_id` for this URL from the enrichment step. Then resolve via `PRODUCT_ID_MAP` to the agreed EPC Product Identifier. |
-| `status` | `"active"` | Static | Always `"active"` — these URLs are in the live routing file. |
-| `connectionType.coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"` | Static | Always this system URI |
-| `connectionType.coding[0].code` | `"hl7-fhir-rest"` | Static | Always `"hl7-fhir-rest"` — all BaRS endpoints are FHIR REST. |
-| `connectionType.coding[0].display` | `"HL7 FHIR"` | Static | Always `"HL7 FHIR"` |
-| `payloadType[0].coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static | Always this system URI |
-| `payloadType[0].coding[0].code` | `"bars"` | Static | Always `"bars"` — all entries in targets.json are BaRS routing. |
-| `payloadType[0].coding[0].display` | `"BaRS"` | Static | Always `"BaRS"` |
-| `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI |
-| `managingOrganization[0].identifier.value` | `"RK5"` | `url_metadata.managing_org_ods` | The ODS code of the supplier organisation that manages this endpoint. Resolved during enrichment via `int_organisations`. |
-| `address` | `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"` | `targets.json` URL value | Direct copy of the URL from targets.json. Preserve original casing. Ensure `https://` scheme is present. |
-| `header` | `"public"` | `url_metadata.is_private` | Map: `false` → `"public"`, `true` → `"private"`. Default to `"public"` if enrichment data is unavailable. |
+
+| FHIR Field                                  | Example Value                                                       | Source                                        | How to derive                                                                                                                          |
+| --------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `resourceType`                              | `"Endpoint"`                                                        | Static                                        | Always`"Endpoint"`                                                                                                                     |
+| `identifier[0].system`                      | `"https://fhir.nhs.uk/id/product-id"`                               | Static                                        | Always this system URI                                                                                                                 |
+| `identifier[0].value`                       | `"CegedimPharmacyServices-v6.0"`                                    | `url_metadata.product_id` → `PRODUCT_ID_MAP` | Look up the`product_id` for this URL from the enrichment step. Then resolve via `PRODUCT_ID_MAP` to the agreed EPC Product Identifier. |
+| `status`                                    | `"active"`                                                          | Static                                        | Always`"active"` — these URLs are in the live routing file.                                                                           |
+| `connectionType.coding[0].system`           | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"`  | Static                                        | Always this system URI                                                                                                                 |
+| `connectionType.coding[0].code`             | `"hl7-fhir-rest"`                                                   | Static                                        | Always`"hl7-fhir-rest"` — all BaRS endpoints are FHIR REST.                                                                           |
+| `connectionType.coding[0].display`          | `"HL7 FHIR"`                                                        | Static                                        | Always`"HL7 FHIR"`                                                                                                                     |
+| `payloadType[0].coding[0].system`           | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static                                        | Always this system URI                                                                                                                 |
+| `payloadType[0].coding[0].code`             | `"bars"`                                                            | Static                                        | Always`"bars"` — all entries in targets.json are BaRS routing.                                                                        |
+| `payloadType[0].coding[0].display`          | `"BaRS"`                                                            | Static                                        | Always`"BaRS"`                                                                                                                         |
+| `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"`                    | Static                                        | Always this system URI                                                                                                                 |
+| `managingOrganization[0].identifier.value`  | `"RK5"`                                                             | `url_metadata.managing_org_ods`               | The ODS code of the supplier organisation that manages this endpoint. Resolved during enrichment via`int_organisations`.               |
+| `address`                                   | `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`      | `targets.json` URL value                      | Direct copy of the URL from targets.json. Preserve original casing. Ensure`https://` scheme is present.                                |
+| `header`                                    | `"public"`                                                          | `url_metadata.is_private`                     | Map:`false` → `"public"`, `true` → `"private"`. Default to `"public"` if enrichment data is unavailable.                             |
 
 ### Example payload
 
 URL: `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/`
 
 Enrichment resolved:
+
 - ProductId: `ygm04` → `"CegedimPharmacyServices-v6.0"`
 - ManagingOrg ODS: `"(resolved from org_lookup)"`  — e.g., supplier ODS for Cegedim
 - IsPrivate: `false` → `"public"`
@@ -370,17 +376,18 @@ In the EPC model, each Template needs at least one child Endpoint to be routable
 
 ### Payload Parameter Table
 
-| FHIR Field | Example Value | Source | How to derive |
-|------------|--------------|--------|---------------|
-| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
-| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | Copied from parent Template | Use the same Product ID value that was sent to the Template in Step 1. No separate lookup required — copy from the Template payload already built for this URL. |
-| `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension. |
-| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."` | `template_log` | Look up the normalised URL in `template_log` to get the parent Template's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
-| `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
-| `status` | `"active"` | `endpoint_details` or Static | Look up `service_id` in `endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If service_id not found, default to `"active"` (it's in the live routing file). |
-| `period.start` | `"2026-06-01T16:04:05.168Z"` | `endpoint_details` or migration date | See decision note below. |
-| `period.end` | `"2026-04-22T15:40:17.423Z"` | `endpoint_details` (if populated) | See decision note below. **Only include if populated.** |
+
+| FHIR Field                              | Example Value                         | Source                               | How to derive                                                                                                                                                                          |
+| ----------------------------------------- | --------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resourceType`                          | `"Endpoint"`                          | Static                               | Always`"Endpoint"`                                                                                                                                                                     |
+| `identifier[0].system`                  | `"https://fhir.nhs.uk/id/product-id"` | Static                               | Always this system URI                                                                                                                                                                 |
+| `identifier[0].value`                   | `"CegedimPharmacyServices-v6.0"`      | Copied from parent Template          | Use the same Product ID value that was sent to the Template in Step 1. No separate lookup required — copy from the Template payload already built for this URL.                       |
+| `extension[0].url`                      | `"http://hl7.org"`                    | Static                               | Always this URL — identifies the "basedOn" extension.                                                                                                                                 |
+| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-..."`             | `template_log`                       | Look up the normalised URL in`template_log` to get the parent Template's catalog_id. Format as `"Endpoint/{catalog_id}"`.                                                              |
+| `extension[0].valueReference.display`   | `"Parent Template Endpoint"`          | Static                               | Always`"Parent Template Endpoint"`                                                                                                                                                     |
+| `status`                                | `"active"`                            | `endpoint_details` or Static         | Look up`service_id` in `endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If service_id not found, default to `"active"` (it's in the live routing file). |
+| `period.start`                          | `"2026-06-01T16:04:05.168Z"`          | `endpoint_details` or migration date | See decision note below.                                                                                                                                                               |
+| `period.end`                            | `"2026-04-22T15:40:17.423Z"`          | `endpoint_details` (if populated)    | See decision note below.**Only include if populated.**                                                                                                                                 |
 
 ### Decision: How to resolve `period.start` and `period.end`
 
@@ -398,6 +405,7 @@ Set `period.start` to the migration execution date for all endpoints. Omit `peri
 For each `service_id` in targets.json, find matching records in `int_endpoints` (by `ServiceId`) and derive the period from those records.
 
 **Logic:**
+
 1. Query `int_endpoints` for all items where `ServiceId == service_id` and `DataStatus == 0`
 2. If multiple items exist (e.g., endpoint was re-onboarded), use the **most recent active** record — latest `StartDate` with no `EndDate`, or if all have `EndDate`, use the one with the latest `LastUpdated`
 3. Copy `StartDate` → `period.start`
@@ -415,22 +423,22 @@ def resolve_period(service_id, endpoint_details):
     Option 2: use int_endpoints data, with migration date as fallback.
     """
     details = endpoint_details.get(service_id)
-    
+  
     if not details:
         # No int_endpoints record — fall back to migration date
         return {"start": MIGRATION_DATE}, "fallback_no_record"
-    
+  
     period = {}
-    
+  
     if details["start_date"]:
         period["start"] = details["start_date"]
     else:
         # Record exists but StartDate is empty — use migration date
         period["start"] = MIGRATION_DATE
-    
+  
     if details["end_date"]:
         period["end"] = details["end_date"]
-    
+  
     return period, "resolved"
 ```
 
@@ -442,14 +450,15 @@ Expected coverage: most service IDs in targets.json will have a matching `int_en
 
 ### Fields NOT included (inherited from Template at read time)
 
-| Field | Reason |
-|-------|--------|
-| `address` | Inherited from parent Template |
-| `connectionType` | Inherited from parent Template |
-| `payloadType` | Inherited from parent Template |
+
+| Field                  | Reason                         |
+| ------------------------ | -------------------------------- |
+| `address`              | Inherited from parent Template |
+| `connectionType`       | Inherited from parent Template |
+| `payloadType`          | Inherited from parent Template |
 | `managingOrganization` | Inherited from parent Template |
-| `name` | Inherited from parent Template |
-| `header` | Inherited from parent Template |
+| `name`                 | Inherited from parent Template |
+| `header`               | Inherited from parent Template |
 
 ### Example payload
 
@@ -496,6 +505,7 @@ For each key-value pair in `service_to_url`, create a HealthcareService that ref
 ### Provider Organisation (from Step 0b)
 
 The `provider_lookup` dictionary built in Step 0b provides:
+
 - `provider_ods` — the ODS code of the provider organisation (pharmacy/hospital)
 - `provider_name` — the organisation name
 - `name` — the human-readable service name
@@ -504,23 +514,25 @@ These are required fields. If a service_id is not found in `provider_lookup`, lo
 
 ### Payload Parameter Table
 
-| FHIR Field | Example Value | Source | How to derive |
-|------------|--------------|--------|---------------|
-| `resourceType` | `"HealthcareService"` | Static | Always `"HealthcareService"` |
-| `meta.profile[0]` | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static | Always this profile URI |
-| `identifier[0].system` | `"https://fhir.nhs.uk/Id/dos-service-id"` | Static | Always `"https://fhir.nhs.uk/Id/dos-service-id"` — this is the identifier system used by the BaRS proxy to query the EPC. |
-| `identifier[0].value` | `"2000017562"` | `targets.json` key | Direct copy of the service ID key from the JSON. |
-| `active` | `true` | Static | Always `true` — the service is in the live routing file, so it's active. |
-| `name` | `"Pharm+: Victoria Pharmacy Golders Green"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `name` field. If not found, log as a migration gap — this must be resolved. Strip surrounding quotes. |
-| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI. |
-| `providedBy.identifier.value` | `"FLG23"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as a migration gap — must be resolved before go-live. |
-| `endpoint[0].reference` | `"Endpoint/abc123-..."` | `endpoint_log` | Look up `service_id` in `endpoint_log` to get the child Endpoint's catalog_id. Format as `"Endpoint/{catalog_id}"`. |
+
+| FHIR Field                     | Example Value                                                            | Source                           | How to derive                                                                                                                                            |
+| -------------------------------- | -------------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resourceType`                 | `"HealthcareService"`                                                    | Static                           | Always`"HealthcareService"`                                                                                                                              |
+| `meta.profile[0]`              | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static                           | Always this profile URI                                                                                                                                  |
+| `identifier[0].system`         | `"https://fhir.nhs.uk/Id/dos-service-id"`                                | Static                           | Always`"https://fhir.nhs.uk/Id/dos-service-id"` — this is the identifier system used by the BaRS proxy to query the EPC.                                |
+| `identifier[0].value`          | `"2000017562"`                                                           | `targets.json` key               | Direct copy of the service ID key from the JSON.                                                                                                         |
+| `active`                       | `true`                                                                   | Static                           | Always`true` — the service is in the live routing file, so it's active.                                                                                 |
+| `name`                         | `"Pharm+: Victoria Pharmacy Golders Green"`                              | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `name` field. If not found, log as a migration gap — this must be resolved. Strip surrounding quotes. |
+| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"`                         | Static                           | Always this system URI.                                                                                                                                  |
+| `providedBy.identifier.value`  | `"FLG23"`                                                                | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as a migration gap — must be resolved before go-live.         |
+| `endpoint[0].reference`        | `"Endpoint/abc123-..."`                                                  | `endpoint_log`                   | Look up`service_id` in `endpoint_log` to get the child Endpoint's catalog_id. Format as `"Endpoint/{catalog_id}"`.                                       |
 
 ### Example payload
 
 For targets.json entry: `"2000017562": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`
 
 Enrichment resolved:
+
 - `provider_lookup["2000017562"]` → `{ provider_ods: "FE284", name: "Pharm+: Boots Pharmacy Bromley" }`
 - `endpoint_log["2000017562"]` → catalog_id `"0cb21027-a246-43e6-9c7a-35b17163eab1"`
 
@@ -574,9 +586,9 @@ for service_id, expected_url in service_to_url.items():
         },
         headers={"Authorization": f"Bearer {token}"}
     )
-    
+  
     bundle = response.json()
-    
+  
     # Find the Endpoint in the included resources
     endpoint_address = None
     for entry in bundle.get("entry", []):
@@ -584,7 +596,7 @@ for service_id, expected_url in service_to_url.items():
         if resource.get("resourceType") == "Endpoint" and resource.get("status") == "active":
             endpoint_address = resource.get("address")
             break
-    
+  
     if endpoint_address:
         reconstructed[service_id] = endpoint_address
     else:
@@ -631,15 +643,123 @@ with open('targets-reconstructed.json', 'w') as f:
 
 ### 4d. Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| Services with correct URL match (case-insensitive) | 100% |
-| Services returning NOT_FOUND | 0 |
-| Total differences | 0 |
+
+| Metric                                             | Target |
+| ---------------------------------------------------- | -------- |
+| Services with correct URL match (case-insensitive) | 100%   |
+| Services returning NOT_FOUND                       | 0      |
+| Total differences                                  | 0      |
+
+### Execution Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant Script as Migration Script
+    participant TJ as targets.json
+    participant DDB as DynamoDB (int_ tables)
+    participant EPC as EPC API
+    participant Log as Migration Log
+
+    Note over Script: Step 0 - Parse & Enrich
+    Script->>TJ: Load targets.json
+    Script->>Script: Extract service_to_url + unique_urls
+    Script->>DDB: Scan int_organisations (build org_lookup)
+    Script->>DDB: Scan int_endpoint_templates (build url_metadata)
+    Script->>DDB: Scan int_healthcareservices (build provider_lookup — REQUIRED)
+    Script->>Script: Validate provider_lookup covers all service IDs in targets.json
+
+    Note over Script: Step 1 - Templates (~13 URLs)
+    loop For each unique URL
+        Script->>Script: Resolve ProductId, ODS code from url_metadata
+        Script->>EPC: POST /Endpoint/$template
+        EPC-->>Script: 201 Created {id}
+        Script->>Log: Record url → template_catalog_id
+    end
+
+    Note over Script: Step 2 - Child Endpoints (~13)
+    loop For each unique URL
+        Script->>Log: Lookup parent template catalog_id
+        Script->>EPC: POST /Endpoint
+        EPC-->>Script: 201 Created {id}
+        Script->>Log: Record url → endpoint_catalog_id
+    end
+
+    Note over Script: Step 3 - HealthcareServices (~4000+)
+    loop For each service_id in targets.json
+        Script->>Log: Lookup endpoint catalog_id by URL
+        Script->>Script: Resolve provider ODS from provider_lookup
+        Script->>EPC: POST /HealthcareService
+        EPC-->>Script: 201 Created {id}
+        Script->>Log: Record service_id → hcs_catalog_id
+    end
+
+    Note over Script: Step 4 - Validation (~4000 queries)
+    loop For each service_id in targets.json
+        Script->>EPC: GET /HealthcareService?identifier=...&_include=endpoint
+        EPC-->>Script: Bundle {HealthcareService + Endpoint}
+        Script->>Script: Compare endpoint.address with expected URL
+    end
+    Script->>Script: Generate diff report
+```
 
 ---
 
-## Step 5: Delta Detection — Generate CSV Files for Missing Items
+### Data Volumes & Estimates
+
+
+| Step                        | Records                   | EPC API Calls          | Notes                                                              |
+| ----------------------------- | --------------------------- | ------------------------ | -------------------------------------------------------------------- |
+| Step 0 (parse + enrich)     | 4,000+ services, ~13 URLs | 0 (DynamoDB only)      | 4 table scans (orgs, templates, endpoints, healthcareservices)     |
+| Step 1 (templates)          | ~13 unique URLs           | ~13 POSTs              | One template per unique supplier URL                               |
+| Step 2 (child endpoints)    | ~4,000+                   | ~4,000+ POSTs          | One child endpoint per service ID (with period from int_endpoints) |
+| Step 3 (HealthcareServices) | ~4,000+                   | ~4,000+ POSTs          | One per service ID                                                 |
+| Step 4 (validation)         | ~4,000+                   | ~4,000+ GETs           | One query per service ID                                           |
+| **Total**                   |                           | **~12,000+ API calls** |                                                                    |
+
+At ~10 requests/second, estimated runtime: ~20 minutes.
+
+This is significantly fewer API calls than the full int_ table migration because:
+
+- Only ~13 Templates/Endpoints (not thousands — one per URL, not one per service)
+- No inactive/placeholder data to process
+
+---
+
+### Error Handling
+
+
+| Error                                                            | Action                                                                                                                                                                                       |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **URL not found in url_metadata** (enrichment miss)              | Log warning. If ProductId/ODS can be inferred from URL pattern (e.g.,`ygm04` in hostname), use that. Otherwise skip and flag for manual resolution.                                          |
+| **ProductId not in PRODUCT_ID_MAP**                              | Log as unmapped, skip the template creation, and all services using that URL will fail in Step 3. Add to "needs mapping" report.                                                             |
+| **provider_lookup miss** (service not in int_healthcareservices) | Log as migration gap. Create HealthcareService without`providedBy` temporarily but flag as **must-resolve** before go-live. These gaps must be zero for migration to be considered complete. |
+| Template POST fails (409 conflict / already exists)              | Query by ProductId to get existing catalog_id. Use that in template_log. Continue.                                                                                                           |
+| Endpoint POST fails                                              | Log and skip. Services referencing this URL will have no endpoint reference.                                                                                                                 |
+| HealthcareService POST fails                                     | Log service_id and error. Continue with next.                                                                                                                                                |
+| API rate limit (429)                                             | Exponential backoff with jitter. Retry up to 3 times.                                                                                                                                        |
+| Validation: URL mismatch                                         | Log full detail (expected vs actual). Common causes: case difference, trailing slash, scheme mismatch.                                                                                       |
+
+---
+
+## Key Differences from Full int_ Table Migration
+
+
+| Aspect                     | Full Migration (int_ tables)                       | targets.json Migration                                              |
+| ---------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
+| Source of truth            | DynamoDB tables                                    | targets.json flat file                                              |
+| Templates created          | One per template row (~50-100)                     | One per unique URL (~13)                                            |
+| Child Endpoints created    | One per endpoint row (~5,000)                      | One per unique URL (~13)                                            |
+| HealthcareServices created | One per HCS row (~5,000, includes inactive)        | One per targets.json entry (~4,000, all active)                     |
+| Inactive services included | Yes                                                | No — only actively routed services                                 |
+| Provider organisation      | From int_healthcareservices.ProviderOrganisationId | Required — resolved from int_healthcareservices in Step 0b         |
+| Service name               | From int_healthcareservices.Name                   | Required — resolved from int_healthcareservices in Step 0b         |
+| Endpoint per service       | Dedicated endpoint per service                     | Dedicated endpoint per service (period resolved from int_endpoints) |
+| Total API calls            | ~14,000                                            | ~12,000+                                                            |
+| Complexity                 | Higher (more data, more lookups)                   | Lower (flat file drives everything)                                 |
+
+---
+
+## Step 5: Optional Delta Detection — Generate CSV Files for Missing Items
 
 After Step 4 validation (or as a standalone process), compare targets.json against the current EPC state and generate CSV files in the IP001/IP002/IP003 format for any items that are missing. These CSVs can be handed to the R&M team to onboard the missing data via the standard pipeline.
 
@@ -660,16 +780,16 @@ for service_id, expected_url in service_to_url.items():
         },
         headers={"Authorization": f"Bearer {token}"}
     )
-    
+  
     bundle = response.json()
     entries = bundle.get("entry", [])
-    
+  
     # Check if HealthcareService exists
     hcs_found = any(
         e["resource"]["resourceType"] == "HealthcareService" 
         for e in entries if "resource" in e
     )
-    
+  
     # Check if active Endpoint exists with correct address
     endpoint_found = False
     for entry in entries:
@@ -679,10 +799,10 @@ for service_id, expected_url in service_to_url.items():
             and urls_match(resource.get("address", ""), expected_url)):
             endpoint_found = True
             break
-    
+  
     if not hcs_found:
         missing_hcs.append(service_id)
-    
+  
     if not endpoint_found:
         missing_endpoints.append(service_id)
 
@@ -708,11 +828,12 @@ For each URL in `missing_templates`, generate a row in the IP002 format.
 
 **CSV format (per IP002):**
 
-| Column | Source | How to populate |
-|--------|--------|-----------------|
-| `ODSCode` | `url_metadata[url].managing_org_ods` | Supplier ODS code from enrichment |
-| `ProductId` | `url_metadata[url].product_id` → `PRODUCT_ID_MAP` | Resolved EPC Product Identifier |
-| `Address` | `url` from targets.json | The endpoint URL |
+
+| Column      | Source                                             | How to populate                   |
+| ------------- | ---------------------------------------------------- | ----------------------------------- |
+| `ODSCode`   | `url_metadata[url].managing_org_ods`               | Supplier ODS code from enrichment |
+| `ProductId` | `url_metadata[url].product_id` → `PRODUCT_ID_MAP` | Resolved EPC Product Identifier   |
+| `Address`   | `url` from targets.json                            | The endpoint URL                  |
 
 ```python
 import csv
@@ -725,7 +846,7 @@ if missing_templates:
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['ODSCode', 'ProductId', 'Address'])
-        
+      
         for url in missing_templates:
             normalised = url.lower().rstrip('/')
             metadata = url_metadata.get(normalised, {})
@@ -734,11 +855,12 @@ if missing_templates:
                 metadata.get('product_id', '').upper(), 'UNKNOWN'
             )
             writer.writerow([ods_code, product_id, url])
-    
+  
     print(f"Generated: {filename} ({len(missing_templates)} rows)")
 ```
 
 **Example output:**
+
 ```csv
 ODSCode,ProductId,Address
 YGM04,CegedimPharmacyServices-v6.0,https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/
@@ -750,15 +872,16 @@ For each service_id in `missing_endpoints`, generate a row in the IP003 format.
 
 **CSV format (per IP003):**
 
-| Column | Source | How to populate |
-|--------|--------|-----------------|
-| `ODSCode` | `url_metadata[url].managing_org_ods` | Supplier ODS from enrichment (based on the URL for this service) |
-| `ProductId` | `url_metadata[url].product_id` → `PRODUCT_ID_MAP` | Resolved EPC Product Identifier |
-| `ServiceId` | `service_id` from targets.json | The DoS service ID |
-| `Name` | `provider_lookup[service_id].name` | Service name from int_healthcareservices (or blank) |
-| `Status` | `"active"` | Always active — it's in the live routing file |
-| `PeriodStart` | `endpoint_details[service_id].start_date` | From int_endpoints, or blank for R&M to fill in |
-| `PeriodEnd` | (blank) | Open-ended — service is actively routed |
+
+| Column        | Source                                             | How to populate                                                  |
+| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------ |
+| `ODSCode`     | `url_metadata[url].managing_org_ods`               | Supplier ODS from enrichment (based on the URL for this service) |
+| `ProductId`   | `url_metadata[url].product_id` → `PRODUCT_ID_MAP` | Resolved EPC Product Identifier                                  |
+| `ServiceId`   | `service_id` from targets.json                     | The DoS service ID                                               |
+| `Name`        | `provider_lookup[service_id].name`                 | Service name from int_healthcareservices (or blank)              |
+| `Status`      | `"active"`                                         | Always active — it's in the live routing file                   |
+| `PeriodStart` | `endpoint_details[service_id].start_date`          | From int_endpoints, or blank for R&M to fill in                  |
+| `PeriodEnd`   | (blank)                                            | Open-ended — service is actively routed                         |
 
 ```python
 if missing_endpoints:
@@ -766,31 +889,32 @@ if missing_endpoints:
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['ODSCode', 'ProductId', 'ServiceId', 'Name', 'Status', 'PeriodStart', 'PeriodEnd'])
-        
+      
         for service_id in missing_endpoints:
             url = service_to_url[service_id]
             normalised = url.lower().rstrip('/')
             metadata = url_metadata.get(normalised, {})
-            
+          
             ods_code = metadata.get('managing_org_ods', 'UNKNOWN')
             product_id = PRODUCT_ID_MAP.get(
                 metadata.get('product_id', '').upper(), 'UNKNOWN'
             )
-            
+          
             # Service name from provider_lookup
             provider = provider_lookup.get(service_id, {})
             name = provider.get('name', '')
-            
+          
             # Period from endpoint_details
             details = endpoint_details.get(service_id, {})
             period_start = details.get('start_date', '')
-            
+          
             writer.writerow([ods_code, product_id, service_id, name, 'active', period_start, ''])
-    
+  
     print(f"Generated: {filename} ({len(missing_endpoints)} rows)")
 ```
 
 **Example output:**
+
 ```csv
 ODSCode,ProductId,ServiceId,Name,Status,PeriodStart,PeriodEnd
 YGM04,CegedimPharmacyServices-v6.0,2000017562,Pharm+: Boots Pharmacy Bromley,active,2026-06-01T16:04:05.168Z,
@@ -802,12 +926,13 @@ For each service_id in `missing_hcs`, generate a row in the IP001 format.
 
 **CSV format (per IP001):**
 
-| Column | Source | How to populate |
-|--------|--------|-----------------|
-| `ODSCode` | `provider_lookup[service_id].provider_ods` | Provider ODS (pharmacy/hospital) — NOT the supplier |
-| `ServiceId` | `service_id` from targets.json | The DoS service ID |
-| `ServiceName` | `provider_lookup[service_id].name` | Service name from int_healthcareservices (or blank for R&M to fill in) |
-| `EndpointId` | (blank) | Left blank — R&M will associate after Endpoint is created, or the pipeline auto-associates |
+
+| Column        | Source                                     | How to populate                                                                             |
+| --------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `ODSCode`     | `provider_lookup[service_id].provider_ods` | Provider ODS (pharmacy/hospital) — NOT the supplier                                        |
+| `ServiceId`   | `service_id` from targets.json             | The DoS service ID                                                                          |
+| `ServiceName` | `provider_lookup[service_id].name`         | Service name from int_healthcareservices (or blank for R&M to fill in)                      |
+| `EndpointId`  | (blank)                                    | Left blank — R&M will associate after Endpoint is created, or the pipeline auto-associates |
 
 ```python
 if missing_hcs:
@@ -815,18 +940,19 @@ if missing_hcs:
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['ODSCode', 'ServiceId', 'ServiceName', 'EndpointId'])
-        
+      
         for service_id in missing_hcs:
             provider = provider_lookup.get(service_id, {})
             ods_code = provider.get('provider_ods', 'UNKNOWN')
             name = provider.get('name', '')
-            
+          
             writer.writerow([ods_code, service_id, name, ''])
-    
+  
     print(f"Generated: {filename} ({len(missing_hcs)} rows)")
 ```
 
 **Example output:**
+
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId
 FE284,2000017562,Pharm+: Boots Pharmacy Bromley,
@@ -865,12 +991,13 @@ with open(f"delta-report-{timestamp}.json", 'w') as f:
 
 Any row with `UNKNOWN` in the `ODSCode` or `ProductId` column indicates data that could not be resolved from the enrichment sources. The R&M team must manually fill these in before uploading the CSV to the pipeline.
 
-| Column with UNKNOWN | Resolution |
-|---------------------|------------|
-| `ODSCode` in IP002 (Template) | Contact supplier to confirm their ODS code |
-| `ProductId` in IP002/IP003 | Check Product ID mapping table; may need onboarding with Digital Onboarding Service |
-| `ODSCode` in IP001 (HealthcareService) | Look up service in DoS to find the providing organisation |
-| `Name` (blank) in IP001/IP003 | Look up service name in DoS or ask commissioner |
+
+| Column with UNKNOWN                    | Resolution                                                                          |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `ODSCode` in IP002 (Template)          | Contact supplier to confirm their ODS code                                          |
+| `ProductId` in IP002/IP003             | Check Product ID mapping table; may need onboarding with Digital Onboarding Service |
+| `ODSCode` in IP001 (HealthcareService) | Look up service in DoS to find the providing organisation                           |
+| `Name` (blank) in IP001/IP003          | Look up service name in DoS or ask commissioner                                     |
 
 ### Delta Process Sequence Diagram
 
@@ -931,143 +1058,42 @@ sequenceDiagram
 
 ---
 
-## Execution Sequence Diagram
-
-```mermaid
-sequenceDiagram
-    participant Script as Migration Script
-    participant TJ as targets.json
-    participant DDB as DynamoDB (int_ tables)
-    participant EPC as EPC API
-    participant Log as Migration Log
-
-    Note over Script: Step 0 - Parse & Enrich
-    Script->>TJ: Load targets.json
-    Script->>Script: Extract service_to_url + unique_urls
-    Script->>DDB: Scan int_organisations (build org_lookup)
-    Script->>DDB: Scan int_endpoint_templates (build url_metadata)
-    Script->>DDB: Scan int_healthcareservices (build provider_lookup — REQUIRED)
-    Script->>Script: Validate provider_lookup covers all service IDs in targets.json
-
-    Note over Script: Step 1 - Templates (~13 URLs)
-    loop For each unique URL
-        Script->>Script: Resolve ProductId, ODS code from url_metadata
-        Script->>EPC: POST /Endpoint/$template
-        EPC-->>Script: 201 Created {id}
-        Script->>Log: Record url → template_catalog_id
-    end
-
-    Note over Script: Step 2 - Child Endpoints (~13)
-    loop For each unique URL
-        Script->>Log: Lookup parent template catalog_id
-        Script->>EPC: POST /Endpoint
-        EPC-->>Script: 201 Created {id}
-        Script->>Log: Record url → endpoint_catalog_id
-    end
-
-    Note over Script: Step 3 - HealthcareServices (~4000+)
-    loop For each service_id in targets.json
-        Script->>Log: Lookup endpoint catalog_id by URL
-        Script->>Script: Resolve provider ODS from provider_lookup
-        Script->>EPC: POST /HealthcareService
-        EPC-->>Script: 201 Created {id}
-        Script->>Log: Record service_id → hcs_catalog_id
-    end
-
-    Note over Script: Step 4 - Validation (~4000 queries)
-    loop For each service_id in targets.json
-        Script->>EPC: GET /HealthcareService?identifier=...&_include=endpoint
-        EPC-->>Script: Bundle {HealthcareService + Endpoint}
-        Script->>Script: Compare endpoint.address with expected URL
-    end
-    Script->>Script: Generate diff report
-```
-
----
-
-## Data Volumes & Estimates
-
-| Step | Records | EPC API Calls | Notes |
-|------|---------|---------------|-------|
-| Step 0 (parse + enrich) | 4,000+ services, ~13 URLs | 0 (DynamoDB only) | 4 table scans (orgs, templates, endpoints, healthcareservices) |
-| Step 1 (templates) | ~13 unique URLs | ~13 POSTs | One template per unique supplier URL |
-| Step 2 (child endpoints) | ~4,000+ | ~4,000+ POSTs | One child endpoint per service ID (with period from int_endpoints) |
-| Step 3 (HealthcareServices) | ~4,000+ | ~4,000+ POSTs | One per service ID |
-| Step 4 (validation) | ~4,000+ | ~4,000+ GETs | One query per service ID |
-| **Total** | | **~12,000+ API calls** | |
-
-At ~10 requests/second, estimated runtime: ~20 minutes.
-
-This is significantly fewer API calls than the full int_ table migration because:
-- Only ~13 Templates/Endpoints (not thousands — one per URL, not one per service)
-- No inactive/placeholder data to process
-
----
-
-## Error Handling
-
-| Error                                                            | Action                                                                                                                                                                                        |
-| ------------------------------------------------------------------| -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **URL not found in url_metadata** (enrichment miss)              | Log warning. If ProductId/ODS can be inferred from URL pattern (e.g., `ygm04` in hostname), use that. Otherwise skip and flag for manual resolution.                                          |
-| **ProductId not in PRODUCT_ID_MAP**                              | Log as unmapped, skip the template creation, and all services using that URL will fail in Step 3. Add to "needs mapping" report.                                                              |
-| **provider_lookup miss** (service not in int_healthcareservices) | Log as migration gap. Create HealthcareService without `providedBy` temporarily but flag as **must-resolve** before go-live. These gaps must be zero for migration to be considered complete. |
-| Template POST fails (409 conflict / already exists)              | Query by ProductId to get existing catalog_id. Use that in template_log. Continue.                                                                                                            |
-| Endpoint POST fails                                              | Log and skip. Services referencing this URL will have no endpoint reference.                                                                                                                  |
-| HealthcareService POST fails                                     | Log service_id and error. Continue with next.                                                                                                                                                 |
-| API rate limit (429)                                             | Exponential backoff with jitter. Retry up to 3 times.                                                                                                                                         |
-| Validation: URL mismatch                                         | Log full detail (expected vs actual). Common causes: case difference, trailing slash, scheme mismatch.                                                                                        |
-
----
-
-## Key Differences from Full int_ Table Migration
-
-| Aspect | Full Migration (int_ tables) | targets.json Migration |
-|--------|------------------------------|------------------------|
-| Source of truth | DynamoDB tables | targets.json flat file |
-| Templates created | One per template row (~50-100) | One per unique URL (~13) |
-| Child Endpoints created | One per endpoint row (~5,000) | One per unique URL (~13) |
-| HealthcareServices created | One per HCS row (~5,000, includes inactive) | One per targets.json entry (~4,000, all active) |
-| Inactive services included | Yes | No — only actively routed services |
-| Provider organisation | From int_healthcareservices.ProviderOrganisationId | Required — resolved from int_healthcareservices in Step 0b |
-| Service name | From int_healthcareservices.Name | Required — resolved from int_healthcareservices in Step 0b |
-| Endpoint per service | Dedicated endpoint per service | Dedicated endpoint per service (period resolved from int_endpoints) |
-| Total API calls | ~14,000 | ~12,000+ |
-| Complexity | Higher (more data, more lookups) | Lower (flat file drives everything) |
-
----
 
 ## Key Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| One child Endpoint per URL (shared) vs one per service | One per URL (shared) | targets.json shows many services using the same URL. Creating thousands of identical endpoints is wasteful. |
-| All services set to `active: true` | Yes | They're in the live routing file — by definition, they're active. |
-| `providedBy` optional | No — required | Provider resolution is built in Step 0b from int_healthcareservices. Any gaps must be resolved before go-live. |
-| `name` optional | No — required (with fallback for gaps) | Resolved from int_healthcareservices in Step 0b. Missing names are logged as gaps. |
-| URL matching strategy | Case-insensitive, strip trailing slash, strip scheme for comparison | Source data has inconsistent casing |
-| Period.start for child endpoints | Resolve from int_endpoints (Option 2), migration date as fallback | Preserves historical start date where available; ensures no missing values |
+
+| Decision                                               | Choice                                                              | Rationale                                                                                                      |
+| -------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| One child Endpoint per URL (shared) vs one per service | One per URL (shared)                                                | targets.json shows many services using the same URL. Creating thousands of identical endpoints is wasteful.    |
+| All services set to`active: true`                      | Yes                                                                 | They're in the live routing file — by definition, they're active.                                             |
+| `providedBy` optional                                  | No — required                                                      | Provider resolution is built in Step 0b from int_healthcareservices. Any gaps must be resolved before go-live. |
+| `name` optional                                        | No — required (with fallback for gaps)                             | Resolved from int_healthcareservices in Step 0b. Missing names are logged as gaps.                             |
+| URL matching strategy                                  | Case-insensitive, strip trailing slash, strip scheme for comparison | Source data has inconsistent casing                                                                            |
+| Period.start for child endpoints                       | Resolve from int_endpoints (Option 2), migration date as fallback   | Preserves historical start date where available; ensures no missing values                                     |
 
 ---
 
 ## Comparison: Which Approach to Use?
 
-| Use Case | Recommended Approach |
-|----------|---------------------|
-| Need to reproduce live routing ASAP with minimal risk | **targets.json approach** (this document) |
-| Need full historical data including inactive services | Full int_ table migration |
-| Need dedicated endpoint per service (for future per-service config) | Full int_ table migration |
-| Need provider organisation and service names | Either (with enrichment), or full migration |
-| Proof-of-concept / demo | **targets.json approach** (faster, simpler) |
-| Production migration (final) | Full int_ table migration (more complete data) |
+
+| Use Case                                                            | Recommended Approach                           |
+| --------------------------------------------------------------------- | ------------------------------------------------ |
+| Need to reproduce live routing ASAP with minimal risk               | **targets.json approach** (this document)      |
+| Need full historical data including inactive services               | Full int_ table migration                      |
+| Need dedicated endpoint per service (for future per-service config) | Full int_ table migration                      |
+| Need provider organisation and service names                        | Either (with enrichment), or full migration    |
+| Proof-of-concept / demo                                             | **targets.json approach** (faster, simpler)    |
+| Production migration (final)                                        | Full int_ table migration (more complete data) |
 
 ---
 
 ## Files & Outputs
 
-| Artifact | Location | Purpose |
-|----------|----------|---------|
-| Migration script | TBD | Executes Steps 0-3 |
-| Validation script | TBD | Executes Step 4 |
-| Migration log | `migration-log-targets.json` | Source → catalog_id mappings |
-| Validation report | `validation-report-targets.json` | Diff between expected and actual |
-| Reconstructed targets | `targets-reconstructed.json` | Rebuilt from EPC queries |
+
+| Artifact              | Location                         | Purpose                          |
+| ----------------------- | ---------------------------------- | ---------------------------------- |
+| Migration script      | TBD                              | Executes Steps 0-3               |
+| Validation script     | TBD                              | Executes Step 4                  |
+| Migration log         | `migration-log-targets.json`     | Source → catalog_id mappings    |
+| Validation report     | `validation-report-targets.json` | Diff between expected and actual |
+| Reconstructed targets | `targets-reconstructed.json`     | Rebuilt from EPC queries         |
