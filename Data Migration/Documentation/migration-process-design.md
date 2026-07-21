@@ -70,11 +70,18 @@ flowchart LR
 
 See the dedicated document: **[Resolving ProductId](./resolving-product-id.md)**
 
-This covers:
-- The mapping table from source short codes (ygm04, AC0, 8hk48, etc.) to EPC Product Identifiers
-- How to derive the mapping from int_ table data
-- The persistent `product-id-lookup.json` file format
-- The `resolve_product_id()` function used by all scripts
+The `int_endpoint_templates` and `int_endpoints` tables store internal short codes in their `ProductId` field — e.g., `ygm04`, `8hk48`, `AC0`. These are opaque identifiers from the existing system that have no meaning in the EPC.
+
+The EPC requires a formal Product Identifier (e.g., `CegedimPharmacyServices-v6.0`) that uniquely identifies the supplier's product and version. This is stored in the `identifier` field on Endpoint Templates and child Endpoints per IP002/IP003.
+
+The resolution process:
+1. Take the `ProductId` attribute from the source DynamoDB item
+2. Look it up (case-insensitive) in the persistent `product-id-lookup.json` file
+3. Return the agreed EPC Product Identifier to use in the FHIR payload
+
+If the short code has no mapping, the record is skipped and logged. The R&M team must add the missing mapping to `product-id-lookup.json` before that record can be migrated.
+
+The lookup file is shared across all processes (migration, delta, validation) and must be kept in sync with the [Product ID Mapping](./product-id-mapping.md) document.
 
 ---
 

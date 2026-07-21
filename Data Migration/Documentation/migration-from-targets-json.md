@@ -265,7 +265,16 @@ for item in templates_response['Items']:
 
 See the dedicated document: **[Resolving ProductId](./resolving-product-id.md)**
 
-This covers the mapping table, the persistent `product-id-lookup.json` file, and the `resolve_product_id()` function. The lookup file must be accessible to all scripts (migration, delta, validation).
+The source data (int_ tables and targets.json) uses internal short codes to identify supplier products — e.g., `ygm04` for Cegedim, `8hk48` for Sonar, `AC0` for Advanced. These short codes are not meaningful outside the existing system and are not used in the EPC.
+
+The EPC uses a formal Product Identifier (e.g., `CegedimPharmacyServices-v6.0`) that uniquely identifies the supplier's product and version. This is what gets stored in the `identifier` field on Endpoint Templates and child Endpoints.
+
+The resolution process:
+1. Take the `ProductId` short code from the source data (e.g., from `url_metadata` enrichment)
+2. Look it up in the persistent `product-id-lookup.json` file (case-insensitive)
+3. Return the agreed EPC Product Identifier
+
+If the short code is not found in the lookup, the record cannot be migrated — it's logged as a gap for the R&M team to resolve by adding the mapping.
 
 ```python
 from resolving_product_id import load_product_id_map
