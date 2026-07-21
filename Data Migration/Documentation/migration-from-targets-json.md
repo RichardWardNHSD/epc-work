@@ -639,6 +639,241 @@ with open('targets-reconstructed.json', 'w') as f:
 
 ---
 
+## Step 5: Delta Detection — Generate CSV Files for Missing Items
+
+After Step 4 validation (or as a standalone process), compare targets.json against the current EPC state and generate CSV files in the IP001/IP002/IP003 format for any items that are missing. These CSVs can be handed to the R&M team to onboard the missing data via the standard pipeline.
+
+### 5a. Query the EPC for all service IDs in targets.json
+
+```python
+missing_templates = []    # URLs with no Template in the EPC
+missing_endpoints = []    # Services with no child Endpoint in the EPC
+missing_hcs = []          # Services with no HealthcareService in the EPC
+
+for service_id, expected_url in service_to_url.items():
+    # Query EPC for this service
+    response = requests.get(
+        f"{EPC_BASE}/HealthcareService",
+        params={
+            "identifier": f"https://fhir.nhs.uk/Id/dos-service-id|{service_id}",
+            "_include": "HealthcareService:endpoint"
+        },
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
+    bundle = response.json()
+    entries = bundle.get("entry", [])
+    
+    # Check if HealthcareService exists
+    hcs_found = any(
+        e["resource"]["resourceType"] == "HealthcareService" 
+        for e in entries if "resource" in e
+    )
+    
+    # Check if active Endpoint exists with correct address
+    endpoint_found = False
+    for entry in entries:
+        resource = entry.get("resource", {})
+        if (resource.get("resourceType") == "Endpoint" 
+            and resource.get("status") == "active"
+            and urls_match(resource.get("address", ""), expected_url)):
+            endpoint_found = True
+            break
+    
+    if not hcs_found:
+        missing_hcs.append(service_id)
+    
+    if not endpoint_found:
+        missing_endpoints.append(service_id)
+
+# Check for missing Templates (unique URLs with no Template)
+for url in unique_urls:
+    # Query EPC for Template by address
+    response = requests.get(
+        f"{EPC_BASE}/Endpoint/$template",
+        params={"address": url},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    if response.status_code == 404 or not response.json().get("entry"):
+        missing_templates.append(url)
+
+print(f"Missing Templates: {len(missing_templates)}")
+print(f"Missing Endpoints: {len(missing_endpoints)}")
+print(f"Missing HealthcareServices: {len(missing_hcs)}")
+```
+
+### 5b. Generate IP002 CSV — Missing Endpoint Templates
+
+For each URL in `missing_templates`, generate a row in the IP002 format.
+
+**CSV format (per IP002):**
+
+| Column | Source | How to populate |
+|--------|--------|-----------------|
+| `ODSCode` | `url_metadata[url].managing_org_ods` | Supplier ODS code from enrichment |
+| `ProductId` | `url_metadata[url].product_id` → `PRODUCT_ID_MAP` | Resolved EPC Product Identifier |
+| `Address` | `url` from targets.json | The endpoint URL |
+
+```python
+import csv
+from datetime import datetime
+
+timestamp = datetime.now().strftime("%Y-%m-%dT%H%M%S")
+
+if missing_templates:
+    filename = f"epc-endpoint-template-create-{timestamp}.csv"
+    with open(filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ODSCode', 'ProductId', 'Address'])
+        
+        for url in missing_templates:
+            normalised = url.lower().rstrip('/')
+            metadata = url_metadata.get(normalised, {})
+            ods_code = metadata.get('managing_org_ods', 'UNKNOWN')
+            product_id = PRODUCT_ID_MAP.get(
+                metadata.get('product_id', '').upper(), 'UNKNOWN'
+            )
+            writer.writerow([ods_code, product_id, url])
+    
+    print(f"Generated: {filename} ({len(missing_templates)} rows)")
+```
+
+**Example output:**
+```csv
+ODSCode,ProductId,Address
+YGM04,CegedimPharmacyServices-v6.0,https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/
+```
+
+### 5c. Generate IP003 CSV — Missing Endpoints
+
+For each service_id in `missing_endpoints`, generate a row in the IP003 format.
+
+**CSV format (per IP003):**
+
+| Column | Source | How to populate |
+|--------|--------|-----------------|
+| `ODSCode` | `url_metadata[url].managing_org_ods` | Supplier ODS from enrichment (based on the URL for this service) |
+| `ProductId` | `url_metadata[url].product_id` → `PRODUCT_ID_MAP` | Resolved EPC Product Identifier |
+| `ServiceId` | `service_id` from targets.json | The DoS service ID |
+| `Name` | `provider_lookup[service_id].name` | Service name from int_healthcareservices (or blank) |
+| `Status` | `"active"` | Always active — it's in the live routing file |
+| `PeriodStart` | `endpoint_details[service_id].start_date` | From int_endpoints, or blank for R&M to fill in |
+| `PeriodEnd` | (blank) | Open-ended — service is actively routed |
+
+```python
+if missing_endpoints:
+    filename = f"epc-endpoint-create-{timestamp}.csv"
+    with open(filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ODSCode', 'ProductId', 'ServiceId', 'Name', 'Status', 'PeriodStart', 'PeriodEnd'])
+        
+        for service_id in missing_endpoints:
+            url = service_to_url[service_id]
+            normalised = url.lower().rstrip('/')
+            metadata = url_metadata.get(normalised, {})
+            
+            ods_code = metadata.get('managing_org_ods', 'UNKNOWN')
+            product_id = PRODUCT_ID_MAP.get(
+                metadata.get('product_id', '').upper(), 'UNKNOWN'
+            )
+            
+            # Service name from provider_lookup
+            provider = provider_lookup.get(service_id, {})
+            name = provider.get('name', '')
+            
+            # Period from endpoint_details
+            details = endpoint_details.get(service_id, {})
+            period_start = details.get('start_date', '')
+            
+            writer.writerow([ods_code, product_id, service_id, name, 'active', period_start, ''])
+    
+    print(f"Generated: {filename} ({len(missing_endpoints)} rows)")
+```
+
+**Example output:**
+```csv
+ODSCode,ProductId,ServiceId,Name,Status,PeriodStart,PeriodEnd
+YGM04,CegedimPharmacyServices-v6.0,2000017562,Pharm+: Boots Pharmacy Bromley,active,2026-06-01T16:04:05.168Z,
+```
+
+### 5d. Generate IP001 CSV — Missing HealthcareServices
+
+For each service_id in `missing_hcs`, generate a row in the IP001 format.
+
+**CSV format (per IP001):**
+
+| Column | Source | How to populate |
+|--------|--------|-----------------|
+| `ODSCode` | `provider_lookup[service_id].provider_ods` | Provider ODS (pharmacy/hospital) — NOT the supplier |
+| `ServiceId` | `service_id` from targets.json | The DoS service ID |
+| `ServiceName` | `provider_lookup[service_id].name` | Service name from int_healthcareservices (or blank for R&M to fill in) |
+| `EndpointId` | (blank) | Left blank — R&M will associate after Endpoint is created, or the pipeline auto-associates |
+
+```python
+if missing_hcs:
+    filename = f"epc-healthcareservice-create-{timestamp}.csv"
+    with open(filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ODSCode', 'ServiceId', 'ServiceName', 'EndpointId'])
+        
+        for service_id in missing_hcs:
+            provider = provider_lookup.get(service_id, {})
+            ods_code = provider.get('provider_ods', 'UNKNOWN')
+            name = provider.get('name', '')
+            
+            writer.writerow([ods_code, service_id, name, ''])
+    
+    print(f"Generated: {filename} ({len(missing_hcs)} rows)")
+```
+
+**Example output:**
+```csv
+ODSCode,ServiceId,ServiceName,EndpointId
+FE284,2000017562,Pharm+: Boots Pharmacy Bromley,
+```
+
+### 5e. Delta Summary Report
+
+```python
+report = {
+    "run_date": timestamp,
+    "source": "targets.json",
+    "total_services_in_targets": len(service_to_url),
+    "delta": {
+        "missing_templates": {
+            "count": len(missing_templates),
+            "csv_file": f"epc-endpoint-template-create-{timestamp}.csv" if missing_templates else None,
+            "urls": missing_templates
+        },
+        "missing_endpoints": {
+            "count": len(missing_endpoints),
+            "csv_file": f"epc-endpoint-create-{timestamp}.csv" if missing_endpoints else None,
+        },
+        "missing_healthcareservices": {
+            "count": len(missing_hcs),
+            "csv_file": f"epc-healthcareservice-create-{timestamp}.csv" if missing_hcs else None,
+        }
+    },
+    "action_required": "Upload generated CSVs to S3 for R&M pipeline processing"
+}
+
+with open(f"delta-report-{timestamp}.json", 'w') as f:
+    json.dump(report, f, indent=2)
+```
+
+### 5f. Handling UNKNOWN values
+
+Any row with `UNKNOWN` in the `ODSCode` or `ProductId` column indicates data that could not be resolved from the enrichment sources. The R&M team must manually fill these in before uploading the CSV to the pipeline.
+
+| Column with UNKNOWN | Resolution |
+|---------------------|------------|
+| `ODSCode` in IP002 (Template) | Contact supplier to confirm their ODS code |
+| `ProductId` in IP002/IP003 | Check Product ID mapping table; may need onboarding with Digital Onboarding Service |
+| `ODSCode` in IP001 (HealthcareService) | Look up service in DoS to find the providing organisation |
+| `Name` (blank) in IP001/IP003 | Look up service name in DoS or ask commissioner |
+
+---
+
 ## Execution Sequence Diagram
 
 ```mermaid
