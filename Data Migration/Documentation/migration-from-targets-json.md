@@ -78,7 +78,7 @@ flowchart TD
 | EPC API available                | Target environment (INT or DEV) accessible                                                              | Required                   |
 | API credentials                  | Bearer token or OAuth2 client credentials for EPC API                                                   | Required                   |
 | AWS access                       | IAM role/credentials with read access to`int_` DynamoDB tables (for enrichment and provider resolution) | Required                   |
-| Product ID mapping               | Short codes (ygm04, AC0, etc.) → agreed EPC Product IDs                                                | Required                   |
+| Product ID mapping               | Persistent `product-id-lookup.json` file mapping short codes (ygm04, AC0, etc.) → agreed EPC Product IDs. Must be accessible to all scripts (migration, delta, validation). | Required                   |
 | Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup       | Required (built in Step 0) |
 | Migration log store              | Persistent map of`source_id → catalog_id` for cross-referencing between steps                          | Required                   |
 
@@ -263,24 +263,57 @@ for item in templates_response['Items']:
 
 ### Product ID Resolution
 
-Same as the main migration document — map short codes to agreed EPC Product Identifiers:
+Same as the main migration document — map short codes to agreed EPC Product Identifiers.
 
-```python
-PRODUCT_ID_MAP = {
-    "ygm04": "CegedimPharmacyServices-v6.0",
-    "ygm06": "PinnaclePharmOutcomes-v2024.12.12",
-    "ygm17": "HXConsultBaRS-v2.0",
-    "8hk48": "SonarHealthBaRS-v4.0",
-    "8JY34": "WASPBaRSProvider-v1.0.1",
-    "AC0":   "Adastra-v3.46.00",
-    "Y01061": "Adastra-v3.46.00",
-    "8hq44": "StrataPathways-v12",
-    "8ht86": "AgyleBaRS-v2.6.5",
-    "RK5":   "NervecentreBaRS-v9.2",
-    "RX7":   "TBD-NWAS",
-    "GA9":   "TBD-GMUPCA",
+**This mapping must be stored as a persistent lookup file** so that it is available to any process (migration, delta detection, validation) regardless of whether they run together or independently.
+
+#### Persistent lookup file: `product-id-lookup.json`
+
+Store in a shared location (e.g., S3 bucket, repo, or config store) accessible to all migration/delta scripts:
+
+```json
+{
+  "ygm04": "CegedimPharmacyServices-v6.0",
+  "ygm06": "PinnaclePharmOutcomes-v2024.12.12",
+  "ygm17": "HXConsultBaRS-v2.0",
+  "8hk48": "SonarHealthBaRS-v4.0",
+  "8JY34": "WASPBaRSProvider-v1.0.1",
+  "AC0":   "Adastra-v3.46.00",
+  "Y01061": "Adastra-v3.46.00",
+  "8hq44": "StrataPathways-v12",
+  "8ht86": "AgyleBaRS-v2.6.5",
+  "RK5":   "NervecentreBaRS-v9.2",
+  "RX7":   "TBD-NWAS",
+  "GA9":   "TBD-GMUPCA"
 }
 ```
+
+#### Loading the lookup
+
+```python
+import json
+
+def load_product_id_map(path="product-id-lookup.json"):
+    """
+    Load the Product ID mapping from a persistent file.
+    This file must be maintained by the R&M team and kept in sync
+    with the Product ID Mapping document.
+    """
+    with open(path) as f:
+        raw = json.load(f)
+    # Normalise keys to uppercase for case-insensitive lookup
+    return {k.upper(): v for k, v in raw.items()}
+
+PRODUCT_ID_MAP = load_product_id_map()
+```
+
+#### Why persistent?
+
+- The **migration script** (Steps 0–4) uses it to build Templates and Endpoints
+- The **delta script** (Step 5) uses it to query the EPC by Product ID and to populate CSV files
+- The **validation script** may need it for reporting
+- These processes may run at different times, on different machines, or be triggered independently
+- A single source of truth avoids drift between processes
 
 ---
 
