@@ -92,7 +92,7 @@ flowchart TD
 | AWS access                       | IAM role/credentials with read access to`int_` DynamoDB tables (for enrichment and provider resolution) | Required                   |
 | Product ID mapping               | Persistent `product-id-lookup.json` file mapping short codes (ygm04, AC0, etc.) → agreed EPC Product IDs. Must be accessible to all scripts (migration, delta, validation). | Required                   |
 | Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup       | Required (built in Step 0) |
-| Migration log store              | Persistent map of`source_id → catalog_id` for cross-referencing between steps                          | Required                   |
+| Migration log store              | Persistent map of `source_id → EPC resource id` for cross-referencing between steps                          | Required                   |
 
 ---
 
@@ -550,12 +550,12 @@ For each key-value pair in `service_to_url`, create a HealthcareService that ref
 
 **For each service_id, url pair in `service_to_url`:**
 
-1. Look up `service_id` in `endpoint_log` to get the child Endpoint's `catalog_id`
+1. Look up `service_id`'s URL in `endpoint_log` to get the child Endpoint's `endpoint_id` (returned from `POST /Endpoint`)
 2. Resolve provider organisation ODS code from `provider_lookup` (built in Step 0b)
 3. Resolve service name from `provider_lookup` (built in Step 0b)
 4. Build the FHIR HealthcareService payload
 5. Call: `POST /HealthcareService`
-6. Record: `{ service_id: hcs_catalog_id }` in `hcs_log`
+6. Record: `{ service_id: hcs_id }` in `hcs_log` (ID returned from `POST /HealthcareService`)
 
 ### Provider Organisation (from Step 0b)
 
@@ -580,7 +580,7 @@ These are required fields. If a service_id is not found in `provider_lookup`, lo
 | `name`                         | `"Pharm+: Victoria Pharmacy Golders Green"`                              | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `name` field. If not found, log as a migration gap — this must be resolved. Strip surrounding quotes. |
 | `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"`                         | Static                           | Always this system URI.                                                                                                                                  |
 | `providedBy.identifier.value`  | `"FLG23"`                                                                | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as a migration gap — must be resolved before go-live.         |
-| `endpoint[0].reference`        | `"Endpoint/abc123-..."`                                                  | `endpoint_log`                   | Look up`service_id` in `endpoint_log` to get the child Endpoint's catalog_id. Format as `"Endpoint/{catalog_id}"`.                                       |
+| `endpoint[0].reference`        | `"Endpoint/abc123-..."`                                                  | `endpoint_log`                   | Look up the service's URL in `endpoint_log` to get the child Endpoint's `endpoint_id` (returned from `POST /Endpoint`). Format as `"Endpoint/{endpoint_id}"`. |
 
 ### Worked Example: Full Step 2 Flow
 
@@ -795,24 +795,24 @@ sequenceDiagram
         Script->>Script: Resolve ProductId, ODS code from url_metadata
         Script->>EPC: POST /Endpoint/$template
         EPC-->>Script: 201 Created {id}
-        Script->>Log: Record url → template_catalog_id
+        Script->>Log: Record url → template_id (from response)
     end
 
     Note over Script: Step 2 - Child Endpoints (~13)
     loop For each unique URL
-        Script->>Log: Lookup parent template catalog_id
+        Script->>Log: Lookup parent template_id from response
         Script->>EPC: POST /Endpoint
         EPC-->>Script: 201 Created {id}
-        Script->>Log: Record url → endpoint_catalog_id
+        Script->>Log: Record url → endpoint_id (from response)
     end
 
     Note over Script: Step 3 - HealthcareServices (~4000+)
     loop For each service_id in targets.json
-        Script->>Log: Lookup endpoint catalog_id by URL
+        Script->>Log: Lookup endpoint_id by URL from endpoint_log
         Script->>Script: Resolve provider ODS from provider_lookup
         Script->>EPC: POST /HealthcareService
         EPC-->>Script: 201 Created {id}
-        Script->>Log: Record service_id → hcs_catalog_id
+        Script->>Log: Record service_id → hcs_id (from response)
     end
 
     Note over Script: Step 4 - Validation (~4000 queries)
@@ -855,7 +855,7 @@ This is significantly fewer API calls than the full int_ table migration because
 | **URL not found in url_metadata** (enrichment miss)              | Log warning. If ProductId/ODS can be inferred from URL pattern (e.g.,`ygm04` in hostname), use that. Otherwise skip and flag for manual resolution.                                          |
 | **ProductId not in PRODUCT_ID_MAP**                              | Log as unmapped, skip the template creation, and all services using that URL will fail in Step 3. Add to "needs mapping" report.                                                             |
 | **provider_lookup miss** (service not in int_healthcareservices) | Log as migration gap. Create HealthcareService without`providedBy` temporarily but flag as **must-resolve** before go-live. These gaps must be zero for migration to be considered complete. |
-| Template POST fails (409 conflict / already exists)              | Query by ProductId to get existing catalog_id. Use that in template_log. Continue.                                                                                                           |
+| Template POST fails (409 conflict / already exists)              | Query by ProductId to get existing resource id. Use that in endpoint_log. Continue.                                                                                                           |
 | Endpoint POST fails                                              | Log and skip. Services referencing this URL will have no endpoint reference.                                                                                                                 |
 | HealthcareService POST fails                                     | Log service_id and error. Continue with next.                                                                                                                                                |
 | API rate limit (429)                                             | Exponential backoff with jitter. Retry up to 3 times.                                                                                                                                        |
@@ -1228,6 +1228,6 @@ sequenceDiagram
 | ----------------------- | ---------------------------------- | ---------------------------------- |
 | Migration script      | TBD                              | Executes Steps 0-3               |
 | Validation script     | TBD                              | Executes Step 4                  |
-| Migration log         | `migration-log-targets.json`     | Source → catalog_id mappings    |
+| Migration log         | `migration-log-targets.json`     | Source → EPC resource ID mappings |
 | Validation report     | `validation-report-targets.json` | Diff between expected and actual |
 | Reconstructed targets | `targets-reconstructed.json`     | Rebuilt from EPC queries         |
