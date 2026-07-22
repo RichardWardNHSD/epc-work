@@ -48,7 +48,7 @@ graph TD
     APIGW --> LAMBDA
     LAMBDA --> DDB
     BARS_PROXY -->|Forward message| RX
-    RM -->|GET (reads) + POST/PUT/DELETE (writes)| EPC_PROXY
+    RM -->|"GET (reads) + POST/PUT/DELETE (writes)"| EPC_PROXY
 ```
 
 ### How the BaRS Proxy Uses the EPC
