@@ -48,7 +48,7 @@ graph TD
     APIGW --> LAMBDA
     LAMBDA --> DDB
     BARS_PROXY -->|Forward message| RX
-    RM -->|POST/PUT/DELETE| EPC_PROXY
+    RM -->|GET (reads) + POST/PUT/DELETE (writes)| EPC_PROXY
 ```
 
 ### How the BaRS Proxy Uses the EPC
@@ -271,6 +271,7 @@ the core value proposition or creating unacceptable risk.
 | **Infrastructure-as-code (Terraform)**               | EPC-NF09 (Platinum service class)¹            | Reproducible environments are essential for deployment confidence and disaster recovery. Manual infrastructure is not acceptable for a production service.                                                                                                                                                                                               |
 | **R&M support infrastructure (CSV-to-API pipeline)** | Operational requirement                        | The R&M team is the primary write operator for MVP. Without the processing pipeline, they cannot perform daily supplier switches, endpoint activations, or bulk updates. The EPC delivers no operational value if the team that operates it has no tooling. See[R&M Support Infrastructure](./mvp-rm-support-infrastructure.md).                         |
 | **Data migration from existing endpoint solution**   | Path to live                                   | Migration of existing endpoint configuration data from the current endpoint solution into the EPC. Without migration, the EPC launches empty — no endpoints to resolve, no templates to manage, no service routing. Includes data mapping, validation, reconciliation, and cutover planning. This is a path-to-live activity, not a product capability. |
+| **EPC Proxy (Apigee)**                               | Architectural requirement                      | The EPC Proxy is the Apigee proxy that sits in front of the EPC backend and provides authentication, rate limiting, and routing for all consumers — both the BaRS Proxy (runtime GET lookups) and the R&M team (reads and writes). Without the EPC Proxy, there is no authenticated entry point to the EPC. The BaRS Proxy cannot resolve endpoints, and the R&M team cannot manage catalogue data. It is the single point of access for all EPC operations. |
 
 > ¹ EPC-NF09 references the Platinum service class. In practice, the EPC would be
 > classified as **Gold** (consistent with the BaRS Proxy, which it directly supports).
