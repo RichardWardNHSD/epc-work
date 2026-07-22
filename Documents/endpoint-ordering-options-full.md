@@ -700,6 +700,62 @@ If Option B is implemented (API auto-applies List order in responses), the same 
 
 The consumer receives pre-ordered, visibility-filtered Endpoints without needing to handle either concern.
 
+### Endpoint Status and List Entries
+
+Endpoints have a `status` field (`active`, `suspended`, `off`, `error`, `entered-in-error`). A List may contain references to Endpoints that are not currently `active`. The rules for how status interacts with the List are:
+
+| Rule | Behaviour |
+|------|-----------|
+| **1. List entries are not removed when status changes** | An Endpoint that transitions to `suspended` or `off` remains in the List. The List represents the intended priority order — status is a separate, real-time concern. |
+| **2. Non-active Endpoints are excluded from consumer-facing results** | When a consumer queries via `_include=List:item` or the API applies implicit ordering (Option B), only Endpoints with `status = "active"` are returned. Non-active Endpoints are filtered out of the response, just like private Endpoints. |
+| **3. Consumers skip non-active entries** | If a consumer retrieves the List and Endpoints separately (two-call pattern), they MUST filter by `status = "active"` before applying the List order. List entries referencing non-active Endpoints are skipped. |
+| **4. Reactivation restores position** | When a `suspended` or `off` Endpoint returns to `active`, it reappears in its original List position. No reordering is needed — the List preserved its place. |
+| **5. Only `entered-in-error` warrants removal** | An Endpoint with `status = "entered-in-error"` should be removed from the List by the R&M team, as it represents a record that should never have existed. All other status values are considered temporary states. |
+
+#### Example: Endpoint goes offline
+
+**List for Anytown UTC:**
+
+```
+entry[0] → Endpoint/...001  (status: active)
+entry[1] → Endpoint/...002  (status: suspended)  ← supplier temporarily offline
+entry[2] → Endpoint/...003  (status: active)
+```
+
+**Consumer-facing result (after status filtering):**
+
+- entry[0] → `...001` → active ✓ → priority 1
+- entry[1] → `...002` → suspended → **skip**
+- entry[2] → `...003` → active ✓ → priority 2
+
+Effective order: `...001`, `...003`
+
+When `...002` returns to `active`, the effective order becomes: `...001`, `...002`, `...003` — the original intended priority is restored without any List update.
+
+### Combined Filtering: Visibility + Status
+
+Both filters are applied together. An Endpoint is only included in consumer results if:
+1. It is `active` (status filter), **AND**
+2. It is visible to the requestor (visibility filter — public, or private + requestor is owner)
+
+```
+For each List.entry[]:
+    Resolve the referenced Endpoint
+    IF status != "active" → skip
+    IF header == "private" AND requestor != owning org → skip
+    ELSE → include in ordered results
+```
+
+When Option B is implemented, the Lambda applies both filters before returning results:
+
+1. Lambda retrieves the List
+2. Lambda retrieves and resolves all Endpoints
+3. Lambda filters out Endpoints that are not `active`
+4. Lambda filters out private Endpoints the requestor cannot see
+5. Lambda returns remaining Endpoints in List order
+
+The consumer receives pre-ordered, status-filtered, visibility-filtered Endpoints in a single call.
+
 ### Summary
 
 | Aspect | Rule |
@@ -707,8 +763,10 @@ The consumer receives pre-ordered, visibility-filtered Endpoints without needing
 | Who sees the List? | Everyone — List entries are just references (no sensitive data) |
 | Who sees the Endpoints? | Public endpoints: everyone. Private endpoints: owning organisation only. |
 | Does visibility affect ordering? | No — the ordering is universal. Visibility is a post-filter that removes entries the requestor cannot see. |
-| Multiple Lists per requester? | No — one List per HealthcareService. Visibility filtering produces different effective views. |
-| Consumer responsibility | Skip List entries where the referenced Endpoint is not in the response Bundle. |
+| Does status affect ordering? | No — the ordering is universal. Non-active Endpoints are filtered out at query time but retain their List position for when they return to active. |
+| Multiple Lists per requester? | No — one List per HealthcareService. Filtering produces different effective views per requestor/time. |
+| Consumer responsibility | Skip List entries where the referenced Endpoint is not in the response Bundle (due to visibility or status filtering). |
+| When to remove a List entry | Only when an Endpoint is `entered-in-error`. Status changes to `suspended`/`off` do NOT remove entries. |
 
 ---
 
