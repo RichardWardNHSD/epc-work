@@ -1,26 +1,167 @@
-# EPC MVP — Scope Deferrals
+# EPC MVP — Scope and Architecture
 
 ## Purpose
 
-This series of documents identifies features that are **deferred** from the EPC MVP to
-reduce delivery complexity and accelerate time-to-value. All deferred items remain in
-scope for the final solution — this is about delivery sequencing, not permanent removal.
-
-Each document analyses a single deferral: what is deferred, what is retained, the
-implications, API impact, and the conditions under which the deferred capability should
-be delivered.
+This document defines the EPC MVP scope: what is delivered, the API operations included, how the BaRS Proxy integrates as a consumer, the routing architecture, and what has been deferred to future iterations.
 
 ---
 
-## MVP scope
+## Executive Summary
+
+The EPC MVP delivers a fully functional Endpoint Catalogue that:
+- Enables the **BaRS Proxy** to resolve receiver endpoints at runtime (replacing `targets.json`)
+- Provides the **R&M team** with API and CSV-based tooling to manage endpoints, templates, and services
+- Enforces **authentication and ownership** on all write operations
+- Is **internal-only** — external supplier access requires RBAC (deferred)
+
+---
+
+## Architecture
+
+### System Context
+
+```mermaid
+graph TD
+    subgraph "Consumers"
+        SENDER[Sender System<br/>GP, NHS 111, UTC]
+        RM[R&M Team<br/>Operational Management]
+    end
+
+    subgraph "NHS England API Platform (Apigee)"
+        BARS_PROXY[BaRS Proxy<br/>Message Routing]
+        EPC_PROXY[EPC Proxy<br/>Catalogue Access]
+    end
+
+    subgraph "EPC Backend (AWS)"
+        APIGW[API Gateway]
+        LAMBDA[Lambda<br/>Business Logic]
+        DDB[(DynamoDB<br/>Endpoint Data)]
+    end
+
+    subgraph "Receivers"
+        RX[Receiver Systems<br/>Pharmacy, UTC, ED]
+    end
+
+    SENDER -->|POST /$process-message| BARS_PROXY
+    BARS_PROXY -->|GET /Endpoint| EPC_PROXY
+    EPC_PROXY --> APIGW
+    APIGW --> LAMBDA
+    LAMBDA --> DDB
+    BARS_PROXY -->|Forward message| RX
+    RM -->|POST/PUT/DELETE| EPC_PROXY
+```
+
+### How the BaRS Proxy Uses the EPC
+
+The BaRS Proxy is the primary **consumer** of the EPC at runtime. When a sender submits a referral, the Proxy resolves the target receiver address:
+
+```
+1. Sender → BaRS Proxy:   POST /$process-message (NHSD-Target-Identifier: system|service_id)
+2. BaRS Proxy → EPC:      GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}
+3. EPC → BaRS Proxy:      Returns active Endpoint(s) with resolved address
+4. BaRS Proxy:            Selects first active Endpoint, extracts `address`
+5. BaRS Proxy → Receiver: Forwards message to that address (via mTLS)
+```
+
+The Proxy authenticates to the EPC via **mTLS/API key** — an internal platform-to-platform call. The sender never interacts with the EPC directly.
+
+### Two Separate API Products
+
+| API Product | Base Path | Apigee Proxy | Backend | Purpose |
+|---|---|---|---|---|
+| **BaRS API** | `/booking-and-referral/FHIR/R4` | BaRS Proxy | Receiver systems (mTLS) | Runtime message routing |
+| **Endpoint Catalog API** | `/endpoint-catalog/FHIR/R4` | EPC Proxy | AWS API GW → Lambda → DynamoDB | Catalogue management + lookups |
+
+---
+
+## MVP API Operations
+
+### Endpoint Lookup (Consumer Path — BaRS Proxy)
+
+| Operation | Method | Path | Description |
+|-----------|--------|------|-------------|
+| Search Endpoints by HealthcareService | `GET` | `/Endpoint?_has:HealthcareService:endpoint:_id={id}` | Returns active Endpoints for a service (with Template fields resolved) |
+| Search Endpoints by identifier | `GET` | `/Endpoint?_has:HealthcareService:endpoint:identifier={system}\|{value}` | Returns Endpoints for a service identified by DoS ID |
+| Get Endpoint by ID | `GET` | `/Endpoint/{id}` | Returns a single Endpoint (with Template fields resolved) |
+
+### Template Management (R&M / Admin Path)
+
+| Operation | Method | Path | Description |
+|-----------|--------|------|-------------|
+| Create Template | `POST` | `/Endpoint/$template` | Creates a new supplier Endpoint Template (URL, product, org) |
+| Get Template | `GET` | `/Endpoint/$template?Endpoint.identifier={system}\|{value}` | Retrieves a Template by Product ID |
+| Update Template | `PUT` | `/Endpoint/{id}/$template` | Updates an existing Template (e.g., URL change) |
+| Delete Template | `DELETE` | `/Endpoint/{id}/$template` | Soft or hard delete of a Template |
+
+### Endpoint Management (R&M / Admin Path)
+
+| Operation | Method | Path | Description |
+|-----------|--------|------|-------------|
+| Create Endpoint | `POST` | `/Endpoint` | Creates a child Endpoint linked to a Template |
+| Get Endpoint | `GET` | `/Endpoint/{id}` | Returns a single Endpoint |
+| Update Endpoint | `PUT` | `/Endpoint/{id}` | Updates status, period, or name |
+| Delete Endpoint | `DELETE` | `/Endpoint/{id}` | Soft or hard delete |
+
+### HealthcareService Management (R&M / Admin Path)
+
+| Operation | Method | Path | Description |
+|-----------|--------|------|-------------|
+| Create HealthcareService | `POST` | `/HealthcareService` | Creates a service with identifier, provider, and endpoint associations |
+| Search HealthcareService | `GET` | `/HealthcareService?identifier={system}\|{value}` | Finds a service by DoS ID |
+| Get HealthcareService | `GET` | `/HealthcareService/{id}` | Returns a single service |
+| Update HealthcareService | `PUT` | `/HealthcareService/{id}` | Updates associations, name, active status |
+| Patch HealthcareService | `PATCH` | `/HealthcareService/{id}` | Partial update (e.g., add/remove endpoint) |
+| Delete HealthcareService | `DELETE` | `/HealthcareService/{id}` | Soft or hard delete |
+
+### Endpoint Ordering (List — R&M / Admin Path)
+
+| Operation | Method | Path | Description |
+|-----------|--------|------|-------------|
+| Create List | `POST` | `/List` | Creates a priority-ordered Endpoint list for a HealthcareService |
+| Search List | `GET` | `/List?subject=HealthcareService/{id}` | Finds the List for a service (with optional `_include=List:item`) |
+| Get List | `GET` | `/List/{id}` | Returns a specific List |
+| Update List | `PUT` | `/List/{id}` | Replaces the List (reorder, add, remove entries) |
+| Delete List | `DELETE` | `/List/{id}` | Removes priority ordering |
+
+### Metadata
+
+| Operation | Method | Path | Description |
+|-----------|--------|------|-------------|
+| Capability Statement | `GET` | `/metadata` | Returns FHIR CapabilityStatement |
+
+---
+
+## Authentication & Authorisation (MVP)
+
+| Concern | MVP Implementation |
+|---------|-------------------|
+| **Authentication** | Application-restricted (signed JWT → bearer token via NHS API Platform) |
+| **Ownership enforcement** | ODS code from token must match `managingOrganization` on the resource being written |
+| **Product ID ownership** | Token's registered Product ID must match the Template's `identifier` |
+| **ODS spoofing protection** | `NHSD-End-User-Organisation-ODS` header cross-checked against token claims |
+| **Audit** | Every write attributed to client_id + ODS code + timestamp |
+
+> ⚠️ RBAC (user-restricted CIS2 auth with named roles) is deferred. MVP is internal-only.
+
+---
+
+## R&M Support Infrastructure
+
+The R&M team operates the EPC via a CSV-to-API pipeline:
+
+```
+R&M prepares CSV → Uploads to S3 → Lambda processes rows → Calls EPC API → Results logged
+```
+
+CSV formats follow IP001 (HealthcareService), IP002 (Template), IP003 (Endpoint). See [R&M Support Infrastructure](./mvp-rm-support-infrastructure.md) for full detail.
+
+---
+
+## MVP Scope Statement
 
 > ⚠️ **The MVP is for internal use only.** External consumers (suppliers, third-party
 > systems) must not be granted write access to the EPC until RBAC and the full DR plan
-> are in place. Without RBAC, there is no fine-grained access control to prevent an
-> external party from performing operations beyond their intended scope. Without DR
-> compliance, the service does not meet the operational assurance bar required for
-> external-facing production APIs. Internal consumers (BaRS Proxy read-only lookups,
-> R&M team operational writes) can operate safely within the MVP auth model.
+> are in place.
 
 The EPC MVP delivers:
 
