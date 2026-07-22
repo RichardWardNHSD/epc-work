@@ -641,6 +641,10 @@ The `List` resource is purely additive.
 
 ## Visibility, Private Endpoints, and Requesting Organisation
 
+> **Note:** In practice, `/List` is expected to be an admin-only API call — used by the R&M team and service owners to manage priority ordering. Admin roles have full visibility of all Endpoints regardless of `header` or `status`, making endpoint filtering irrelevant for that use case.
+>
+> However, for completeness — and to cover scenarios where List data is consumed indirectly (e.g., via Option B's implicit ordering in `GET /Endpoint` responses, or if `/List` is ever exposed to non-admin consumers) — the visibility rules have been mapped out below.
+
 ### The Problem
 
 The EPC supports visibility control via `Endpoint.header`:
