@@ -9,6 +9,7 @@ This document defines the EPC MVP scope: what is delivered, the API operations i
 ## Executive Summary
 
 The EPC MVP delivers a fully functional Endpoint Catalogue that:
+
 - Enables the **BaRS Proxy** to resolve receiver endpoints at runtime (replacing `targets.json`)
 - Provides the **R&M team** with API and CSV-based tooling to manage endpoints, templates, and services
 - Enforces **authentication and ownership** on all write operations
@@ -67,79 +68,87 @@ The Proxy authenticates to the EPC via **mTLS/API key** — an internal platform
 
 ### Two Separate API Products
 
-| API Product | Base Path | Apigee Proxy | Backend | Purpose |
-|---|---|---|---|---|
-| **BaRS API** | `/booking-and-referral/FHIR/R4` | BaRS Proxy | Receiver systems (mTLS) | Runtime message routing |
-| **Endpoint Catalog API** | `/endpoint-catalog/FHIR/R4` | EPC Proxy | AWS API GW → Lambda → DynamoDB | Catalogue management + lookups |
+
+| API Product              | Base Path                       | Apigee Proxy | Backend                          | Purpose                        |
+| -------------------------- | --------------------------------- | -------------- | ---------------------------------- | -------------------------------- |
+| **BaRS API**             | `/booking-and-referral/FHIR/R4` | BaRS Proxy   | Receiver systems (mTLS)          | Runtime message routing        |
+| **Endpoint Catalog API** | `/endpoint-catalog/FHIR/R4`     | EPC Proxy    | AWS API GW → Lambda → DynamoDB | Catalogue management + lookups |
 
 ---
 
 ## MVP API Operations
 
-### Endpoint Lookup (Consumer Path — BaRS Proxy)
+### Endpoint Lookup (Consumer Path — BaRS Proxy, R&M - Admin Path)
 
-| Operation | Method | Path | Description |
-|-----------|--------|------|-------------|
-| Search Endpoints by HealthcareService | `GET` | `/Endpoint?_has:HealthcareService:endpoint:_id={id}` | Returns active Endpoints for a service (with Template fields resolved) |
-| Search Endpoints by identifier | `GET` | `/Endpoint?_has:HealthcareService:endpoint:identifier={system}\|{value}` | Returns Endpoints for a service identified by DoS ID |
-| Get Endpoint by ID | `GET` | `/Endpoint/{id}` | Returns a single Endpoint (with Template fields resolved) |
 
-### Template Management (R&M / Admin Path)
+| Operation                             | Method | Path                                                           | Description                                                            |
+| --------------------------------------- | -------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Search Endpoints by HealthcareService | `GET`  | `/Endpoint?_has:HealthcareService:endpoint:_id={id}`           | Returns active Endpoints for a service (with Template fields resolved) |
+| Search Endpoints by identifier        | `GET`  | `/Endpoint?_has:HealthcareService:endpoint:identifier={system} | {value}`                                                               |
+| Get Endpoint by ID                    | `GET`  | `/Endpoint/{id}`                                               | Returns a single Endpoint (with Template fields resolved)              |
 
-| Operation | Method | Path | Description |
-|-----------|--------|------|-------------|
-| Create Template | `POST` | `/Endpoint/$template` | Creates a new supplier Endpoint Template (URL, product, org) |
-| Get Template | `GET` | `/Endpoint/$template?Endpoint.identifier={system}\|{value}` | Retrieves a Template by Product ID |
-| Update Template | `PUT` | `/Endpoint/{id}/$template` | Updates an existing Template (e.g., URL change) |
-| Delete Template | `DELETE` | `/Endpoint/{id}/$template` | Soft or hard delete of a Template |
+### Template Management (R&M - Admin Path)
 
-### Endpoint Management (R&M / Admin Path)
 
-| Operation | Method | Path | Description |
-|-----------|--------|------|-------------|
-| Create Endpoint | `POST` | `/Endpoint` | Creates a child Endpoint linked to a Template |
-| Get Endpoint | `GET` | `/Endpoint/{id}` | Returns a single Endpoint |
-| Update Endpoint | `PUT` | `/Endpoint/{id}` | Updates status, period, or name |
-| Delete Endpoint | `DELETE` | `/Endpoint/{id}` | Soft or hard delete |
+| Operation       | Method   | Path                                              | Description                                                  |
+| ----------------- | ---------- | --------------------------------------------------- | -------------------------------------------------------------- |
+| Create Template | `POST`   | `/Endpoint/$template`                             | Creates a new supplier Endpoint Template (URL, product, org) |
+| Get Template    | `GET`    | `/Endpoint/$template?Endpoint.identifier={system} | {value}`                                                     |
+| Update Template | `PUT`    | `/Endpoint/{id}/$template`                        | Updates an existing Template (e.g., URL change)              |
+| Delete Template | `DELETE` | `/Endpoint/{id}/$template`                        | Soft or hard delete of a Template                            |
 
-### HealthcareService Management (R&M / Admin Path)
+### Endpoint Management (R&M - Admin Path)
 
-| Operation | Method | Path | Description |
-|-----------|--------|------|-------------|
-| Create HealthcareService | `POST` | `/HealthcareService` | Creates a service with identifier, provider, and endpoint associations |
-| Search HealthcareService | `GET` | `/HealthcareService?identifier={system}\|{value}` | Finds a service by DoS ID |
-| Get HealthcareService | `GET` | `/HealthcareService/{id}` | Returns a single service |
-| Update HealthcareService | `PUT` | `/HealthcareService/{id}` | Updates associations, name, active status |
-| Patch HealthcareService | `PATCH` | `/HealthcareService/{id}` | Partial update (e.g., add/remove endpoint) |
-| Delete HealthcareService | `DELETE` | `/HealthcareService/{id}` | Soft or hard delete |
 
-### Endpoint Ordering (List — R&M / Admin Path)
+| Operation       | Method   | Path             | Description                                   |
+| ----------------- | ---------- | ------------------ | ----------------------------------------------- |
+| Create Endpoint | `POST`   | `/Endpoint`      | Creates a child Endpoint linked to a Template |
+| Get Endpoint    | `GET`    | `/Endpoint/{id}` | Returns a single Endpoint                     |
+| Update Endpoint | `PUT`    | `/Endpoint/{id}` | Updates status, period, or name               |
+| Delete Endpoint | `DELETE` | `/Endpoint/{id}` | Soft or hard delete                           |
 
-| Operation | Method | Path | Description |
-|-----------|--------|------|-------------|
-| Create List | `POST` | `/List` | Creates a priority-ordered Endpoint list for a HealthcareService |
-| Search List | `GET` | `/List?subject=HealthcareService/{id}` | Finds the List for a service (with optional `_include=List:item`) |
-| Get List | `GET` | `/List/{id}` | Returns a specific List |
-| Update List | `PUT` | `/List/{id}` | Replaces the List (reorder, add, remove entries) |
-| Delete List | `DELETE` | `/List/{id}` | Removes priority ordering |
+### HealthcareService Management (R&M - Admin Path)
+
+
+| Operation                | Method   | Path                                    | Description                                                            |
+| -------------------------- | ---------- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| Create HealthcareService | `POST`   | `/HealthcareService`                    | Creates a service with identifier, provider, and endpoint associations |
+| Search HealthcareService | `GET`    | `/HealthcareService?identifier={system} | {value}`                                                               |
+| Get HealthcareService    | `GET`    | `/HealthcareService/{id}`               | Returns a single service                                               |
+| Update HealthcareService | `PUT`    | `/HealthcareService/{id}`               | Updates associations, name, active status                              |
+| Patch HealthcareService  | `PATCH`  | `/HealthcareService/{id}`               | Partial update (e.g., add/remove endpoint)                             |
+| Delete HealthcareService | `DELETE` | `/HealthcareService/{id}`               | Soft or hard delete                                                    |
+
+### Endpoint Ordering (List — R&M - Admin Path)
+
+
+| Operation   | Method   | Path                                   | Description                                                      |
+| ------------- | ---------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| Create List | `POST`   | `/List`                                | Creates a priority-ordered Endpoint list for a HealthcareService |
+| Search List | `GET`    | `/List?subject=HealthcareService/{id}` | Finds the List for a service (with optional`_include=List:item`) |
+| Get List    | `GET`    | `/List/{id}`                           | Returns a specific List                                          |
+| Update List | `PUT`    | `/List/{id}`                           | Replaces the List (reorder, add, remove entries)                 |
+| Delete List | `DELETE` | `/List/{id}`                           | Removes priority ordering                                        |
 
 ### Metadata
 
-| Operation | Method | Path | Description |
-|-----------|--------|------|-------------|
-| Capability Statement | `GET` | `/metadata` | Returns FHIR CapabilityStatement |
+
+| Operation            | Method | Path        | Description                      |
+| ---------------------- | -------- | ------------- | ---------------------------------- |
+| Capability Statement | `GET`  | `/metadata` | Returns FHIR CapabilityStatement |
 
 ---
 
 ## Authentication & Authorisation (MVP)
 
-| Concern | MVP Implementation |
-|---------|-------------------|
-| **Authentication** | Application-restricted (signed JWT → bearer token via NHS API Platform) |
-| **Ownership enforcement** | ODS code from token must match `managingOrganization` on the resource being written |
-| **Product ID ownership** | Token's registered Product ID must match the Template's `identifier` |
-| **ODS spoofing protection** | `NHSD-End-User-Organisation-ODS` header cross-checked against token claims |
-| **Audit** | Every write attributed to client_id + ODS code + timestamp |
+
+| Concern                     | MVP Implementation                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| **Authentication**          | Application-restricted (signed JWT → bearer token via NHS API Platform)           |
+| **Ownership enforcement**   | ODS code from token must match`managingOrganization` on the resource being written |
+| **Product ID ownership**    | Token's registered Product ID must match the Template's`identifier`                |
+| **ODS spoofing protection** | `NHSD-End-User-Organisation-ODS` header cross-checked against token claims         |
+| **Audit**                   | Every write attributed to client_id + ODS code + timestamp                         |
 
 > ⚠️ RBAC (user-restricted CIS2 auth with named roles) is deferred. MVP is internal-only.
 
@@ -220,13 +229,13 @@ refinement, implementation, testing, and documentation — not just coding.
 ## Effort saved by deferrals
 
 
-| Deferral                   | Size |
-| ---------------------------- | ------ |
-| RBAC                       | L    |
-| Observability (ODIN)       | M    |
-| ~~Endpoint Ordering (List)~~   | ~~M~~    |
-| Disaster Recovery          | S    |
-| Private Endpoint Redaction | S    |
+| Deferral                     | Size  |
+| ------------------------------ | ------- |
+| RBAC                         | L     |
+| Observability (ODIN)         | M     |
+| ~~Endpoint Ordering (List)~~ | ~~M~~ |
+| Disaster Recovery            | S     |
+| Private Endpoint Redaction   | S     |
 
 > **Note:** Endpoint Ordering (List) has been implemented by the supplier and no longer
 > contributes to effort savings. The remaining deferrals still apply.
@@ -253,24 +262,24 @@ The following capabilities are essential to MVP and cannot be deferred without b
 the core value proposition or creating unacceptable risk.
 
 
-| Capability                                           | Requirement ref                                | Why it cannot be deferred                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Consumer Endpoint lookup (`GET /Endpoint`)**       | EPCFUNC-31, EPCFUNC-32, EPCFUNC-33             | This is the primary reason the EPC exists. BaRS Proxy and other consumers need to resolve Endpoints at runtime. Without it there is no product.                                                                                                                                                                                                          |
-| **Template-based Endpoint management**               | EPCFUNC-01, EPCFUNC-15                         | The Template model is the mechanism that allows a single URL change to propagate to hundreds of child Endpoints. Without it, the R&M team must update every Endpoint individually — the operational burden the EPC was built to eliminate.                                                                                                              |
-| **HealthcareService management**                     | EPCFUNC-03                                     | HealthcareServices are the anchor between a clinical service identity (DoS Service ID) and its technical Endpoints. Without them, consumers cannot discover Endpoints by service.                                                                                                                                                                        |
-| **Supplier switch workflow**                         | EPCFUNC-14                                     | Pharmacy switches are the highest-volume daily operation for the R&M team. If the MVP cannot support switches, it cannot replace the current process.                                                                                                                                                                                                    |
-| **Application-restricted authentication**            | EPCSe Requirements V1.8 §5.0                  | Without authentication, the API is open to anyone. There is no acceptable "unauthenticated MVP" — all write operations must be gated by a validated token from day one.                                                                                                                                                                                 |
-| **ODS ownership enforcement**                        | EPCSe Requirements V1.8 §5.0                  | Without ownership checks, any authenticated application could modify any organisation's resources. This is a fundamental security control that prevents one supplier from interfering with another's data.                                                                                                                                               |
-| **Product ID ownership check**                       | EPCSe Requirements V1.8 §5.0                  | Prevents one supplier from modifying another supplier's Templates and Endpoints even if they share the same ODS code. Essential for multi-tenant supplier environments.                                                                                                                                                                                  |
-| **ODS spoofing protection**                          | EPCSe Requirements V1.8 §5.0                  | Without token-to-header cross-checking, a malicious caller could forge the ODS header and bypass ownership controls. This is a security baseline, not a feature.                                                                                                                                                                                         |
-| **Structured audit logging**                         | EPCSe006, EPC-NF06                             | Every write must be attributed to the calling application and organisation. Without audit, there is no traceability for changes — unacceptable for a system managing live service routing.                                                                                                                                                              |
-| **DynamoDB PITR (Point-in-Time Recovery)**           | EPC-NF09 (Platinum service class)¹            | Continuous backup with ~5-minute granularity. This is the safety net for data loss scenarios. Costs nothing to enable and provides the baseline data protection that allows the full DR plan to be deferred.                                                                                                                                             |
-| **DynamoDB Deletion Protection**                     | EPC-NF09 (Platinum service class)¹            | Prevents accidental table deletion. A single misconfigured Terraform apply could destroy all data without this. Zero-cost, zero-effort, non-negotiable.                                                                                                                                                                                                  |
-| **CloudWatch Alarms (basic set)**                    | EPC-NF07, EPC-NF09¹                           | Error rate, latency, Lambda errors, DynamoDB throttling. Without alerting, failures are invisible until users report them. Basic operational awareness is a go-live requirement.                                                                                                                                                                         |
-| **Status and period-based visibility filtering**     | EPCFUNC-31, EPCFUNC-32, EPCFUNC-33, EPCFUNC-14 | Ensures consumers only see active, valid Endpoints. Without filtering, suspended, expired, or errored Endpoints would be returned — causing routing failures for senders.                                                                                                                                                                               |
-| **Infrastructure-as-code (Terraform)**               | EPC-NF09 (Platinum service class)¹            | Reproducible environments are essential for deployment confidence and disaster recovery. Manual infrastructure is not acceptable for a production service.                                                                                                                                                                                               |
-| **R&M support infrastructure (CSV-to-API pipeline)** | Operational requirement                        | The R&M team is the primary write operator for MVP. Without the processing pipeline, they cannot perform daily supplier switches, endpoint activations, or bulk updates. The EPC delivers no operational value if the team that operates it has no tooling. See[R&M Support Infrastructure](./mvp-rm-support-infrastructure.md).                         |
-| **Data migration from existing endpoint solution**   | Path to live                                   | Migration of existing endpoint configuration data from the current endpoint solution into the EPC. Without migration, the EPC launches empty — no endpoints to resolve, no templates to manage, no service routing. Includes data mapping, validation, reconciliation, and cutover planning. This is a path-to-live activity, not a product capability. |
+| Capability                                           | Requirement ref                                | Why it cannot be deferred                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer Endpoint lookup (`GET /Endpoint`)**       | EPCFUNC-31, EPCFUNC-32, EPCFUNC-33             | This is the primary reason the EPC exists. BaRS Proxy and other consumers need to resolve Endpoints at runtime. Without it there is no product.                                                                                                                                                                                                                                                                                                               |
+| **Template-based Endpoint management**               | EPCFUNC-01, EPCFUNC-15                         | The Template model is the mechanism that allows a single URL change to propagate to hundreds of child Endpoints. Without it, the R&M team must update every Endpoint individually — the operational burden the EPC was built to eliminate.                                                                                                                                                                                                                   |
+| **HealthcareService management**                     | EPCFUNC-03                                     | HealthcareServices are the anchor between a clinical service identity (DoS Service ID) and its technical Endpoints. Without them, consumers cannot discover Endpoints by service.                                                                                                                                                                                                                                                                             |
+| **Supplier switch workflow**                         | EPCFUNC-14                                     | Pharmacy switches are the highest-volume daily operation for the R&M team. If the MVP cannot support switches, it cannot replace the current process.                                                                                                                                                                                                                                                                                                         |
+| **Application-restricted authentication**            | EPCSe Requirements V1.8 §5.0                  | Without authentication, the API is open to anyone. There is no acceptable "unauthenticated MVP" — all write operations must be gated by a validated token from day one.                                                                                                                                                                                                                                                                                      |
+| **ODS ownership enforcement**                        | EPCSe Requirements V1.8 §5.0                  | Without ownership checks, any authenticated application could modify any organisation's resources. This is a fundamental security control that prevents one supplier from interfering with another's data.                                                                                                                                                                                                                                                    |
+| **Product ID ownership check**                       | EPCSe Requirements V1.8 §5.0                  | Prevents one supplier from modifying another supplier's Templates and Endpoints even if they share the same ODS code. Essential for multi-tenant supplier environments.                                                                                                                                                                                                                                                                                       |
+| **ODS spoofing protection**                          | EPCSe Requirements V1.8 §5.0                  | Without token-to-header cross-checking, a malicious caller could forge the ODS header and bypass ownership controls. This is a security baseline, not a feature.                                                                                                                                                                                                                                                                                              |
+| **Structured audit logging**                         | EPCSe006, EPC-NF06                             | Every write must be attributed to the calling application and organisation. Without audit, there is no traceability for changes — unacceptable for a system managing live service routing.                                                                                                                                                                                                                                                                   |
+| **DynamoDB PITR (Point-in-Time Recovery)**           | EPC-NF09 (Platinum service class)¹            | Continuous backup with ~5-minute granularity. This is the safety net for data loss scenarios. Costs nothing to enable and provides the baseline data protection that allows the full DR plan to be deferred.                                                                                                                                                                                                                                                  |
+| **DynamoDB Deletion Protection**                     | EPC-NF09 (Platinum service class)¹            | Prevents accidental table deletion. A single misconfigured Terraform apply could destroy all data without this. Zero-cost, zero-effort, non-negotiable.                                                                                                                                                                                                                                                                                                       |
+| **CloudWatch Alarms (basic set)**                    | EPC-NF07, EPC-NF09¹                           | Error rate, latency, Lambda errors, DynamoDB throttling. Without alerting, failures are invisible until users report them. Basic operational awareness is a go-live requirement.                                                                                                                                                                                                                                                                              |
+| **Status and period-based visibility filtering**     | EPCFUNC-31, EPCFUNC-32, EPCFUNC-33, EPCFUNC-14 | Ensures consumers only see active, valid Endpoints. Without filtering, suspended, expired, or errored Endpoints would be returned — causing routing failures for senders.                                                                                                                                                                                                                                                                                    |
+| **Infrastructure-as-code (Terraform)**               | EPC-NF09 (Platinum service class)¹            | Reproducible environments are essential for deployment confidence and disaster recovery. Manual infrastructure is not acceptable for a production service.                                                                                                                                                                                                                                                                                                    |
+| **R&M support infrastructure (CSV-to-API pipeline)** | Operational requirement                        | The R&M team is the primary write operator for MVP. Without the processing pipeline, they cannot perform daily supplier switches, endpoint activations, or bulk updates. The EPC delivers no operational value if the team that operates it has no tooling. See[R&M Support Infrastructure](./mvp-rm-support-infrastructure.md).                                                                                                                              |
+| **Data migration from existing endpoint solution**   | Path to live                                   | Migration of existing endpoint configuration data from the current endpoint solution into the EPC. Without migration, the EPC launches empty — no endpoints to resolve, no templates to manage, no service routing. Includes data mapping, validation, reconciliation, and cutover planning. This is a path-to-live activity, not a product capability.                                                                                                      |
 | **EPC Proxy (Apigee)**                               | Architectural requirement                      | The EPC Proxy is the Apigee proxy that sits in front of the EPC backend and provides authentication, rate limiting, and routing for all consumers — both the BaRS Proxy (runtime GET lookups) and the R&M team (reads and writes). Without the EPC Proxy, there is no authenticated entry point to the EPC. The BaRS Proxy cannot resolve endpoints, and the R&M team cannot manage catalogue data. It is the single point of access for all EPC operations. |
 
 > ¹ EPC-NF09 references the Platinum service class. In practice, the EPC would be
