@@ -172,6 +172,8 @@ CSV formats follow IP001 (HealthcareService), IP002 (Template), IP003 (Endpoint)
 > systems) must not be granted write access to the EPC until RBAC and the full DR plan
 > are in place.
 
+> **Note:** The capabilities listed below are not exhaustive. Everything that is not explicitly deferred (see [Deferrals](#deferrals)) is part of the MVP. If a capability is required by the EPC specification and does not appear in the deferrals table, it is in scope for MVP delivery.
+
 The EPC MVP delivers:
 
 
