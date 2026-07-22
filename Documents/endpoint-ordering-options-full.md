@@ -639,6 +639,79 @@ The `List` resource is purely additive.
 
 ---
 
+## Visibility, Private Endpoints, and Requesting Organisation
+
+### The Problem
+
+The EPC supports visibility control via `Endpoint.header`:
+- `"public"` — the endpoint address is visible to all requestors
+- `"private"` — the endpoint address is only visible to the owning organisation (identified by the `managingOrganization` on the parent Template)
+
+The requesting organisation is identified by the `NHSD-End-User-Organisation-ODS` header on every API call.
+
+The List resource is a universal ordering — one List per HealthcareService, shared across all consumers. But if a List contains references to private Endpoints that the requestor is not authorised to see, the ordering behaviour needs clear rules.
+
+### Rules
+
+| Rule | Behaviour |
+|------|-----------|
+| **1. List is visibility-unaware** | The `List` resource itself is always returned in full to any requestor. It contains Endpoint references (IDs only) — no sensitive data is exposed by the List entries themselves. |
+| **2. Private Endpoints are filtered from `_include` responses** | When `_include=List:item` is used, the API resolves each referenced Endpoint. If an Endpoint's `header` is `"private"` and the requestor is not the owning organisation, that Endpoint is excluded from the `_include` results (not returned in the Bundle). The List entry still appears — but the referenced Endpoint resource is not included. |
+| **3. Consumers skip unresolvable List entries** | If a consumer iterates `List.entry[]` and cannot find the referenced Endpoint in the Bundle (because it was filtered by visibility), it MUST skip that entry and proceed to the next. The relative order of visible entries is preserved. |
+| **4. No per-organisation Lists** | There is one List per HealthcareService. Different requestors see the same ordering — but may see fewer entries after visibility filtering. The priority sequence is universal; visibility is applied as a post-filter. |
+| **5. Private Endpoints are still routable by the owner** | The owning organisation (matching `managingOrganization` ODS code) sees all Endpoints including private ones. For them, the full List order applies without filtering. |
+
+### Example: Mixed public/private Endpoints in a List
+
+**List for Anytown UTC:**
+
+```
+entry[0] → Endpoint/...001  (public)   ← visible to all
+entry[1] → Endpoint/...002  (private)  ← visible only to owning org
+entry[2] → Endpoint/...003  (public)   ← visible to all
+```
+
+**Requestor is NOT the owning organisation:**
+
+- `GET /List?subject=...&_include=List:item` returns:
+  - List with all 3 entries (entry[0], entry[1], entry[2])
+  - Included Endpoints: only `...001` and `...003` (private `...002` is excluded)
+- Consumer iterates List entries:
+  - entry[0] → finds `...001` in Bundle → priority 1 ✓
+  - entry[1] → cannot find `...002` in Bundle → **skip**
+  - entry[2] → finds `...003` in Bundle → priority 2 ✓
+- Effective order for this requestor: `...001`, `...003`
+
+**Requestor IS the owning organisation:**
+
+- `GET /List?subject=...&_include=List:item` returns:
+  - List with all 3 entries
+  - Included Endpoints: `...001`, `...002`, `...003` (all visible)
+- Effective order: `...001`, `...002`, `...003`
+
+### Impact on Option B (Implicit Ordering)
+
+If Option B is implemented (API auto-applies List order in responses), the same visibility rules apply:
+
+1. Lambda retrieves the List
+2. Lambda retrieves and resolves all Endpoints
+3. Lambda filters out private Endpoints the requestor cannot see
+4. Lambda returns remaining Endpoints in List order
+
+The consumer receives pre-ordered, visibility-filtered Endpoints without needing to handle either concern.
+
+### Summary
+
+| Aspect | Rule |
+|--------|------|
+| Who sees the List? | Everyone — List entries are just references (no sensitive data) |
+| Who sees the Endpoints? | Public endpoints: everyone. Private endpoints: owning organisation only. |
+| Does visibility affect ordering? | No — the ordering is universal. Visibility is a post-filter that removes entries the requestor cannot see. |
+| Multiple Lists per requester? | No — one List per HealthcareService. Visibility filtering produces different effective views. |
+| Consumer responsibility | Skip List entries where the referenced Endpoint is not in the response Bundle. |
+
+---
+
 # Option B: Implicit List — API Does the Heavy Lifting
 
 Option B uses the **same List resource as Option A** for storage, but the API automatically
