@@ -1266,6 +1266,127 @@ graph LR
 | Production suitability | Yes — standard consumer path | **No** — internal route should not be used for ongoing operations |
 | Rollback | Same (delete resources via API) | Same |
 
+### Cross-Account Considerations
+
+The source data (int_ DynamoDB tables) resides in the **INT** AWS account, while the target EPC (API Gateway + Lambda + DynamoDB) is in the **PROD** AWS account. This cross-account boundary must be factored into both execution options.
+
+```mermaid
+graph LR
+    subgraph "INT Account"
+        DDB_SRC[(DynamoDB<br/>int_ tables)]
+        S3_SRC[S3<br/>targets.json]
+    end
+
+    subgraph "PROD Account"
+        APIGW_PROD[API Gateway<br/>EPC]
+        LAMBDA_PROD[EPC Lambda]
+        DDB_PROD[(DynamoDB<br/>EPC tables)]
+    end
+
+    subgraph "Migration Execution"
+        MIG[Migration Script<br/>Lambda / Step Function]
+    end
+
+    DDB_SRC -->|Cross-account read<br/>IAM role assumption| MIG
+    S3_SRC -->|Cross-account read| MIG
+    MIG -->|API calls to PROD| APIGW_PROD
+    APIGW_PROD --> LAMBDA_PROD
+    LAMBDA_PROD --> DDB_PROD
+```
+
+#### Where does the migration script run?
+
+| Option | Location | Pros | Cons |
+|--------|----------|------|------|
+| **A. Run in INT account** | Lambda/Step Function in INT | Direct access to int_ tables (no cross-account read needed). | Must call across to PROD API Gateway (cross-account invoke or internet path). |
+| **B. Run in PROD account** | Lambda/Step Function in PROD | Direct access to PROD API Gateway (internal invoke, lowest latency). | Must assume a role in INT to read source tables (cross-account DynamoDB read). |
+| **C. Run externally** | Local machine / CI/CD runner | No account dependency for execution. | Must cross the internet to both INT (read) and PROD (write). Slowest option. |
+
+#### Recommended approach: Run in PROD, read from INT
+
+Running the migration in the **PROD account** is recommended because:
+- The write target (EPC API Gateway) is local — no cross-account invoke needed for the bulk writes
+- Reading from INT DynamoDB requires a cross-account IAM role, which is straightforward to configure
+- The migration script can use IAM auth directly against the PROD API Gateway (Option B internal path)
+
+#### IAM Configuration Required
+
+**In the INT account** (source):
+
+Create a role that the PROD migration Lambda/Step Function can assume:
+
+```json
+{
+  "RoleName": "epc-migration-source-read",
+  "AssumeRolePolicyDocument": {
+    "Statement": [{
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::{PROD_ACCOUNT_ID}:role/epc-migration-executor"
+      },
+      "Action": "sts:AssumeRole"
+    }]
+  }
+}
+```
+
+With permissions:
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "dynamodb:Scan",
+    "dynamodb:Query",
+    "dynamodb:GetItem"
+  ],
+  "Resource": [
+    "arn:aws:dynamodb:eu-west-2:{INT_ACCOUNT_ID}:table/int_organisations",
+    "arn:aws:dynamodb:eu-west-2:{INT_ACCOUNT_ID}:table/int_endpoint_templates",
+    "arn:aws:dynamodb:eu-west-2:{INT_ACCOUNT_ID}:table/int_endpoints",
+    "arn:aws:dynamodb:eu-west-2:{INT_ACCOUNT_ID}:table/int_healthcareservices"
+  ]
+}
+```
+
+**In the PROD account** (target):
+
+The migration executor role needs:
+- `sts:AssumeRole` on the INT source-read role (to read int_ tables)
+- `execute-api:Invoke` on the PROD API Gateway (to call the EPC API internally)
+
+```json
+{
+  "RoleName": "epc-migration-executor",
+  "Policies": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::{INT_ACCOUNT_ID}:role/epc-migration-source-read"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "execute-api:Invoke",
+      "Resource": "arn:aws:execute-api:eu-west-2:{PROD_ACCOUNT_ID}:{api-id}/*"
+    }
+  ]
+}
+```
+
+#### targets.json location
+
+`targets.json` currently lives in the INT environment. For migration it should be copied to an S3 bucket accessible to the migration executor:
+- Copy to a PROD S3 bucket before migration, OR
+- Read cross-account from INT S3 (add `s3:GetObject` to the source-read role)
+
+#### Security controls
+
+| Control | Detail |
+|---------|--------|
+| Time-limited role | The `epc-migration-executor` role should have a session duration limit and be revoked/disabled after migration completes |
+| Audit trail | Log all cross-account role assumptions via CloudTrail in both accounts |
+| Least privilege | Source-read role grants read-only access to specific tables only — no write access to INT |
+| Network | No VPC peering required — API Gateway is a public AWS service endpoint accessible via IAM auth within the same region |
+
 ### Drawbacks of Option B
 
 - **Bypasses Apigee security policies** — ODS ownership checks, rate limiting, and audit header injection do not apply. The migration runs with implicit trust.
