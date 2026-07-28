@@ -117,7 +117,26 @@ CSV:
 
 ---
 
-#### Step 2a — Locate the parent Template
+#### Step 2a — Validate the CSV data
+
+The pipeline validates the CSV row before proceeding. Validation checks include:
+
+| Validation check | Rule | Pipeline Action | Processing Report Entry |
+|-----------------|------|-----------------|------------------------|
+| `ODSCode` present | Non-empty string | Do not proceed if empty | `FAILED` — "ODSCode is required" |
+| `ODSCode` format | Valid ODS code format (alphanumeric, 3–10 characters) | Do not proceed if invalid | `FAILED` — "Invalid ODSCode format: {value}" |
+| `ProductId` present | Non-empty string | Do not proceed if empty | `FAILED` — "ProductId is required" |
+| `ServiceId` present | Non-empty string | Do not proceed if empty | `FAILED` — "ServiceId is required" |
+| `Status` present | Non-empty, must be one of: `active`, `suspended`, `off` | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}" |
+| `PeriodStart` format (if provided) | Valid ISO 8601 date/time | Do not proceed if invalid | `FAILED` — "Invalid PeriodStart format: {value}" |
+| `PeriodEnd` format (if provided) | Valid ISO 8601 date/time, must be after PeriodStart | Do not proceed if invalid | `FAILED` — "Invalid PeriodEnd format: {value}" |
+| All fields valid | All above checks pass | Proceed to Step 2b | — |
+
+If validation fails, the row is recorded as `FAILED` and the pipeline moves to the next row.
+
+---
+
+#### Step 2b — Locate the parent Template
 
 The Endpoint must reference a parent BaRS Template. The processing pipeline looks up the
 Template using the `ProductId` from the CSV.
@@ -204,7 +223,7 @@ NHSD-End-User-Organisation-ODS: R778
 
 Extract the Template `id` from `entry[0].resource.id` — in this example,
 `5fce3e6a-ba37-4289-84d1-cc3ebdb992f5`. This is used as the `extension[].valueReference.reference`
-value when creating the child Endpoint in Step 4.
+value when creating the child Endpoint in Step 3.
 
 ##### Response — 200 OK (Template not found)
 
@@ -225,7 +244,7 @@ the processing report and moves to the next row. The Template must be created fi
 
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
-| `200 OK`, `total: 1` | Extract Template `id` — proceed to Step 2b | — |
+| `200 OK`, `total: 1` | Extract Template `id` — proceed to Step 2c | — |
 | `200 OK`, `total: 0` | Template not found — do not proceed | `FAILED` — "Template not found for ProductId {ProductId}" |
 | `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
 | `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
@@ -234,17 +253,19 @@ the processing report and moves to the next row. The Template must be created fi
 
 ---
 
-#### Step 2b — Check whether an Endpoint already exists
+#### Step 2c — Check that the HealthcareService exists
 
-Before creating an Endpoint, the pipeline checks that one does not already exist for this
-HealthcareService and Template combination with an overlapping period. See
-[EPC-INV007 — Duplicates](https://nhsd-confluence.digital.nhs.uk/spaces/RA/pages/1373777154/EPC-INV007+-+Duplicates#EPCINV007Duplicates-WhatisaduplicateEndpoint%3F)
-for the full definition of what constitutes a duplicate Endpoint.
+The Endpoint must be associated with an existing HealthcareService. The pipeline looks up the HealthcareService using the `ServiceId` from the CSV.
+
+> **Note:** A duplicate Endpoint check is **not required** by the pipeline. The EPC API
+> performs its own duplication checking on `POST /Endpoint` — if an Endpoint already exists
+> for this HealthcareService and Template combination with an overlapping period, the API
+> returns `409 Conflict`. The pipeline handles this response in Step 3 (see error table).
 
 ##### Request
 
 ```http
-GET /Endpoint?_has:HealthcareService:endpoint:_id={healthcareServiceId}&identifier=https://fhir.nhs.uk/id/product-id|PinnaclePharmOutcomes-v2024.12.12 HTTP/1.1
+GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999 HTTP/1.1
 Host: sandbox.api.service.nhs.uk
 Accept: application/fhir+json
 Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
@@ -253,95 +274,24 @@ X-Correlation-Id: d4e5f6g7-4444-5555-6666-777788889999
 NHSD-End-User-Organisation-ODS: R778
 ```
 
-##### Pipeline behaviour — No existing Endpoint (200 OK, total: 0)
+##### Pipeline behaviour — HealthcareService found (200 OK, total: 1)
 
-```json
-{
-  "resourceType": "Bundle",
-  "type": "searchset",
-  "total": 0,
-  "entry": []
-}
-```
+Extract the HealthcareService `id` from `entry[0].resource.id`. This is used when associating the Endpoint with the service after creation. Proceed to Step 3.
 
-Proceed to Step 3.
+##### Pipeline behaviour — HealthcareService not found (200 OK, total: 0)
 
-##### Pipeline behaviour — Endpoint already exists (200 OK, total: 1)
+The HealthcareService does not exist. The pipeline records `FAILED` and moves to the next row. The HealthcareService must be created first — see [Managing HealthcareServices](./IP001-manage-healthcare-service.md).
 
-```json
-{
-  "resourceType": "Bundle",
-  "type": "searchset",
-  "total": 1,
-  "entry": [
-    {
-      "resource": {
-        "resourceType": "Endpoint",
-        "id": "ep-existing-0000-0000-0000-111122223333",
-        "meta": {
-          "lastUpdated": "2026-05-01T09:00:00+00:00",
-          "profile": ["http://hl7.org/fhir/StructureDefinition/Endpoint"]
-        },
-        "identifier": [
-          {
-            "system": "https://fhir.nhs.uk/id/product-id",
-            "value": "PinnaclePharmOutcomes-v2024.12.12"
-          }
-        ],
-        "extension": [
-          {
-            "url": "http://hl7.org",
-            "valueReference": {
-              "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
-              "display": "Parent Template Endpoint"
-            }
-          }
-        ],
-        "status": "active",
-        "period": {
-          "start": "2026-01-01T00:00:00+00:00"
-        },
-        "name": "Test Endpoint",
-        "connectionType": {
-          "coding": [
-            {
-              "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
-              "code": "hl7-fhir-rest",
-              "display": "HL7 FHIR"
-            }
-          ]
-        },
-        "payloadType": [
-          {
-            "coding": [
-              {
-                "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
-                "code": "bars",
-                "display": "BaRS"
-              }
-            ]
-          }
-        ],
-        "managingOrganization": [
-          {
-            "identifier": {
-              "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-              "value": "R778"
-            }
-          }
-        ],
-        "address": "https://myService.nhs.uk/Base/Address",
-        "header": "public"
-      },
-      "search": { "mode": "match" }
-    }
-  ]
-}
-```
+##### Pipeline behaviour — Error responses
 
-If an active Endpoint already exists with an overlapping period, **do not create a new
-one** — attempting to do so will result in a `409 Conflict`. The pipeline skips the row
-and records `SKIPPED` in the processing report.
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK`, `total: 1` | Extract HealthcareService `id` — proceed to Step 3 | — |
+| `200 OK`, `total: 0` | HealthcareService not found — do not proceed | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}" |
+| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on HealthcareService lookup" |
+| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on HealthcareService lookup after 3 retries" |
+| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on HealthcareService lookup after 3 retries" |
 
 ---
 
@@ -502,6 +452,18 @@ resolved from the parent Template.
   "header": "public"
 }
 ```
+
+##### Pipeline behaviour — POST responses
+
+| API Response | Pipeline Action | Processing Report Entry |
+|-------------|-----------------|------------------------|
+| `200 OK` / `201 Created` | Endpoint created successfully | `CREATED` |
+| `409 Conflict` | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip | `SKIPPED` — "Endpoint already exists" |
+| `401 Unauthorized` | Do not retry | `FAILED` — "Authentication error" |
+| `403 Forbidden` | Do not retry | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `422 Unprocessable Entity` | Payload validation failed server-side | `FAILED` — "Validation error: {diagnostics}" |
+| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, record failure | `FAILED` — "Server error after 3 retries" |
+| Network timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Timeout after 3 retries" |
 
 ---
 
