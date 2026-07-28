@@ -548,8 +548,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-endpoint-create-2026-07-07T093000-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/endpoints/create/epc-endpoint-create-2026-07-07T093000-fixes.csv
+aws s3 cp epc-endpoint-create-2026-07-08T101500.csv \
+  s3://epc-switch-processing-prod/incoming/endpoints/create/epc-endpoint-create-2026-07-08T101500.csv
 ```
 
 ---

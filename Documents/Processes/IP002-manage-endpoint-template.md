@@ -411,12 +411,13 @@ Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/endpoin
 
 #### Re-processing failed rows
 
-Extract the failed rows from the report, correct the data, and upload a new CSV containing
-only the corrected rows:
+Extract the failed rows from the report, correct the data, and upload a new CSV with a new timestamp:
+
+> **Note:** The `-fixes` suffix is not required. Each incoming file already includes a unique timestamp and is treated as a separate file by the pipeline. Failed records can therefore be re-submitted using a new timestamped file without introducing a special naming convention.
 
 ```bash
-aws s3 cp epc-endpoint-template-create-2026-07-07T093000-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/create/epc-endpoint-template-create-2026-07-07T093000-fixes.csv
+aws s3 cp epc-endpoint-template-create-2026-07-08T101500.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/create/epc-endpoint-template-create-2026-07-08T101500.csv
 ```
 
 ---
@@ -746,8 +747,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-endpoint-template-update-2026-07-07T093000-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/update/epc-endpoint-template-update-2026-07-07T093000-fixes.csv
+aws s3 cp epc-endpoint-template-update-2026-07-08T101500.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/update/epc-endpoint-template-update-2026-07-08T101500.csv
 ```
 
 ---
@@ -1134,8 +1135,8 @@ Extract the failed rows from the report, correct the data, and upload a new CSV 
 only the corrected rows:
 
 ```bash
-aws s3 cp epc-endpoint-template-delete-2026-07-07T093000-fixes.csv \
-  s3://epc-switch-processing-prod/incoming/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-07T093000-fixes.csv
+aws s3 cp epc-endpoint-template-delete-2026-07-08T101500.csv \
+  s3://epc-switch-processing-prod/incoming/endpoint-templates/delete/epc-endpoint-template-delete-2026-07-08T101500.csv
 ```
 
 ---
