@@ -27,16 +27,17 @@ lifecycle through status changes, period adjustments, and supplier switches.
 
 In the Endpoint Catalogue, a child Endpoint is a FHIR R4 `Endpoint` resource that carries:
 
-| Field | Source | Purpose |
-|-------|--------|---------|
-| `status` | Set by the run/maintain team or supplier | Operational lifecycle state (`active`, `suspended`, `off`, etc.) |
-| `period` | Set by the run/maintain team or supplier | Time-bounded validity window (`start` and/or `end`) |
-| `name` | Set by the run/maintain team | Human-readable name for the Endpoint (e.g., "Shirley Pharmacy BaRS Endpoint") |
-| `connectionType` | Inherited from Template | The technical protocol (e.g. `hl7-fhir-rest`) |
-| `payloadType` | Inherited from Template | The message standard (e.g. `bars`) |
-| `address` | Inherited from Template | The target URL |
-| `header` | Inherited from Template | Visibility (`public` or `private`) |
-| `managingOrganization` | Inherited from Template | The supplier organisation |
+
+| Field                  | Source                                   | Purpose                                                                       |
+| ------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `status`               | Set by the run/maintain team or supplier | Operational lifecycle state (`active`, `suspended`, `off`, etc.)              |
+| `period`               | Set by the run/maintain team or supplier | Time-bounded validity window (`start` and/or `end`)                           |
+| `name`                 | Set by the run/maintain team             | Human-readable name for the Endpoint (e.g., "Shirley Pharmacy BaRS Endpoint") |
+| `connectionType`       | Inherited from Template                  | The technical protocol (e.g.`hl7-fhir-rest`)                                  |
+| `payloadType`          | Inherited from Template                  | The message standard (e.g.`bars`)                                             |
+| `address`              | Inherited from Template                  | The target URL                                                                |
+| `header`               | Inherited from Template                  | Visibility (`public` or `private`)                                            |
+| `managingOrganization` | Inherited from Template                  | The supplier organisation                                                     |
 
 All inherited fields are resolved at read time from the parent Template. If the Template
 is updated (e.g. a URL change), all child Endpoints inherit the change immediately without
@@ -52,15 +53,16 @@ The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Required | Description | Provided by | Example |
-|--------|----------|-------------|-------------|---------|
-| `ODSCode` | **Mandatory** | ODS code of the supplier organisation that owns the Template | Supplier | `R778` |
-| `ProductId` | **Mandatory** | Product ID identifying the parent Template | Supplier | `PinnaclePharmOutcomes-v2024.12.12` |
-| `ServiceId` | **Mandatory** | DoS Service ID of the HealthcareService this Endpoint serves | DoS / Commissioner | `2000099999` |
-| `Name` | Optional | Human-readable name for the Endpoint | Run/maintain | `Shirley Pharmacy BaRS Endpoint` |
-| `Status` | **Mandatory** | Initial status of the Endpoint | Run/maintain | `active` |
-| `PeriodStart` | Optional | Start date/time for the Endpoint's validity | Run/maintain | `2026-07-01T00:00:00+00:00` |
-| `PeriodEnd` | Optional | End date/time for the Endpoint's validity | Run/maintain | |
+
+| Column        | Required      | Description                                                  | Provided by        | Example                             |
+| --------------- | --------------- | -------------------------------------------------------------- | -------------------- | ------------------------------------- |
+| `ODSCode`     | **Mandatory** | ODS code of the supplier organisation that owns the Template | Supplier           | `R778`                              |
+| `ProductId`   | **Mandatory** | Product ID identifying the parent Template                   | Supplier           | `PinnaclePharmOutcomes-v2024.12.12` |
+| `ServiceId`   | **Mandatory** | DoS Service ID of the HealthcareService this Endpoint serves | DoS / Commissioner | `2000099999`                        |
+| `Name`        | Optional      | Human-readable name for the Endpoint                         | Run/maintain       | `Shirley Pharmacy BaRS Endpoint`    |
+| `Status`      | **Mandatory** | Initial status of the Endpoint                               | Run/maintain       | `active`                            |
+| `PeriodStart` | Optional      | Start date/time for the Endpoint's validity                  | Run/maintain       | `2026-07-01T00:00:00+00:00`         |
+| `PeriodEnd`   | Optional      | End date/time for the Endpoint's validity                    | Run/maintain       |                                     |
 
 ```csv
 ODSCode,ProductId,ServiceId,Name,Status,PeriodStart,PeriodEnd
@@ -121,16 +123,16 @@ CSV:
 
 The pipeline validates the CSV row before proceeding. Validation checks include:
 
-| Validation check | Rule | Pipeline Action | Processing Report Entry |
-|-----------------|------|-----------------|------------------------|
-| `ODSCode` present | Non-empty string | Do not proceed if empty | `FAILED` — "ODSCode is required" |
-| `ODSCode` format | Valid ODS code format (alphanumeric, 3–10 characters) | Do not proceed if invalid | `FAILED` — "Invalid ODSCode format: {value}" |
-| `ProductId` present | Non-empty string | Do not proceed if empty | `FAILED` — "ProductId is required" |
-| `ServiceId` present | Non-empty string | Do not proceed if empty | `FAILED` — "ServiceId is required" |
-| `Status` present | Non-empty, must be one of: `active`, `suspended`, `off` | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}" |
-| `PeriodStart` format (if provided) | Valid ISO 8601 date/time | Do not proceed if invalid | `FAILED` — "Invalid PeriodStart format: {value}" |
-| `PeriodEnd` format (if provided) | Valid ISO 8601 date/time, must be after PeriodStart | Do not proceed if invalid | `FAILED` — "Invalid PeriodEnd format: {value}" |
-| All fields valid | All above checks pass | Proceed to Step 2b | — |
+
+| Validation check                   | Rule                                                   | Pipeline Action           | Processing Report Entry                           |
+| :----------------------------------- | -------------------------------------------------------- | --------------------------- | --------------------------------------------------- |
+| `ODSCode` present                  | Non-empty string                                       | Do not proceed if empty   | `FAILED` — "ODSCode is required"                 |
+| `Status` present | Non-empty, must be a valid code from the FHIR [endpoint-status](http://hl7.org/fhir/R4/valueset-endpoint-status.html) code system: `active`, `suspended`, `error`, `off`, `entered-in-error`, `test` | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}. Must be a valid FHIR endpoint-status code" | is required"               |
+| `ServiceId` present                | Non-empty string                                       | Do not proceed if empty   | `FAILED` — "ServiceId is required"               |
+| `Status` present                   | Non-empty, must be one of:`active`, `suspended`, `off` | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}"             |
+| `PeriodStart` format (if provided) | Valid ISO 8601 date/time                               | Do not proceed if invalid | `FAILED` — "Invalid PeriodStart format: {value}" |
+| `PeriodEnd` format (if provided)   | Valid ISO 8601 date/time, must be after PeriodStart    | Do not proceed if invalid | `FAILED` — "Invalid PeriodEnd format: {value}"   |
+| All fields valid                   | All above checks pass                                  | Proceed to Step 2b        | —                                                |
 
 If validation fails, the row is recorded as `FAILED` and the pipeline moves to the next row.
 
@@ -143,10 +145,11 @@ Template using the `ProductId` from the CSV.
 
 ##### How the CSV data is used
 
-| CSV column | Used as | Notes |
-|------------|---------|-------|
-| `ProductId` | `productId` query parameter | The primary lookup key — identifies the supplier product |
-| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
+
+| CSV column  | Used as                                 | Notes                                                     |
+| ------------- | ----------------------------------------- | ----------------------------------------------------------- |
+| `ProductId` | `productId` query parameter             | The primary lookup key — identifies the supplier product |
+| `ODSCode`   | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation                    |
 
 ##### Request
 
@@ -242,14 +245,15 @@ the processing report and moves to the next row. The Template must be created fi
 
 ##### Pipeline behaviour — Error responses
 
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK`, `total: 1` | Extract Template `id` — proceed to Step 2c | — |
-| `200 OK`, `total: 0` | Template not found — do not proceed | `FAILED` — "Template not found for ProductId {ProductId}" |
-| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
-| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
+
+| API Response         | Pipeline Action                                                                | Processing Report Entry                                    |
+| ---------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `200 OK`, `total: 1` | Extract Template`id` — proceed to Step 2c                                     | —                                                         |
+| `200 OK`, `total: 0` | Template not found — do not proceed                                           | `FAILED` — "Template not found for ProductId {ProductId}" |
+| `401 Unauthorized`   | Do not proceed                                                                 | `FAILED` — "Authentication error on lookup"               |
+| `403 Forbidden`      | Do not proceed                                                                 | `FAILED` — "Authorisation denied for ODS code {ODSCode}"  |
+| `5XX Server Error`   | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries"       |
+| Network timeout      | Retry up to 3 times; if still failing, do not proceed                          | `FAILED` — "Timeout on lookup after 3 retries"            |
 
 ---
 
@@ -284,14 +288,15 @@ The HealthcareService does not exist. The pipeline records `FAILED` and moves to
 
 ##### Pipeline behaviour — Error responses
 
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK`, `total: 1` | Extract HealthcareService `id` — proceed to Step 3 | — |
-| `200 OK`, `total: 0` | HealthcareService not found — do not proceed | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}" |
-| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on HealthcareService lookup" |
-| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on HealthcareService lookup after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on HealthcareService lookup after 3 retries" |
+
+| API Response         | Pipeline Action                                                                | Processing Report Entry                                                |
+| ---------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `200 OK`, `total: 1` | Extract HealthcareService`id` — proceed to Step 3                             | —                                                                     |
+| `200 OK`, `total: 0` | HealthcareService not found — do not proceed                                  | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}"    |
+| `401 Unauthorized`   | Do not proceed                                                                 | `FAILED` — "Authentication error on HealthcareService lookup"         |
+| `403 Forbidden`      | Do not proceed                                                                 | `FAILED` — "Authorisation denied for ODS code {ODSCode}"              |
+| `5XX Server Error`   | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on HealthcareService lookup after 3 retries" |
+| Network timeout      | Retry up to 3 times; if still failing, do not proceed                          | `FAILED` — "Timeout on HealthcareService lookup after 3 retries"      |
 
 ---
 
@@ -305,32 +310,34 @@ resolves inherited fields from the parent Template.
 
 ##### How the CSV data is used
 
-| CSV column | Maps to payload field | Notes |
-|------------|-----------------------|-------|
-| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
-| `ProductId` | `identifier[].value` | Links to the parent Template |
-| — | `extension[].valueReference.reference` | `Endpoint/{template-id}` — the Template `id` returned from the `$template` lookup in Step 2. This is not derived from the CSV; it comes from the API response in Step 2. |
-| `Name` | `name` | Human-readable name. If not provided in the CSV, derive as `"Endpoint for service {ServiceId}"` |
-| `Status` | `status` | Initial lifecycle state |
-| `PeriodStart` | `period.start` | Optional — omit if not set |
-| `PeriodEnd` | `period.end` | Optional — omit if not set |
+
+| CSV column    | Maps to payload field                   | Notes                                                                                                                                                                     |
+| --------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ODSCode`     | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation                                                                                                                                    |
+| `ProductId`   | `identifier[].value`                    | Links to the parent Template                                                                                                                                              |
+| —            | `extension[].valueReference.reference`  | `Endpoint/{template-id}` — the Template `id` returned from the `$template` lookup in Step 2. This is not derived from the CSV; it comes from the API response in Step 2. |
+| `Name`        | `name`                                  | Human-readable name. If not provided in the CSV, derive as`"Endpoint for service {ServiceId}"`                                                                            |
+| `Status`      | `status`                                | Initial lifecycle state                                                                                                                                                   |
+| `PeriodStart` | `period.start`                          | Optional — omit if not set                                                                                                                                               |
+| `PeriodEnd`   | `period.end`                            | Optional — omit if not set                                                                                                                                               |
 
 ##### Payload field reference
 
-| Field | Source | Value / Notes |
-|-------|--------|---------------|
-| `resourceType` | Static | Always `Endpoint` |
-| `meta.lastUpdated` | Runtime | Current date/time |
-| `meta.profile` | Static | `http://hl7.org/fhir/StructureDefinition/Endpoint` |
-| `identifier[].system` | Static | `https://fhir.nhs.uk/id/product-id` |
-| `identifier[].value` | **CSV `ProductId`** | Links this Endpoint to its parent Template |
-| `extension[].url` | Static | `http://hl7.org` |
-| `extension[].valueReference.reference` | **Step 2 output** | `Endpoint/{template-id}` — the `id` of the parent Template resolved in Step 2 |
-| `extension[].valueReference.display` | Static | `Parent Template Endpoint` |
-| `name` | **CSV `Name`** | Human-readable name. If not provided, derive as `"Endpoint for service {ServiceId}"` |
-| `status` | **CSV `Status`** | e.g. `active` |
-| `period.start` | **CSV `PeriodStart`** | Optional |
-| `period.end` | **CSV `PeriodEnd`** | Optional |
+
+| Field                                  | Source                | Value / Notes                                                                       |
+| ---------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| `resourceType`                         | Static                | Always`Endpoint`                                                                    |
+| `meta.lastUpdated`                     | Runtime               | Current date/time                                                                   |
+| `meta.profile`                         | Static                | `http://hl7.org/fhir/StructureDefinition/Endpoint`                                  |
+| `identifier[].system`                  | Static                | `https://fhir.nhs.uk/id/product-id`                                                 |
+| `identifier[].value`                   | **CSV `ProductId`**   | Links this Endpoint to its parent Template                                          |
+| `extension[].url`                      | Static                | `http://hl7.org`                                                                    |
+| `extension[].valueReference.reference` | **Step 2 output**     | `Endpoint/{template-id}` — the `id` of the parent Template resolved in Step 2      |
+| `extension[].valueReference.display`   | Static                | `Parent Template Endpoint`                                                          |
+| `name`                                 | **CSV `Name`**        | Human-readable name. If not provided, derive as`"Endpoint for service {ServiceId}"` |
+| `status`                               | **CSV `Status`**      | e.g.`active`                                                                        |
+| `period.start`                         | **CSV `PeriodStart`** | Optional                                                                            |
+| `period.end`                           | **CSV `PeriodEnd`**   | Optional                                                                            |
 
 > **Note:** The `extension` with URL `http://hl7.org` is how the EPC links a child
 > Endpoint to its parent Template. The EPC uses this reference to resolve inherited fields
@@ -455,15 +462,16 @@ resolved from the parent Template.
 
 ##### Pipeline behaviour — POST responses
 
-| API Response | Pipeline Action | Processing Report Entry |
-|-------------|-----------------|------------------------|
-| `200 OK` / `201 Created` | Endpoint created successfully | `CREATED` |
-| `409 Conflict` | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip | `SKIPPED` — "Endpoint already exists" |
-| `401 Unauthorized` | Do not retry | `FAILED` — "Authentication error" |
-| `403 Forbidden` | Do not retry | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `422 Unprocessable Entity` | Payload validation failed server-side | `FAILED` — "Validation error: {diagnostics}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, record failure | `FAILED` — "Server error after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Timeout after 3 retries" |
+
+| API Response               | Pipeline Action                                                                                       | Processing Report Entry                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `200 OK` / `201 Created`   | Endpoint created successfully                                                                         | `CREATED`                                                 |
+| `409 Conflict`             | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip | `SKIPPED` — "Endpoint already exists"                    |
+| `401 Unauthorized`         | Do not retry                                                                                          | `FAILED` — "Authentication error"                        |
+| `403 Forbidden`            | Do not retry                                                                                          | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `422 Unprocessable Entity` | Payload validation failed server-side                                                                 | `FAILED` — "Validation error: {diagnostics}"             |
+| `5XX Server Error`         | Retry up to 3 times with exponential backoff; if still failing, record failure                        | `FAILED` — "Server error after 3 retries"                |
+| Network timeout            | Retry up to 3 times; if still failing, record failure                                                 | `FAILED` — "Timeout after 3 retries"                     |
 
 ---
 
@@ -488,11 +496,12 @@ R778,UnknownProduct-v1.0.0,2000077777,Anytown GP BaRS Endpoint,FAILED,Template n
 
 #### Status values
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| `CREATED` | Endpoint created successfully | No action needed |
-| `SKIPPED` | Endpoint already exists (overlapping period with same Template) | No action needed |
-| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+| Status    | Meaning                                                         | Action                              |
+| ----------- | ----------------------------------------------------------------- | ------------------------------------- |
+| `CREATED` | Endpoint created successfully                                   | No action needed                    |
+| `SKIPPED` | Endpoint already exists (overlapping period with same Template) | No action needed                    |
+| `FAILED`  | Error during processing                                         | Investigate, correct, and re-submit |
 
 #### Retrieving the report
 
@@ -777,10 +786,11 @@ results — it has expired.
 
 ## Deleting an Endpoint
 
-| Type | Mechanism | Reversible? | Use when |
-|------|-----------|-------------|----------|
-| Soft delete | Set `status` to `entered-in-error` via `PUT /Endpoint/{id}` | Yes — set `status` back to `active` to reinstate | Endpoint should no longer be used but may need to be reinstated |
-| Hard delete | `DELETE /Endpoint/{id}` | No — permanently removes the resource | Endpoint is fully decommissioned. **Requires admin access.** |
+
+| Type        | Mechanism                                                  | Reversible?                                      | Use when                                                        |
+| ------------- | ------------------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------------- |
+| Soft delete | Set`status` to `entered-in-error` via `PUT /Endpoint/{id}` | Yes — set`status` back to `active` to reinstate | Endpoint should no longer be used but may need to be reinstated |
+| Hard delete | `DELETE /Endpoint/{id}`                                    | No — permanently removes the resource           | Endpoint is fully decommissioned.**Requires admin access.**     |
 
 ### Soft delete
 
@@ -809,15 +819,16 @@ NHSD-End-User-Organisation-ODS: R778
 
 ## Endpoint status transitions
 
-| From | To | Use case |
-|------|----|----------|
-| `active` | `suspended` | Planned maintenance or temporary outage |
-| `active` | `off` | Permanent decommission |
-| `active` | `entered-in-error` | Soft delete — created in error |
-| `suspended` | `active` | Maintenance complete — restored to service |
-| `suspended` | `off` | Decision made to permanently retire during suspension |
-| `off` | (no transition) | Terminal state — cannot be reactivated |
-| `entered-in-error` | `active` | Reinstatement after review |
+
+| From               | To                 | Use case                                              |
+| -------------------- | -------------------- | ------------------------------------------------------- |
+| `active`           | `suspended`        | Planned maintenance or temporary outage               |
+| `active`           | `off`              | Permanent decommission                                |
+| `active`           | `entered-in-error` | Soft delete — created in error                       |
+| `suspended`        | `active`           | Maintenance complete — restored to service           |
+| `suspended`        | `off`              | Decision made to permanently retire during suspension |
+| `off`              | (no transition)    | Terminal state — cannot be reactivated               |
+| `entered-in-error` | `active`           | Reinstatement after review                            |
 
 > **Note:** The `off` status is terminal — once set, the Endpoint cannot be returned to
 > `active`. Use `suspended` for temporary withdrawal where reinstatement is expected.
@@ -844,15 +855,16 @@ for full detail.
 
 ## API operations reference
 
-| Operation | Path | Description |
-|-----------|------|-------------|
-| Locate parent Template | `GET /Endpoint/$template?productId={id}&ConnectionType={ct}&PayloadType={pt}` | Find the Template for the child Endpoint |
-| Check for existing Endpoint | `GET /Endpoint?_has:HealthcareService:endpoint:_id={hsId}&identifier={productId}` | Check for duplicates before creating |
-| Create an Endpoint | `POST /Endpoint` | Creates a child Endpoint linked to a Template |
-| Update an Endpoint | `PUT /Endpoint/{id}` | Change `status` and/or `period` |
-| Soft delete | `PUT /Endpoint/{id}` with `status: entered-in-error` | Reversible removal |
-| Hard delete | `DELETE /Endpoint/{id}` | Permanent removal |
-| Retrieve Endpoints for a service | `GET /Endpoint?_has:HealthcareService:endpoint:_id={hsId}` | Consumer query |
+
+| Operation                        | Path                                                                              | Description                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Locate parent Template           | `GET /Endpoint/$template?productId={id}&ConnectionType={ct}&PayloadType={pt}`     | Find the Template for the child Endpoint      |
+| Check for existing Endpoint      | `GET /Endpoint?_has:HealthcareService:endpoint:_id={hsId}&identifier={productId}` | Check for duplicates before creating          |
+| Create an Endpoint               | `POST /Endpoint`                                                                  | Creates a child Endpoint linked to a Template |
+| Update an Endpoint               | `PUT /Endpoint/{id}`                                                              | Change`status` and/or `period`                |
+| Soft delete                      | `PUT /Endpoint/{id}` with `status: entered-in-error`                              | Reversible removal                            |
+| Hard delete                      | `DELETE /Endpoint/{id}`                                                           | Permanent removal                             |
+| Retrieve Endpoints for a service | `GET /Endpoint?_has:HealthcareService:endpoint:_id={hsId}`                        | Consumer query                                |
 
 ---
 
@@ -860,16 +872,17 @@ for full detail.
 
 The API returns FHIR `OperationOutcome` resources for errors:
 
-| HTTP Status | Meaning |
-|-------------|---------|
-| 200 | Success — resource returned or Bundle with results |
-| 400 | Bad request — invalid parameter or payload |
-| 401 | Unauthorised — missing or invalid Bearer token |
-| 403 | Forbidden — valid token but insufficient permissions |
-| 404 | Not found — no Endpoint with the specified `id` |
-| 409 | Conflict — duplicate Endpoint (overlapping period with same Template) |
-| 4XX | Other client error — see OperationOutcome for details |
-| 5XX | Server error — see OperationOutcome for details |
+
+| HTTP Status | Meaning                                                                |
+| ------------- | ------------------------------------------------------------------------ |
+| 200         | Success — resource returned or Bundle with results                    |
+| 400         | Bad request — invalid parameter or payload                            |
+| 401         | Unauthorised — missing or invalid Bearer token                        |
+| 403         | Forbidden — valid token but insufficient permissions                  |
+| 404         | Not found — no Endpoint with the specified`id`                        |
+| 409         | Conflict — duplicate Endpoint (overlapping period with same Template) |
+| 4XX         | Other client error — see OperationOutcome for details                 |
+| 5XX         | Server error — see OperationOutcome for details                       |
 
 ```json
 {
@@ -896,12 +909,13 @@ The API returns FHIR `OperationOutcome` resources for errors:
 
 ## Related documents
 
-| Document | Description |
-|----------|-------------|
-| [Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md) | Creating and managing parent BaRS Templates |
-| [Managing HealthcareServices](./manage-healthcare-service.md) | Creating services and managing Endpoint associations |
-| [Daily Switch Process](./daily-switch-process.md) | Pharmacy supplier switch process (CSV-driven batch switching) |
-| [Endpoint Visibility: Status and Period](./endpoint-visibility-status-and-period.md) | Full status/period lifecycle rules |
-| [DUEC Endpoints](./duec-endpoints.md) | Multi-Endpoint and priority ordering patterns |
-| [Interim Support Process Access](./interim-support-process-access.md) | How the R&M team processes switches via CSV |
-| [Product ID Format](./product-id-format.md) | Product ID conventions and supplier switch implications |
+
+| Document                                                                             | Description                                                   |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| [Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md)                  | Creating and managing parent BaRS Templates                   |
+| [Managing HealthcareServices](./manage-healthcare-service.md)                        | Creating services and managing Endpoint associations          |
+| [Daily Switch Process](./daily-switch-process.md)                                    | Pharmacy supplier switch process (CSV-driven batch switching) |
+| [Endpoint Visibility: Status and Period](./endpoint-visibility-status-and-period.md) | Full status/period lifecycle rules                            |
+| [DUEC Endpoints](./duec-endpoints.md)                                                | Multi-Endpoint and priority ordering patterns                 |
+| [Interim Support Process Access](./interim-support-process-access.md)                | How the R&M team processes switches via CSV                   |
+| [Product ID Format](./product-id-format.md)                                          | Product ID conventions and supplier switch implications       |
