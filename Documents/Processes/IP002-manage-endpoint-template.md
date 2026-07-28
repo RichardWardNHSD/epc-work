@@ -413,7 +413,6 @@ Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/endpoin
 
 Extract the failed rows from the report, correct the data, and upload a new CSV with a new timestamp:
 
-> **Note:** The `-fixes` suffix is not required. Each incoming file already includes a unique timestamp and is treated as a separate file by the pipeline. Failed records can therefore be re-submitted using a new timestamped file without introducing a special naming convention.
 
 ```bash
 aws s3 cp epc-endpoint-template-create-2026-07-08T101500.csv \

@@ -84,15 +84,15 @@ flowchart TD
 ## Pre-requisites
 
 
-| Item                             | Description                                                                                             | Status                     |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `targets.json`                   | Current production routing file                                                                         | Required                   |
-| EPC API available                | Target environment (INT or DEV) accessible                                                              | Required                   |
-| API credentials                  | Bearer token or OAuth2 client credentials for EPC API                                                   | Required                   |
-| AWS access                       | IAM role/credentials with read access to`int_` DynamoDB tables (for enrichment and provider resolution) | Required                   |
+| Item                             | Description                                                                                                                                                                 | Status                     |
+| ----------------------------------| -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ----------------------------|
+| `targets.json`                   | Current production routing file                                                                                                                                             | Required                   |
+| EPC API available                | Target environment (INT or DEV) accessible                                                                                                                                  | Required                   |
+| API credentials                  | Bearer token or OAuth2 client credentials for EPC API                                                                                                                       | Required                   |
+| AWS access                       | IAM role/credentials with read access to`int_` DynamoDB tables (for enrichment and provider resolution)                                                                     | Required                   |
 | Product ID mapping               | Persistent `product-id-lookup.json` file mapping short codes (ygm04, AC0, etc.) → agreed EPC Product IDs. Must be accessible to all scripts (migration, delta, validation). | Required                   |
-| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup       | Required (built in Step 0) |
-| Migration log store              | Persistent map of `source_id → EPC resource id` for cross-referencing between steps                          | Required                   |
+| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup                                                                            | Required (built in Step 0) |
+| Migration log store              | Persistent map of `source_id → EPC resource id` for cross-referencing between steps                                                                                         | Required                   |
 
 ---
 
