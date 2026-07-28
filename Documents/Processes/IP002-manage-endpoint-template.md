@@ -375,6 +375,8 @@ if the Template is updated or deleted later.
 
 After all rows are processed, the Lambda writes a report to S3:
 
+> **Naming convention:** The report file retains the original input filename with `-report` appended before the `.csv` extension. For example, an input file named `epc-endpoint-template-create-2026-07-07T093000.csv` produces a report named `epc-endpoint-template-create-2026-07-07T093000-report.csv`. This makes it straightforward to correlate a report with its source file. This convention applies to all processing reports (create, update, delete).
+
 ```
 s3://epc-switch-processing-prod/reports/endpoint-templates/create/epc-endpoint-template-create-2026-07-07T093000-report.csv
 ```
