@@ -124,15 +124,14 @@ CSV:
 The pipeline validates the CSV row before proceeding. Validation checks include:
 
 
-| Validation check                   | Rule                                                   | Pipeline Action           | Processing Report Entry                           |
-| :----------------------------------- | -------------------------------------------------------- | --------------------------- | --------------------------------------------------- |
-| `ODSCode` present                  | Non-empty string                                       | Do not proceed if empty   | `FAILED` — "ODSCode is required"                 |
-| `Status` present | Non-empty, must be a valid code from the FHIR [endpoint-status](http://hl7.org/fhir/R4/valueset-endpoint-status.html) code system: `active`, `suspended`, `error`, `off`, `entered-in-error`, `test` | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}. Must be a valid FHIR endpoint-status code" | is required"               |
-| `ServiceId` present                | Non-empty string                                       | Do not proceed if empty   | `FAILED` — "ServiceId is required"               |
-| `Status` present                   | Non-empty, must be one of:`active`, `suspended`, `off` | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}"             |
-| `PeriodStart` format (if provided) | Valid ISO 8601 date/time                               | Do not proceed if invalid | `FAILED` — "Invalid PeriodStart format: {value}" |
-| `PeriodEnd` format (if provided)   | Valid ISO 8601 date/time, must be after PeriodStart    | Do not proceed if invalid | `FAILED` — "Invalid PeriodEnd format: {value}"   |
-| All fields valid                   | All above checks pass                                  | Proceed to Step 2b        | —                                                |
+| Validation check                   | Rule                                                                                                                                                                                                | Pipeline Action           | Processing Report Entry                                                          |   |
+| :----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ---------------------------------------------------------------------------------- | --- |
+| `ODSCode` present                  | Non-empty string                                                                                                                                                                                    | Do not proceed if empty   | `FAILED` — "ODSCode is required"                                                |   |
+| `Status` present                   | Non-empty, must be a valid code from the FHIR[endpoint-status](http://hl7.org/fhir/R4/valueset-endpoint-status.html) code system: `active`, `suspended`, `error`, `off`, `entered-in-error`, `test` | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}. Must be a valid FHIR endpoint-status code" |   |
+| `ServiceId` present                | Non-empty string                                                                                                                                                                                    | Do not proceed if empty   | `FAILED` — "ServiceId is required"                                              |   |
+| `PeriodStart` format (if provided) | Valid ISO 8601 date/time                                                                                                                                                                            | Do not proceed if invalid | `FAILED` — "Invalid PeriodStart format: {value}"                                |   |
+| `PeriodEnd` format (if provided)   | Valid ISO 8601 date/time, must be after PeriodStart                                                                                                                                                 | Do not proceed if invalid | `FAILED` — "Invalid PeriodEnd format: {value}"                                  |   |
+| All fields valid                   | All above checks pass                                                                                                                                                                               | Proceed to Step 2b        | —                                                                               |   |
 
 If validation fails, the row is recorded as `FAILED` and the pipeline moves to the next row.
 
@@ -260,11 +259,6 @@ the processing report and moves to the next row. The Template must be created fi
 #### Step 2c — Check that the HealthcareService exists
 
 The Endpoint must be associated with an existing HealthcareService. The pipeline looks up the HealthcareService using the `ServiceId` from the CSV.
-
-> **Note:** A duplicate Endpoint check is **not required** by the pipeline. The EPC API
-> performs its own duplication checking on `POST /Endpoint` — if an Endpoint already exists
-> for this HealthcareService and Template combination with an overlapping period, the API
-> returns `409 Conflict`. The pipeline handles this response in Step 3 (see error table).
 
 ##### Request
 
@@ -468,6 +462,11 @@ resolved from the parent Template.
 | `200 OK` / `201 Created`   | Endpoint created successfully                                                                         | `CREATED`                                                 |
 | `409 Conflict`             | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip | `SKIPPED` — "Endpoint already exists"                    |
 | `401 Unauthorized`         | Do not retry                                                                                          | `FAILED` — "Authentication error"                        |
+| API Response               | Pipeline Action                                                                                       | Processing Report Entry                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `200 OK` / `201 Created`   | Endpoint created successfully — proceed to Step 4 (associate with HealthcareService)                 | —                                                        |
+| `409 Conflict`             | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip | `SKIPPED` — "Endpoint already exists"                    |
+| `401 Unauthorized`         | Do not retry                                                                                          | `FAILED` — "Authentication error"                        |
 | `403 Forbidden`            | Do not retry                                                                                          | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
 | `422 Unprocessable Entity` | Payload validation failed server-side                                                                 | `FAILED` — "Validation error: {diagnostics}"             |
 | `5XX Server Error`         | Retry up to 3 times with exponential backoff; if still failing, record failure                        | `FAILED` — "Server error after 3 retries"                |
@@ -475,8 +474,55 @@ resolved from the parent Template.
 
 ---
 
-### Processing report
+#### Step 4 — Associate the Endpoint with the HealthcareService
 
+Immediately after successful Endpoint creation, the pipeline associates the new Endpoint with
+the HealthcareService by adding it to the service's `endpoint[]` array. This must complete
+before the row is marked as `CREATED` in the processing report — an Endpoint that exists but
+is not associated with its HealthcareService is not discoverable by consumers.
+
+The HealthcareService `id` was obtained in Step 2c.
+
+##### Request
+
+```http
+PATCH /HealthcareService/{healthcareServiceId} HTTP/1.1
+Host: sandbox.api.service.nhs.uk
+Content-Type: application/json-patch+json
+Accept: application/fhir+json
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+X-Request-Id: g7h8i9j0-7777-8888-9999-000011112222
+X-Correlation-Id: h8i9j0k1-8888-9999-0000-111122223333
+NHSD-End-User-Organisation-ODS: R778
+```
+
+```json
+[
+  {
+    "op": "add",
+    "path": "/endpoint/-",
+    "value": {
+      "reference": "Endpoint/{newEndpointId}"
+    }
+  }
+]
+```
+
+Where `{newEndpointId}` is the `id` returned from the `POST /Endpoint` response in Step 3.
+
+##### Pipeline behaviour — PATCH responses
+
+| API Response | Pipeline Action | Processing Report Entry |
+|-------------|-----------------|------------------------|
+| `200 OK` | Association successful — record row as created | `CREATED` |
+| `404 Not Found` | HealthcareService disappeared between Step 2c and now | `FAILED` — "Endpoint created (id: {id}) but HealthcareService not found during association" |
+| `5XX Server Error` | Retry up to 3 times; if still failing, record partial failure | `FAILED` — "Endpoint created (id: {id}) but association failed — manual linking required" |
+| Network timeout | Retry up to 3 times; if still failing, record partial failure | `FAILED` — "Endpoint created (id: {id}) but association timed out — manual linking required" |
+
+> **Important:** If Step 4 fails, the Endpoint has been created but is not associated with
+> its HealthcareService. The processing report includes the Endpoint `id` so the R&M team
+> can manually associate it via `PATCH /HealthcareService/{id}`. The row is marked `FAILED`
+> with detail explaining the partial state.
 After all rows are processed, the Lambda writes a report to S3:
 
 > **Naming convention:** The report file retains the original input filename with `-report` appended before the `.csv` extension. For example, an input file named `epc-endpoint-create-2026-07-07T093000.csv` produces a report named `epc-endpoint-create-2026-07-07T093000-report.csv`. This makes it straightforward to correlate a report with its source file.
@@ -522,16 +568,6 @@ only the corrected rows:
 aws s3 cp epc-endpoint-create-2026-07-08T101500.csv \
   s3://epc-switch-processing-prod/incoming/endpoints/create/epc-endpoint-create-2026-07-08T101500.csv
 ```
-
----
-
-### Step 4 — Associate the Endpoint with a HealthcareService
-
-After creation, the Endpoint must be associated with a HealthcareService to be discoverable
-by consumers. Update the HealthcareService's `endpoint[]` array to include a reference to
-the new Endpoint.
-
-See [Managing HealthcareServices — Adding or removing Endpoint associations](./manage-healthcare-service.md#adding-or-removing-endpoint-associations).
 
 ---
 
