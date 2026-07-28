@@ -1207,6 +1207,84 @@ sequenceDiagram
 ---
 
 
+## Execution Options: External vs Internal API
+
+The migration can be executed via two routes to the EPC. Both produce identical results in DynamoDB — the difference is how the API is reached and what sits between the migration script and the EPC Lambda.
+
+### Option A: External — via Apigee EPC Proxy (internet-facing)
+
+```mermaid
+graph LR
+    SCRIPT[Migration Script<br/>local or CI/CD] -->|HTTPS / OAuth token| APIGEE[Apigee EPC Proxy]
+    APIGEE --> APIGW[AWS API Gateway]
+    APIGW --> LAMBDA[EPC Lambda]
+    LAMBDA --> DDB[(DynamoDB)]
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **Authentication** | OAuth2 signed JWT → bearer token (app-restricted) |
+| **Rate limiting** | Subject to Apigee rate limits (may throttle at high volume) |
+| **ODS ownership checks** | Enforced by Apigee proxy policies |
+| **Audit headers** | Injected by Apigee (NHSD-Client-Id, NHSD-Scope) |
+| **Network path** | Internet → Apigee → AWS API Gateway → Lambda |
+| **Dependency** | Requires EPC Proxy to be deployed and configured in Apigee |
+| **Suitable for** | R&M-triggered delta processing, validation queries, production operations |
+
+### Option B: Internal — via AWS API Gateway directly (recommended for bulk migration)
+
+```mermaid
+graph LR
+    S3[S3 bucket<br/>targets.json] --> LAMBDA_MIG[Migration Lambda<br/>or Step Function]
+    DDB_SRC[(DynamoDB<br/>int_ tables)] --> LAMBDA_MIG
+    LAMBDA_MIG -->|IAM auth / API key| APIGW[AWS API Gateway<br/>internal]
+    APIGW --> LAMBDA_EPC[EPC Lambda]
+    LAMBDA_EPC --> DDB_TGT[(DynamoDB<br/>EPC tables)]
+```
+
+| Aspect | Detail |
+|--------|--------|
+| **Authentication** | IAM role (SigV4) or internal API key — no OAuth flow needed |
+| **Rate limiting** | None from Apigee. API Gateway throttling applies but is configurable (can be raised for migration). |
+| **ODS ownership checks** | **Not enforced** — Apigee policies are bypassed. The EPC Lambda still validates payloads but ownership headers are not injected. |
+| **Audit headers** | **Not injected** — migration must self-supply or the audit trail will be incomplete. Consider injecting `X-Migration-Run-Id` for traceability. |
+| **Network path** | Stays within AWS (same region, no internet hop) |
+| **Dependency** | Requires IAM permissions on the API Gateway. Does NOT require Apigee EPC Proxy to be deployed. |
+| **Suitable for** | Bulk initial migration, environment seeding, performance-sensitive batch operations |
+
+### Comparison
+
+| Concern | Option A (External) | Option B (Internal) |
+|---------|--------------------|--------------------|
+| Speed | Slower (internet latency + Apigee overhead + rate limits) | **Faster** (no internet hop, no rate limits, configurable throttle) |
+| Setup complexity | Requires OAuth token management, Apigee proxy deployed | Requires IAM role with API Gateway invoke permissions |
+| Apigee dependency | Yes — blocked if proxy not deployed | **No** — can run before Apigee is configured |
+| Rate limit risk | High for ~12,000+ calls | Low — can increase API Gateway throttle temporarily |
+| Ownership validation | Full Apigee policy enforcement | **Bypassed** — migration runs with elevated trust |
+| Audit trail | Complete (Apigee injects all headers) | **Incomplete** unless migration script self-supplies audit headers |
+| Data integrity | EPC Lambda validates all payloads regardless of route | Same — Lambda validation is identical |
+| Production suitability | Yes — standard consumer path | **No** — internal route should not be used for ongoing operations |
+| Rollback | Same (delete resources via API) | Same |
+
+### Drawbacks of Option B
+
+- **Bypasses Apigee security policies** — ODS ownership checks, rate limiting, and audit header injection do not apply. The migration runs with implicit trust.
+- **Audit gap** — Without Apigee injecting `NHSD-Client-Id` and `NHSD-Scope`, the audit log for migrated resources will differ from resources created via the normal path. Must be documented as a known gap or mitigated by injecting synthetic audit headers.
+- **Not a pattern for ongoing use** — This is a one-off (or few-times) migration route. It must not become the standard path for R&M operations, as it circumvents the security controls designed for production use.
+- **IAM permission scope** — The migration role has broad write access to the EPC. Must be time-limited and revoked after migration completes.
+- **No external API contract testing** — Running internally means the migration does not exercise the full Apigee → API Gateway → Lambda path that production consumers will use. Validation (Step 3) should still run via Option A to confirm the external path works.
+
+### Recommendation
+
+| Phase | Recommended Option | Rationale |
+|-------|-------------------|-----------|
+| Bulk initial migration (Steps 0–2) | **Option B (Internal)** | ~12,000+ API calls, no rate limit risk, no Apigee dependency, fastest path to populate the EPC |
+| Validation (Step 3) | **Option A (External)** | Must confirm the production consumer path works end-to-end |
+| Delta detection (Step 4) | **Option A (External)** | Runs on-demand by R&M team via normal operational tooling |
+| Re-runs / corrections | Either | Depends on volume — small corrections via Option A, bulk re-runs via Option B |
+
+---
+
 ## Key Decisions
 
 
