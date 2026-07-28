@@ -84,15 +84,18 @@ flowchart TD
 ## Pre-requisites
 
 
-| Item                             | Description                                                                                                                                                                 | Status                     |
-| ----------------------------------| -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------| ----------------------------|
-| `targets.json`                   | Current production routing file                                                                                                                                             | Required                   |
-| EPC API available                | Target environment (INT or DEV) accessible                                                                                                                                  | Required                   |
-| API credentials                  | Bearer token or OAuth2 client credentials for EPC API                                                                                                                       | Required                   |
-| AWS access                       | IAM role/credentials with read access to`int_` DynamoDB tables (for enrichment and provider resolution)                                                                     | Required                   |
-| Product ID mapping               | Persistent `product-id-lookup.json` file mapping short codes (ygm04, AC0, etc.) → agreed EPC Product IDs. Must be accessible to all scripts (migration, delta, validation). | Required                   |
-| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup                                                                            | Required (built in Step 0) |
-| Migration log store              | Persistent map of `source_id → EPC resource id` for cross-referencing between steps                                                                                         | Required                   |
+| Item                             | Description                                                                                                                                                                 | Option A (External) | Option B (Internal) |
+| ----------------------------------| -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------| --------------------|---------------------|
+| `targets.json`                   | Current production routing file. For Option B, copy to S3 in the PROD account or read cross-account from INT.                                                               | Required            | Required            |
+| EPC API available                | Target environment accessible. Option A: internet-facing Apigee proxy. Option B: AWS API Gateway in PROD account.                                                           | Required            | Required            |
+| API credentials                  | Option A: Bearer token via OAuth2 (signed JWT → app-restricted token). Option B: Not required — uses IAM auth (SigV4).                                                     | Required            | Not required        |
+| Apigee EPC Proxy deployed        | The Apigee proxy must be configured and routing to the EPC backend.                                                                                                          | Required            | Not required        |
+| IAM cross-account role (INT→PROD)| `epc-migration-source-read` role in INT account, assumable by PROD migration executor. Grants read access to int_ DynamoDB tables.                                          | Not required        | Required            |
+| IAM migration executor role      | `epc-migration-executor` role in PROD account with `sts:AssumeRole` (for INT reads) and `execute-api:Invoke` (for PROD API Gateway).                                       | Not required        | Required            |
+| AWS access to INT tables         | Read access to `int_organisations`, `int_endpoint_templates`, `int_endpoints`, `int_healthcareservices` in the INT account.                                                  | Required (direct)   | Required (via role assumption) |
+| Product ID mapping               | Persistent `product-id-lookup.json` file mapping short codes (ygm04, AC0, etc.) → agreed EPC Product IDs. Must be accessible to the migration script.                      | Required            | Required            |
+| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup.                                                                           | Required (built in Step 0) | Required (built in Step 0) |
+| Migration log store              | Persistent map of `source_id → EPC resource id` for cross-referencing between steps. For Option B, an S3 bucket or DynamoDB table in PROD.                                 | Required            | Required            |
 
 ---
 
