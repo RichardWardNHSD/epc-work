@@ -1221,88 +1221,6 @@ sequenceDiagram
 
 ---
 
-## Dry Run Mode (Pre-Run Validation)
-
-The migration script supports a `DRY_RUN` flag. When enabled, the script executes all steps (validation, lookups, payload construction) but **does not write any data to the EPC**. Instead, it produces the same reports that a live run would generate — allowing the team to review and fix issues before committing data.
-
-### How it works
-
-```python
-DRY_RUN = True  # Set to False for live execution
-
-# In each step, the script builds the payload as normal, then:
-if DRY_RUN:
-    # Do NOT call the API
-    log_entry = {
-        "service_id": service_id,
-        "action": "POST /Endpoint/$template",
-        "payload": payload,
-        "status": "DRY_RUN",
-        "detail": "Payload built successfully — not submitted"
-    }
-else:
-    # Call the API
-    response = requests.post(url, json=payload, headers=headers)
-    log_entry = { ... }
-```
-
-### What changes in each step
-
-| Step | Live run | Dry run |
-|------|----------|---------|
-| **Step 0** (parse + enrich) | Scans DynamoDB, builds lookups | Same — no difference |
-| **Step 1** (Templates + Endpoints) | POSTs to EPC, records returned IDs | Builds payloads, validates they would succeed, records `DRY_RUN` status. No API calls. |
-| **Step 2** (HealthcareServices) | POSTs to EPC, PATCHes association | Builds payloads, validates endpoint_log references exist, records `DRY_RUN` status. No API calls. |
-| **Step 3** (Validation) | Queries EPC to verify | Skipped — nothing to validate (no data written) |
-| **Step 4** (Delta detection) | Queries EPC for gaps | Can still run against an existing EPC state (independent of dry run) |
-| **Reports** | Generated after live writes | Generated with `DRY_RUN` status — shows what *would* be created |
-
-### Dry run report output
-
-The processing report uses the same format as a live run but with `DRY_RUN` status:
-
-```csv
-Step,ServiceId,URL,Action,Status,Detail
-template,—,https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/,POST /Endpoint/$template,DRY_RUN,Payload valid
-endpoint,—,https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/,POST /Endpoint,DRY_RUN,Payload valid
-healthcareservice,2000017562,—,POST /HealthcareService,DRY_RUN,Payload valid
-healthcareservice,2000099999,—,POST /HealthcareService,FAILED,provider_lookup miss — no provider ODS for service
-template,—,https://bars-prod-unknown.thirdparty.nhs.uk,POST /Endpoint/$template,FAILED,ProductId not found in PRODUCT_ID_MAP
-```
-
-### What the dry run catches
-
-| Issue | Caught in dry run? | How |
-|-------|-------------------|-----|
-| Missing Product ID mapping | ✓ | `PRODUCT_ID_MAP` lookup fails |
-| Missing provider organisation | ✓ | `provider_lookup` miss |
-| Missing endpoint_details (no period) | ✓ | Fallback to migration date is logged as a warning |
-| Invalid URL in targets.json | ✓ | URL validation in enrichment step |
-| Template not found (for existing EPC) | ✗ | Requires live API call (only relevant for Step 4 delta) |
-| Duplicate rejection (409) | ✗ | Only returned by the live API |
-| Auth/permission errors | ✗ | Only returned by the live API |
-
-### Recommended workflow
-
-```
-1. Run with DRY_RUN=True
-2. Review the dry run report
-3. Fix any FAILED rows (update product-id-lookup.json, resolve provider gaps, etc.)
-4. Re-run with DRY_RUN=True to confirm all issues resolved
-5. Run with DRY_RUN=False to execute the live migration
-```
-
-### Configuration
-
-| Parameter | Value | Effect |
-|-----------|-------|--------|
-| `DRY_RUN=True` | No API writes | Builds payloads, validates data, produces report |
-| `DRY_RUN=False` | Live API writes | Full migration execution |
-
-The dry run flag should be the **default** (`True`) to prevent accidental live execution. The operator must explicitly set `DRY_RUN=False` to commit data.
-
----
-
 ## Execution Options: External vs Internal API
 
 The migration can be executed via two routes to the EPC. Both produce identical results in DynamoDB — the difference is how the API is reached and what sits between the migration script and the EPC Lambda.
@@ -1529,14 +1447,13 @@ The migration executor role needs:
 ## Comparison: Which Approach to Use?
 
 
-| Use Case                                                            | Recommended Approach                           |
-| --------------------------------------------------------------------- | ------------------------------------------------ |
-| Need to reproduce live routing ASAP with minimal risk               | **targets.json approach** (this document)      |
-| Need full historical data including inactive services               | Full int_ table migration                      |
-| Need dedicated endpoint per service (for future per-service config) | Full int_ table migration                      |
-| Need provider organisation and service names                        | Either (with enrichment), or full migration    |
-| Proof-of-concept / demo                                             | **targets.json approach** (faster, simpler)    |
-| Production migration (final)                                        | Full int_ table migration (more complete data) |
+| Use Case                                              | Recommended Approach                        |
+| ------------------------------------------------------- | --------------------------------------------- |
+| Need to reproduce live routing ASAP with minimal risk | **targets.json approach** (this document)   |
+| Need full historical data including inactive services | Full int_ table migration                   |
+| Need provider organisation and service names          | Either (with enrichment), or full migration |
+| Proof-of-concept / demo                               | **targets.json approach** (faster, simpler) |
+| Production migration (final)                          | Depends on need for historical data.        |
 
 ---
 
