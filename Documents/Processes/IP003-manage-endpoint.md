@@ -509,6 +509,8 @@ resolved from the parent Template.
 
 After all rows are processed, the Lambda writes a report to S3:
 
+> **Naming convention:** The report file retains the original input filename with `-report` appended before the `.csv` extension. For example, an input file named `epc-endpoint-create-2026-07-07T093000.csv` produces a report named `epc-endpoint-create-2026-07-07T093000-report.csv`. This makes it straightforward to correlate a report with its source file.
+
 ```
 s3://epc-switch-processing-prod/reports/endpoints/create/epc-endpoint-create-2026-07-07T093000-report.csv
 ```

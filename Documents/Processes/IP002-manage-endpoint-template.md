@@ -143,15 +143,13 @@ The pipeline validates the CSV row before proceeding to create the Template. Val
 checks include:
 
 
-| Validation check | Rule | Pipeline Action | Processing Report Entry |
-|-----------------|------|-----------------|------------------------|
-| `ODSCode` present | Non-empty string | Do not proceed if empty | `FAILED` — "ODSCode is required" |
-| `ODSCode` format | Valid ODS code format (alphanumeric, 3–10 characters) | Do not proceed if invalid | `FAILED` — "Invalid ODSCode format: {value}" |
-| `ProductId` present | Non-empty string | Do not proceed if empty | `FAILED` — "ProductId is required" |
-| `ProductId` format | Non-empty, no whitespace, printable characters only | Do not proceed if invalid | `FAILED` — "Invalid ProductId format: {value}" |
-| `Address` present | Non-empty string | Do not proceed if empty | `FAILED` — "Address is required" |
-| `Address` valid URL | Must be a valid, well-formed URL (see note below) | Do not proceed if invalid | `FAILED` — "Invalid Address URL: {value}" |
-| All fields valid | All above checks pass | Proceed to Step 3 (create) | — |
+| Validation check    | Rule                                              | Pipeline Action            | Processing Report Entry                    |
+| :-------------------- | --------------------------------------------------- | ---------------------------- | -------------------------------------------- |
+| `ODSCode` present   | Non-empty string                                  | Do not proceed if empty    | `FAILED` — "ODSCode is required"          |
+| `ProductId` present | Non-empty string                                  | Do not proceed if empty    | `FAILED` — "ProductId is required"        |
+| `Address` present   | Non-empty string                                  | Do not proceed if empty    | `FAILED` — "Address is required"          |
+| `Address` valid URL | Must be a valid, well-formed URL (see note below) | Do not proceed if invalid  | `FAILED` — "Invalid Address URL: {value}" |
+| All fields valid    | All above checks pass                             | Proceed to Step 3 (create) | —                                         |
 
 ##### URL Validation — What constitutes a valid Address
 
@@ -162,6 +160,7 @@ scheme://hostname[:port][/path][?query][#fragment]
 ```
 
 Specifically:
+
 - **Scheme is required** and must be `https` (plain `http` is not accepted for production endpoints)
 - **Hostname is required** and must be a valid domain name or IP address
 - **Port is optional** (e.g., `:3120`)
@@ -172,15 +171,16 @@ The validation is equivalent to JavaScript's `URL` constructor — if `new URL(a
 
 **Examples:**
 
-| Address | Valid? | Reason |
-|---------|--------|--------|
-| `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` | ✓ | Valid https URL with path |
-| `https://bars-prod-8hq44.stratahealth.thirdparty.nhs.uk:3120/bars/` | ✓ | Valid https URL with port and path |
-| `https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk` | ✓ | Valid https URL, no path |
-| `http://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` | ✗ | Scheme must be `https`, not `http` |
-| `bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/` | ✗ | Missing scheme |
-| `addressHere` | ✗ | Not a valid URL |
-| ` ` (empty) | ✗ | Address is required |
+
+| Address                                                             | Valid? | Reason                             |
+| --------------------------------------------------------------------- | -------- | ------------------------------------ |
+| `https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/`        | ✓     | Valid https URL with path          |
+| `https://bars-prod-8hq44.stratahealth.thirdparty.nhs.uk:3120/bars/` | ✓     | Valid https URL with port and path |
+| `https://bars-prod-rk5.nervecentre.thirdparty.nhs.uk`               | ✓     | Valid https URL, no path           |
+| `http://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/`         | ✗     | Scheme must be`https`, not `http`  |
+| `bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/`                | ✗     | Missing scheme                     |
+| `addressHere`                                                       | ✗     | Not a valid URL                    |
+| ` ` (empty)                                                         | ✗     | Address is required                |
 
 If validation fails for any field, the row is recorded as `FAILED` and the pipeline moves to the next row.
 
@@ -358,15 +358,16 @@ if the Template is updated or deleted later.
 
 ##### Pipeline behaviour — POST responses
 
-| API Response | Pipeline Action | Processing Report Entry |
-|-------------|-----------------|------------------------|
-| `200 OK` / `201 Created` | Template created successfully | `CREATED` |
-| `409 Conflict` | Template already exists (duplicate ProductId + ConnectionType + PayloadType) — skip | `SKIPPED` — "Already exists" |
-| `401 Unauthorized` | Do not retry | `FAILED` — "Authentication error" |
-| `403 Forbidden` | Do not retry | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `422 Unprocessable Entity` | Payload validation failed server-side | `FAILED` — "Validation error: {diagnostics}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, record failure | `FAILED` — "Server error after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Timeout after 3 retries" |
+
+| API Response               | Pipeline Action                                                                      | Processing Report Entry                                   |
+| ---------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `200 OK` / `201 Created`   | Template created successfully                                                        | `CREATED`                                                 |
+| `409 Conflict`             | Template already exists (duplicate ProductId + ConnectionType + PayloadType) — skip | `SKIPPED` — "Already exists"                             |
+| `401 Unauthorized`         | Do not retry                                                                         | `FAILED` — "Authentication error"                        |
+| `403 Forbidden`            | Do not retry                                                                         | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `422 Unprocessable Entity` | Payload validation failed server-side                                                | `FAILED` — "Validation error: {diagnostics}"             |
+| `5XX Server Error`         | Retry up to 3 times with exponential backoff; if still failing, record failure       | `FAILED` — "Server error after 3 retries"                |
+| Network timeout            | Retry up to 3 times; if still failing, record failure                                | `FAILED` — "Timeout after 3 retries"                     |
 
 ---
 
