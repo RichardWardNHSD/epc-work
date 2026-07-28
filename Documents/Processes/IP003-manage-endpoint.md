@@ -457,20 +457,20 @@ resolved from the parent Template.
 ##### Pipeline behaviour — POST responses
 
 
-| API Response               | Pipeline Action                                                                                       | Processing Report Entry                                   |
+| API Response                 | Pipeline Action                                                                                         | Processing Report Entry                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `200 OK` / `201 Created`     | Endpoint created successfully                                                                           | `CREATED`                                                   |
+| `409 Conflict`               | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip   | `SKIPPED` — "Endpoint already exists"                      |
+| `401 Unauthorized`           | Do not retry                                                                                            | `FAILED` — "Authentication error"                          |
+| API Response                 | Pipeline Action                                                                                         | Processing Report Entry                                     |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `200 OK` / `201 Created`   | Endpoint created successfully                                                                         | `CREATED`                                                 |
-| `409 Conflict`             | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip | `SKIPPED` — "Endpoint already exists"                    |
-| `401 Unauthorized`         | Do not retry                                                                                          | `FAILED` — "Authentication error"                        |
-| API Response               | Pipeline Action                                                                                       | Processing Report Entry                                   |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `200 OK` / `201 Created`   | Endpoint created successfully — proceed to Step 4 (associate with HealthcareService)                 | —                                                        |
-| `409 Conflict`             | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip | `SKIPPED` — "Endpoint already exists"                    |
-| `401 Unauthorized`         | Do not retry                                                                                          | `FAILED` — "Authentication error"                        |
-| `403 Forbidden`            | Do not retry                                                                                          | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `422 Unprocessable Entity` | Payload validation failed server-side                                                                 | `FAILED` — "Validation error: {diagnostics}"             |
-| `5XX Server Error`         | Retry up to 3 times with exponential backoff; if still failing, record failure                        | `FAILED` — "Server error after 3 retries"                |
-| Network timeout            | Retry up to 3 times; if still failing, record failure                                                 | `FAILED` — "Timeout after 3 retries"                     |
+| `200 OK` / `201 Created`     | Endpoint created successfully — proceed to Step 4 (associate with HealthcareService)                   | —                                                          |
+| `409 Conflict`               | Endpoint already exists (duplicate — same HealthcareService + Template + overlapping period) — skip   | `SKIPPED` — "Endpoint already exists"                      |
+| `401 Unauthorized`           | Do not retry                                                                                            | `FAILED` — "Authentication error"                          |
+| `403 Forbidden`              | Do not retry                                                                                            | `FAILED` — "Authorisation denied for ODS code {ODSCode}"   |
+| `422 Unprocessable Entity`   | Payload validation failed server-side                                                                   | `FAILED` — "Validation error: {diagnostics}"               |
+| `5XX Server Error`           | Retry up to 3 times with exponential backoff; if still failing, record failure                          | `FAILED` — "Server error after 3 retries"                  |
+| Network timeout              | Retry up to 3 times; if still failing, record failure                                                   | `FAILED` — "Timeout after 3 retries"                       |
 
 ---
 
@@ -483,47 +483,23 @@ is not associated with its HealthcareService is not discoverable by consumers.
 
 The HealthcareService `id` was obtained in Step 2c.
 
-##### Request
+See [Updating a HealthcareService](https://nhsd-confluence.digital.nhs.uk/spaces/RA/pages/1407790357/IP001+-+Manage+HealthcareServices#IP001ManageHealthcareServices-UpdatingaHealthcareService)
 
-```http
-PATCH /HealthcareService/{healthcareServiceId} HTTP/1.1
-Host: sandbox.api.service.nhs.uk
-Content-Type: application/json-patch+json
-Accept: application/fhir+json
-Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
-X-Request-Id: g7h8i9j0-7777-8888-9999-000011112222
-X-Correlation-Id: h8i9j0k1-8888-9999-0000-111122223333
-NHSD-End-User-Organisation-ODS: R778
-```
+Pipeline behaviour — responses
 
-```json
-[
-  {
-    "op": "add",
-    "path": "/endpoint/-",
-    "value": {
-      "reference": "Endpoint/{newEndpointId}"
-    }
-  }
-]
-```
 
-Where `{newEndpointId}` is the `id` returned from the `POST /Endpoint` response in Step 3.
-
-##### Pipeline behaviour — PATCH responses
-
-| API Response | Pipeline Action | Processing Report Entry |
-|-------------|-----------------|------------------------|
-| `200 OK` | Association successful — record row as created | `CREATED` |
-| `404 Not Found` | HealthcareService disappeared between Step 2c and now | `FAILED` — "Endpoint created (id: {id}) but HealthcareService not found during association" |
-| `5XX Server Error` | Retry up to 3 times; if still failing, record partial failure | `FAILED` — "Endpoint created (id: {id}) but association failed — manual linking required" |
-| Network timeout | Retry up to 3 times; if still failing, record partial failure | `FAILED` — "Endpoint created (id: {id}) but association timed out — manual linking required" |
+| API Response       | Pipeline Action                                               | Processing Report Entry                                                                        |
+| -------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `200 OK`           | Association successful — record row as created               | `CREATED`                                                                                      |
+| `404 Not Found`    | HealthcareService disappeared between Step 2c and now         | `FAILED` — "Endpoint created (id: {id}) but HealthcareService not found during association"   |
+| `5XX Server Error` | Retry up to 3 times; if still failing, record partial failure | `FAILED` — "Endpoint created (id: {id}) but association failed — manual linking required"    |
+| Network timeout    | Retry up to 3 times; if still failing, record partial failure | `FAILED` — "Endpoint created (id: {id}) but association timed out — manual linking required" |
 
 > **Important:** If Step 4 fails, the Endpoint has been created but is not associated with
 > its HealthcareService. The processing report includes the Endpoint `id` so the R&M team
-> can manually associate it via `PATCH /HealthcareService/{id}`. The row is marked `FAILED`
+> can manually associate it via `PUT /HealthcareService/{id}`. The row is marked `FAILED`
 > with detail explaining the partial state.
-After all rows are processed, the Lambda writes a report to S3:
+> After all rows are processed, the Lambda writes a report to S3:
 
 > **Naming convention:** The report file retains the original input filename with `-report` appended before the `.csv` extension. For example, an input file named `epc-endpoint-create-2026-07-07T093000.csv` produces a report named `epc-endpoint-create-2026-07-07T093000-report.csv`. This makes it straightforward to correlate a report with its source file.
 
