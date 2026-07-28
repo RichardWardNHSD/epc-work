@@ -2,13 +2,14 @@
 
 ## Executive Summary
 
-| Step | What | Input | Output |
-|------|------|-------|--------|
-| **0** | Parse targets.json & enrich from DynamoDB | targets.json + int_ tables | `service_to_url`, `unique_urls`, `url_metadata`, `provider_lookup`, `endpoint_details` |
-| **1** | Create Endpoint Template + child Endpoint for each unique URL | ~13 unique URLs | Template ID + Endpoint ID per URL (from API responses) |
-| **2** | Create HealthcareService for each service ID | ~4,000+ service IDs | HealthcareService linked to its Endpoint |
-| **3** | Validate by querying the EPC and comparing against original targets.json | EPC API queries | Pass/fail report |
-| **4** | Delta detection — generate IP001/IP002/IP003 CSVs for anything missing | EPC API queries | CSVs for R&M team to action |
+
+| Step  | What                                                                     | Input                      | Output                                                                                 |
+| ------- | -------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| **0** | Parse targets.json & enrich from DynamoDB                                | targets.json + int_ tables | `service_to_url`, `unique_urls`, `url_metadata`, `provider_lookup`, `endpoint_details` |
+| **1** | Create Endpoint Template + child Endpoint for each unique URL            | ~13 unique URLs            | Template ID + Endpoint ID per URL (from API responses)                                 |
+| **2** | Create HealthcareService for each service ID                             | ~4,000+ service IDs        | HealthcareService linked to its Endpoint                                               |
+| **3** | Validate by querying the EPC and comparing against original targets.json | EPC API queries            | Pass/fail report                                                                       |
+| **4** | Delta detection — generate IP001/IP002/IP003 CSVs for anything missing  | EPC API queries            | CSVs for R&M team to action                                                            |
 
 ---
 
@@ -84,19 +85,19 @@ flowchart TD
 ## Pre-requisites
 
 
-| Item                             | Description                                                                                                                                                                 | Option A (External) | Option B (Internal) |
-| ----------------------------------| -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------| --------------------|---------------------|
-| `targets.json`                   | Current production routing file. For Option B, copy to S3 in the PROD account or read cross-account from INT.                                                               | Required            | Required            |
-| EPC API (Apigee) available       | Internet-facing Apigee EPC Proxy deployed and routing to the EPC backend.                                                                                                   | Required            | Not required        |
-| EPC API (AWS Gateway) available  | AWS API Gateway in PROD account deployed and accessible internally.                                                                                                          | Not required        | Required            |
-| API credentials (Apigee)         | Bearer token via OAuth2 (signed JWT → app-restricted token).                                                                                                                | Required            | Not required        |
-| API credentials (AWS)            | IAM auth (SigV4) — the migration executor role has `execute-api:Invoke` permissions on the PROD API Gateway.                                                               | Not required        | Required            |
-| IAM cross-account role (INT→PROD)| `epc-migration-source-read` role in INT account, assumable by PROD migration executor. Grants read access to int_ DynamoDB tables.                                          | Not required        | Required            |
-| IAM migration executor role      | `epc-migration-executor` role in PROD account with `sts:AssumeRole` (for INT reads) and `execute-api:Invoke` (for PROD API Gateway).                                       | Not required        | Required            |
-| AWS access to INT tables         | Read access to `int_organisations`, `int_endpoint_templates`, `int_endpoints`, `int_healthcareservices` in the INT account.                                                  | Required (direct)   | Required (via role assumption) |
-| Product ID mapping               | Persistent `product-id-lookup.json` file mapping short codes (ygm04, AC0, etc.) → agreed EPC Product IDs. Must be accessible to the migration script.                      | Required            | Required            |
-| Provider organisation resolution | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup.                                                                           | Required (built in Step 0) | Required (built in Step 0) |
-| Migration log store              | Persistent map of `source_id → EPC resource id` for cross-referencing between steps. For Option B, an S3 bucket or DynamoDB table in PROD.                                 | Required            | Required            |
+| Item                               | Description                                                                                                                                           | Option A (External)        | Option B (Internal)            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------- |
+| `targets.json`                     | Current production routing file. For Option B, copy to S3 in the PROD account or read cross-account from INT.                                         | Required                   | Required                       |
+| EPC API (Apigee) available         | Internet-facing Apigee EPC Proxy deployed and routing to the EPC backend.                                                                             | Required                   | Not required                   |
+| EPC API (AWS Gateway) available    | AWS API Gateway in PROD account deployed and accessible internally.                                                                                   | Required                   | Required                       |
+| API credentials (Apigee)           | Bearer token via OAuth2 (signed JWT → app-restricted token).                                                                                         | Required                   | Not required                   |
+| API credentials (AWS)              | IAM auth (SigV4) — the migration executor role has`execute-api:Invoke` permissions on the PROD API Gateway.                                          | Not required               | Required                       |
+| IAM cross-account role (INT→PROD) | `epc-migration-source-read` role in INT account, assumable by PROD migration executor. Grants read access to int_ DynamoDB tables.                    | Not required               | Required                       |
+| IAM migration executor role        | `epc-migration-executor` role in PROD account with `sts:AssumeRole` (for INT reads) and `execute-api:Invoke` (for PROD API Gateway).                  | Not required               | Required                       |
+| AWS access to INT tables           | Read access to`int_organisations`, `int_endpoint_templates`, `int_endpoints`, `int_healthcareservices` in the INT account.                            | Required (direct)          | Required (via role assumption) |
+| Product ID mapping                 | Persistent`product-id-lookup.json` file mapping short codes (ygm04, AC0, etc.) → agreed EPC Product IDs. Must be accessible to the migration script. | Required                   | Required                       |
+| Provider organisation resolution   | `int_healthcareservices` + `int_organisations` scanned to build service_id → provider ODS lookup.                                                    | Required (built in Step 0) | Required (built in Step 0)     |
+| Migration log store                | Persistent map of`source_id → EPC resource id` for cross-referencing between steps. For Option B, an S3 bucket or DynamoDB table in PROD.            | Required                   | Required                       |
 
 ---
 
@@ -139,6 +140,7 @@ print(f"Unique endpoint URLs: {len(unique_urls)}")
 - `unique_urls`: list of ~13 unique URLs
 
 **Example `service_to_url`:**
+
 ```json
 {
   "2000017562": "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/",
@@ -152,6 +154,7 @@ print(f"Unique endpoint URLs: {len(unique_urls)}")
 ```
 
 **Example `unique_urls`:**
+
 ```python
 [
   "https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/",
@@ -235,6 +238,7 @@ else:
 **Output:** `provider_lookup` — dict of `service_id → { provider_ods, provider_name, name }`
 
 **Example `provider_lookup`:**
+
 ```json
 {
   "2000017562": {
@@ -344,6 +348,7 @@ The source data (int_ tables and targets.json) uses internal short codes to iden
 The EPC uses a formal Product Identifier (e.g., `CegedimPharmacyServices-v6.0`) that uniquely identifies the supplier's product and version. This is what gets stored in the `identifier` field on Endpoint Templates and child Endpoints.
 
 The resolution process:
+
 1. Take the `ProductId` short code from the source data (e.g., from `url_metadata` enrichment)
 2. Look it up in the persistent `product-id-lookup.json` file (case-insensitive)
 3. Return the agreed EPC Product Identifier
@@ -409,22 +414,23 @@ product_id = PRODUCT_ID_MAP["YGM04"]
 
 #### Template Payload Parameter Table
 
-| FHIR Field | Example Value | Source | How to derive |
-|------------|--------------|--------|---------------|
-| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
-| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | `url_metadata.product_id` → `PRODUCT_ID_MAP` | Look up the `product_id` for this URL from the enrichment step. Then resolve via `PRODUCT_ID_MAP` to the agreed EPC Product Identifier. |
-| `status` | `"active"` | Static | Always `"active"` — these URLs are in the live routing file. |
-| `connectionType.coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"` | Static | Always this system URI |
-| `connectionType.coding[0].code` | `"hl7-fhir-rest"` | Static | Always `"hl7-fhir-rest"` — all BaRS endpoints are FHIR REST. |
-| `connectionType.coding[0].display` | `"HL7 FHIR"` | Static | Always `"HL7 FHIR"` |
-| `payloadType[0].coding[0].system` | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static | Always this system URI |
-| `payloadType[0].coding[0].code` | `"bars"` | Static | Always `"bars"` — all entries in targets.json are BaRS routing. |
-| `payloadType[0].coding[0].display` | `"BaRS"` | Static | Always `"BaRS"` |
-| `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI |
-| `managingOrganization[0].identifier.value` | `"YGM04"` | `url_metadata.managing_org_ods` | The ODS code of the supplier organisation. Resolved during enrichment via `int_organisations`. |
-| `address` | `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"` | `targets.json` URL value | Direct copy of the URL from targets.json. Preserve original casing. Ensure `https://` scheme is present. |
-| `header` | `"public"` | `url_metadata.is_private` | Map: `false` → `"public"`, `true` → `"private"`. Default to `"public"` if enrichment data is unavailable. |
+
+| FHIR Field                                  | Example Value                                                       | Source                                        | How to derive                                                                                                                          |
+| --------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `resourceType`                              | `"Endpoint"`                                                        | Static                                        | Always`"Endpoint"`                                                                                                                     |
+| `identifier[0].system`                      | `"https://fhir.nhs.uk/id/product-id"`                               | Static                                        | Always this system URI                                                                                                                 |
+| `identifier[0].value`                       | `"CegedimPharmacyServices-v6.0"`                                    | `url_metadata.product_id` → `PRODUCT_ID_MAP` | Look up the`product_id` for this URL from the enrichment step. Then resolve via `PRODUCT_ID_MAP` to the agreed EPC Product Identifier. |
+| `status`                                    | `"active"`                                                          | Static                                        | Always`"active"` — these URLs are in the live routing file.                                                                           |
+| `connectionType.coding[0].system`           | `"http://terminology.hl7.org/CodeSystem/endpoint-connection-type"`  | Static                                        | Always this system URI                                                                                                                 |
+| `connectionType.coding[0].code`             | `"hl7-fhir-rest"`                                                   | Static                                        | Always`"hl7-fhir-rest"` — all BaRS endpoints are FHIR REST.                                                                           |
+| `connectionType.coding[0].display`          | `"HL7 FHIR"`                                                        | Static                                        | Always`"HL7 FHIR"`                                                                                                                     |
+| `payloadType[0].coding[0].system`           | `"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc"` | Static                                        | Always this system URI                                                                                                                 |
+| `payloadType[0].coding[0].code`             | `"bars"`                                                            | Static                                        | Always`"bars"` — all entries in targets.json are BaRS routing.                                                                        |
+| `payloadType[0].coding[0].display`          | `"BaRS"`                                                            | Static                                        | Always`"BaRS"`                                                                                                                         |
+| `managingOrganization[0].identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"`                    | Static                                        | Always this system URI                                                                                                                 |
+| `managingOrganization[0].identifier.value`  | `"YGM04"`                                                           | `url_metadata.managing_org_ods`               | The ODS code of the supplier organisation. Resolved during enrichment via`int_organisations`.                                          |
+| `address`                                   | `"https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/"`      | `targets.json` URL value                      | Direct copy of the URL from targets.json. Preserve original casing. Ensure`https://` scheme is present.                                |
+| `header`                                    | `"public"`                                                          | `url_metadata.is_private`                     | Map:`false` → `"public"`, `true` → `"private"`. Default to `"public"` if enrichment data is unavailable.                             |
 
 ```json
 {
@@ -468,6 +474,7 @@ POST /Endpoint/$template
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "resourceType": "Endpoint",
@@ -491,17 +498,18 @@ template_id = response.json()["id"]
 
 #### Child Endpoint Payload Parameter Table
 
-| FHIR Field | Example Value | Source | How to derive |
-|------------|--------------|--------|---------------|
-| `resourceType` | `"Endpoint"` | Static | Always `"Endpoint"` |
-| `identifier[0].system` | `"https://fhir.nhs.uk/id/product-id"` | Static | Always this system URI |
-| `identifier[0].value` | `"CegedimPharmacyServices-v6.0"` | Copied from Template payload (Step 1.3) | Same Product ID used on the parent Template. No separate lookup. |
-| `extension[0].url` | `"http://hl7.org"` | Static | Always this URL — identifies the "basedOn" extension. |
-| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | **Response from Step 1.4** | The `id` returned from `POST /Endpoint/$template`. Format as `"Endpoint/{id}"`. |
-| `extension[0].valueReference.display` | `"Parent Template Endpoint"` | Static | Always `"Parent Template Endpoint"` |
-| `status` | `"active"` | `endpoint_details` or Static | Look up service_id in `endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If not found, default `"active"`. |
-| `period.start` | `"2026-06-01T16:04:05.168Z"` | `endpoint_details` or migration date | From `int_endpoints.StartDate`. If empty, use migration date as fallback. See period decision note. |
-| `period.end` | _(omitted if empty)_ | `endpoint_details` (if populated) | From `int_endpoints.EndDate`. Only include if populated. |
+
+| FHIR Field                              | Example Value                                     | Source                                  | How to derive                                                                                                                          |
+| ----------------------------------------- | --------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `resourceType`                          | `"Endpoint"`                                      | Static                                  | Always`"Endpoint"`                                                                                                                     |
+| `identifier[0].system`                  | `"https://fhir.nhs.uk/id/product-id"`             | Static                                  | Always this system URI                                                                                                                 |
+| `identifier[0].value`                   | `"CegedimPharmacyServices-v6.0"`                  | Copied from Template payload (Step 1.3) | Same Product ID used on the parent Template. No separate lookup.                                                                       |
+| `extension[0].url`                      | `"http://hl7.org"`                                | Static                                  | Always this URL — identifies the "basedOn" extension.                                                                                 |
+| `extension[0].valueReference.reference` | `"Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"` | **Response from Step 1.4**              | The`id` returned from `POST /Endpoint/$template`. Format as `"Endpoint/{id}"`.                                                         |
+| `extension[0].valueReference.display`   | `"Parent Template Endpoint"`                      | Static                                  | Always`"Parent Template Endpoint"`                                                                                                     |
+| `status`                                | `"active"`                                        | `endpoint_details` or Static            | Look up service_id in`endpoint_details`. Map `Active`: `"true"` → `"active"`, `"false"` → `"off"`. If not found, default `"active"`. |
+| `period.start`                          | `"2026-06-01T16:04:05.168Z"`                      | `endpoint_details` or migration date    | From`int_endpoints.StartDate`. If empty, use migration date as fallback. See period decision note.                                     |
+| `period.end`                            | _(omitted if empty)_                              | `endpoint_details` (if populated)       | From`int_endpoints.EndDate`. Only include if populated.                                                                                |
 
 Fields **not** included (inherited from Template at read time): `address`, `connectionType`, `payloadType`, `managingOrganization`, `name`, `header`.
 
@@ -537,6 +545,7 @@ POST /Endpoint
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "resourceType": "Endpoint",
@@ -637,17 +646,18 @@ service_name = provider["name"]
 
 #### HealthcareService Payload Parameter Table
 
-| FHIR Field | Example Value | Source | How to derive |
-|------------|--------------|--------|---------------|
-| `resourceType` | `"HealthcareService"` | Static | Always `"HealthcareService"` |
-| `meta.profile[0]` | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static | Always this profile URI |
-| `identifier[0].system` | `"https://fhir.nhs.uk/Id/dos-service-id"` | Static | Always `"https://fhir.nhs.uk/Id/dos-service-id"` — the identifier system the BaRS proxy uses to query the EPC. |
-| `identifier[0].value` | `"2000017562"` | `targets.json` key | Direct copy of the service ID key from the JSON. |
-| `active` | `true` | Static | Always `true` — the service is in the live routing file, so it's active. |
-| `name` | `"Pharm+: Boots Pharmacy Bromley"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `name` field. Strip surrounding quotes. If not found, log as migration gap. |
-| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"` | Static | Always this system URI. |
-| `providedBy.identifier.value` | `"FE284"` | `provider_lookup` (from Step 0b) | Look up `service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as migration gap. |
-| `endpoint[0].reference` | `"Endpoint/0cb21027-a246-43e6-9c7a-35b17163eab1"` | `endpoint_log` (from Step 1) | Look up the service's URL in `endpoint_log` to get `endpoint_id` (returned from `POST /Endpoint` in Step 1.7). Format as `"Endpoint/{endpoint_id}"`. |
+
+| FHIR Field                     | Example Value                                                            | Source                           | How to derive                                                                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resourceType`                 | `"HealthcareService"`                                                    | Static                           | Always`"HealthcareService"`                                                                                                                         |
+| `meta.profile[0]`              | `"https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"` | Static                           | Always this profile URI                                                                                                                             |
+| `identifier[0].system`         | `"https://fhir.nhs.uk/Id/dos-service-id"`                                | Static                           | Always`"https://fhir.nhs.uk/Id/dos-service-id"` — the identifier system the BaRS proxy uses to query the EPC.                                      |
+| `identifier[0].value`          | `"2000017562"`                                                           | `targets.json` key               | Direct copy of the service ID key from the JSON.                                                                                                    |
+| `active`                       | `true`                                                                   | Static                           | Always`true` — the service is in the live routing file, so it's active.                                                                            |
+| `name`                         | `"Pharm+: Boots Pharmacy Bromley"`                                       | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `name` field. Strip surrounding quotes. If not found, log as migration gap.                       |
+| `providedBy.identifier.system` | `"https://fhir.nhs.uk/Id/ods-organization-code"`                         | Static                           | Always this system URI.                                                                                                                             |
+| `providedBy.identifier.value`  | `"FE284"`                                                                | `provider_lookup` (from Step 0b) | Look up`service_id` in `provider_lookup`. Use the `provider_ods` field. If not found, log as migration gap.                                         |
+| `endpoint[0].reference`        | `"Endpoint/0cb21027-a246-43e6-9c7a-35b17163eab1"`                        | `endpoint_log` (from Step 1)     | Look up the service's URL in`endpoint_log` to get `endpoint_id` (returned from `POST /Endpoint` in Step 1.7). Format as `"Endpoint/{endpoint_id}"`. |
 
 ```json
 {
@@ -682,6 +692,7 @@ POST /HealthcareService
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "resourceType": "HealthcareService",
@@ -873,7 +884,7 @@ This is significantly fewer API calls than the full int_ table migration because
 | **URL not found in url_metadata** (enrichment miss)              | Log warning. If ProductId/ODS can be inferred from URL pattern (e.g.,`ygm04` in hostname), use that. Otherwise skip and flag for manual resolution.                                          |
 | **ProductId not in PRODUCT_ID_MAP**                              | Log as unmapped, skip the template creation, and all services using that URL will fail in Step 3. Add to "needs mapping" report.                                                             |
 | **provider_lookup miss** (service not in int_healthcareservices) | Log as migration gap. Create HealthcareService without`providedBy` temporarily but flag as **must-resolve** before go-live. These gaps must be zero for migration to be considered complete. |
-| Template POST fails (409 conflict / already exists)              | Query by ProductId to get existing resource id. Use that in endpoint_log. Continue.                                                                                                           |
+| Template POST fails (409 conflict / already exists)              | Query by ProductId to get existing resource id. Use that in endpoint_log. Continue.                                                                                                          |
 | Endpoint POST fails                                              | Log and skip. Services referencing this URL will have no endpoint reference.                                                                                                                 |
 | HealthcareService POST fails                                     | Log service_id and error. Continue with next.                                                                                                                                                |
 | API rate limit (429)                                             | Exponential backoff with jitter. Retry up to 3 times.                                                                                                                                        |
@@ -951,12 +962,12 @@ for url in unique_urls:
     normalised = url.lower().rstrip('/')
     metadata = url_metadata.get(normalised, {})
     product_id = PRODUCT_ID_MAP.get(metadata.get('product_id', '').upper(), '')
-    
+  
     if not product_id:
         # Can't look up — no product ID mapping
         missing_templates.append(url)
         continue
-    
+  
     # Query EPC for Template by Product ID
     response = requests.get(
         f"{EPC_BASE}/Endpoint/$template",
@@ -997,7 +1008,7 @@ if missing_templates:
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['ODSCode', 'ProductId', 'Address'])
-      
+    
         for url in missing_templates:
             normalised = url.lower().rstrip('/')
             metadata = url_metadata.get(normalised, {})
@@ -1040,25 +1051,25 @@ if missing_endpoints:
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['ODSCode', 'ProductId', 'ServiceId', 'Name', 'Status', 'PeriodStart', 'PeriodEnd'])
-      
+    
         for service_id in missing_endpoints:
             url = service_to_url[service_id]
             normalised = url.lower().rstrip('/')
             metadata = url_metadata.get(normalised, {})
-          
+        
             ods_code = metadata.get('managing_org_ods', 'UNKNOWN')
             product_id = PRODUCT_ID_MAP.get(
                 metadata.get('product_id', '').upper(), 'UNKNOWN'
             )
-          
+        
             # Service name from provider_lookup
             provider = provider_lookup.get(service_id, {})
             name = provider.get('name', '')
-          
+        
             # Period from endpoint_details
             details = endpoint_details.get(service_id, {})
             period_start = details.get('start_date', '')
-          
+        
             writer.writerow([ods_code, product_id, service_id, name, 'active', period_start, ''])
   
     print(f"Generated: {filename} ({len(missing_endpoints)} rows)")
@@ -1091,12 +1102,12 @@ if missing_hcs:
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['ODSCode', 'ServiceId', 'ServiceName', 'EndpointId'])
-      
+    
         for service_id in missing_hcs:
             provider = provider_lookup.get(service_id, {})
             ods_code = provider.get('provider_ods', 'UNKNOWN')
             name = provider.get('name', '')
-          
+        
             writer.writerow([ods_code, service_id, name, ''])
   
     print(f"Generated: {filename} ({len(missing_hcs)} rows)")
@@ -1210,6 +1221,87 @@ sequenceDiagram
 
 ---
 
+## Dry Run Mode (Pre-Run Validation)
+
+The migration script supports a `DRY_RUN` flag. When enabled, the script executes all steps (validation, lookups, payload construction) but **does not write any data to the EPC**. Instead, it produces the same reports that a live run would generate — allowing the team to review and fix issues before committing data.
+
+### How it works
+
+```python
+DRY_RUN = True  # Set to False for live execution
+
+# In each step, the script builds the payload as normal, then:
+if DRY_RUN:
+    # Do NOT call the API
+    log_entry = {
+        "service_id": service_id,
+        "action": "POST /Endpoint/$template",
+        "payload": payload,
+        "status": "DRY_RUN",
+        "detail": "Payload built successfully — not submitted"
+    }
+else:
+    # Call the API
+    response = requests.post(url, json=payload, headers=headers)
+    log_entry = { ... }
+```
+
+### What changes in each step
+
+| Step | Live run | Dry run |
+|------|----------|---------|
+| **Step 0** (parse + enrich) | Scans DynamoDB, builds lookups | Same — no difference |
+| **Step 1** (Templates + Endpoints) | POSTs to EPC, records returned IDs | Builds payloads, validates they would succeed, records `DRY_RUN` status. No API calls. |
+| **Step 2** (HealthcareServices) | POSTs to EPC, PATCHes association | Builds payloads, validates endpoint_log references exist, records `DRY_RUN` status. No API calls. |
+| **Step 3** (Validation) | Queries EPC to verify | Skipped — nothing to validate (no data written) |
+| **Step 4** (Delta detection) | Queries EPC for gaps | Can still run against an existing EPC state (independent of dry run) |
+| **Reports** | Generated after live writes | Generated with `DRY_RUN` status — shows what *would* be created |
+
+### Dry run report output
+
+The processing report uses the same format as a live run but with `DRY_RUN` status:
+
+```csv
+Step,ServiceId,URL,Action,Status,Detail
+template,—,https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/,POST /Endpoint/$template,DRY_RUN,Payload valid
+endpoint,—,https://bars-prod-ygm04.cegedim.thirdparty.nhs.uk/FHIR/R4/,POST /Endpoint,DRY_RUN,Payload valid
+healthcareservice,2000017562,—,POST /HealthcareService,DRY_RUN,Payload valid
+healthcareservice,2000099999,—,POST /HealthcareService,FAILED,provider_lookup miss — no provider ODS for service
+template,—,https://bars-prod-unknown.thirdparty.nhs.uk,POST /Endpoint/$template,FAILED,ProductId not found in PRODUCT_ID_MAP
+```
+
+### What the dry run catches
+
+| Issue | Caught in dry run? | How |
+|-------|-------------------|-----|
+| Missing Product ID mapping | ✓ | `PRODUCT_ID_MAP` lookup fails |
+| Missing provider organisation | ✓ | `provider_lookup` miss |
+| Missing endpoint_details (no period) | ✓ | Fallback to migration date is logged as a warning |
+| Invalid URL in targets.json | ✓ | URL validation in enrichment step |
+| Template not found (for existing EPC) | ✗ | Requires live API call (only relevant for Step 4 delta) |
+| Duplicate rejection (409) | ✗ | Only returned by the live API |
+| Auth/permission errors | ✗ | Only returned by the live API |
+
+### Recommended workflow
+
+```
+1. Run with DRY_RUN=True
+2. Review the dry run report
+3. Fix any FAILED rows (update product-id-lookup.json, resolve provider gaps, etc.)
+4. Re-run with DRY_RUN=True to confirm all issues resolved
+5. Run with DRY_RUN=False to execute the live migration
+```
+
+### Configuration
+
+| Parameter | Value | Effect |
+|-----------|-------|--------|
+| `DRY_RUN=True` | No API writes | Builds payloads, validates data, produces report |
+| `DRY_RUN=False` | Live API writes | Full migration execution |
+
+The dry run flag should be the **default** (`True`) to prevent accidental live execution. The operator must explicitly set `DRY_RUN=False` to commit data.
+
+---
 
 ## Execution Options: External vs Internal API
 
@@ -1225,15 +1317,16 @@ graph LR
     LAMBDA --> DDB[(DynamoDB)]
 ```
 
-| Aspect | Detail |
-|--------|--------|
-| **Authentication** | OAuth2 signed JWT → bearer token (app-restricted) |
-| **Rate limiting** | Subject to Apigee rate limits (may throttle at high volume) |
-| **ODS ownership checks** | Enforced by Apigee proxy policies |
-| **Audit headers** | Injected by Apigee (NHSD-Client-Id, NHSD-Scope) |
-| **Network path** | Internet → Apigee → AWS API Gateway → Lambda |
-| **Dependency** | Requires EPC Proxy to be deployed and configured in Apigee |
-| **Suitable for** | R&M-triggered delta processing, validation queries, production operations |
+
+| Aspect                   | Detail                                                                    |
+| -------------------------- | --------------------------------------------------------------------------- |
+| **Authentication**       | OAuth2 signed JWT → bearer token (app-restricted)                        |
+| **Rate limiting**        | Subject to Apigee rate limits (may throttle at high volume)               |
+| **ODS ownership checks** | Enforced by Apigee proxy policies                                         |
+| **Audit headers**        | Injected by Apigee (NHSD-Client-Id, NHSD-Scope)                           |
+| **Network path**         | Internet → Apigee → AWS API Gateway → Lambda                           |
+| **Dependency**           | Requires EPC Proxy to be deployed and configured in Apigee                |
+| **Suitable for**         | R&M-triggered delta processing, validation queries, production operations |
 
 ### Option B: Internal — via AWS API Gateway directly (recommended for bulk migration)
 
@@ -1246,29 +1339,31 @@ graph LR
     LAMBDA_EPC --> DDB_TGT[(DynamoDB<br/>EPC tables)]
 ```
 
-| Aspect | Detail |
-|--------|--------|
-| **Authentication** | IAM role (SigV4) or internal API key — no OAuth flow needed |
-| **Rate limiting** | None from Apigee. API Gateway throttling applies but is configurable (can be raised for migration). |
-| **ODS ownership checks** | **Not enforced** — Apigee policies are bypassed. The EPC Lambda still validates payloads but ownership headers are not injected. |
-| **Audit headers** | **Not injected** — migration must self-supply or the audit trail will be incomplete. Consider injecting `X-Migration-Run-Id` for traceability. |
-| **Network path** | Stays within AWS (same region, no internet hop) |
-| **Dependency** | Requires IAM permissions on the API Gateway. Does NOT require Apigee EPC Proxy to be deployed. |
-| **Suitable for** | Bulk initial migration, environment seeding, performance-sensitive batch operations |
+
+| Aspect                   | Detail                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Authentication**       | IAM role (SigV4) or internal API key — no OAuth flow needed                                                                                    |
+| **Rate limiting**        | None from Apigee. API Gateway throttling applies but is configurable (can be raised for migration).                                             |
+| **ODS ownership checks** | **Not enforced** — Apigee policies are bypassed. The EPC Lambda still validates payloads but ownership headers are not injected.               |
+| **Audit headers**        | **Not injected** — migration must self-supply or the audit trail will be incomplete. Consider injecting `X-Migration-Run-Id` for traceability. |
+| **Network path**         | Stays within AWS (same region, no internet hop)                                                                                                 |
+| **Dependency**           | Requires IAM permissions on the API Gateway. Does NOT require Apigee EPC Proxy to be deployed.                                                  |
+| **Suitable for**         | Bulk initial migration, environment seeding, performance-sensitive batch operations                                                             |
 
 ### Comparison
 
-| Concern | Option A (External) | Option B (Internal) |
-|---------|--------------------|--------------------|
-| Speed | Slower (internet latency + Apigee overhead + rate limits) | **Faster** (no internet hop, no rate limits, configurable throttle) |
-| Setup complexity | Requires OAuth token management, Apigee proxy deployed | Requires IAM role with API Gateway invoke permissions |
-| Apigee dependency | Yes — blocked if proxy not deployed | **No** — can run before Apigee is configured |
-| Rate limit risk | High for ~12,000+ calls | Low — can increase API Gateway throttle temporarily |
-| Ownership validation | Full Apigee policy enforcement | **Bypassed** — migration runs with elevated trust |
-| Audit trail | Complete (Apigee injects all headers) | **Incomplete** unless migration script self-supplies audit headers |
-| Data integrity | EPC Lambda validates all payloads regardless of route | Same — Lambda validation is identical |
-| Production suitability | Yes — standard consumer path | **No** — internal route should not be used for ongoing operations |
-| Rollback | Same (delete resources via API) | Same |
+
+| Concern                | Option A (External)                                       | Option B (Internal)                                                 |
+| ------------------------ | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| Speed                  | Slower (internet latency + Apigee overhead + rate limits) | **Faster** (no internet hop, no rate limits, configurable throttle) |
+| Setup complexity       | Requires OAuth token management, Apigee proxy deployed    | Requires IAM role with API Gateway invoke permissions               |
+| Apigee dependency      | Yes — blocked if proxy not deployed                      | **No** — can run before Apigee is configured                       |
+| Rate limit risk        | High for ~12,000+ calls                                   | Low — can increase API Gateway throttle temporarily                |
+| Ownership validation   | Full Apigee policy enforcement                            | **Bypassed** — migration runs with elevated trust                  |
+| Audit trail            | Complete (Apigee injects all headers)                     | **Incomplete** unless migration script self-supplies audit headers  |
+| Data integrity         | EPC Lambda validates all payloads regardless of route     | Same — Lambda validation is identical                              |
+| Production suitability | Yes — standard consumer path                             | **No** — internal route should not be used for ongoing operations  |
+| Rollback               | Same (delete resources via API)                           | Same                                                                |
 
 ### Cross-Account Considerations
 
@@ -1300,15 +1395,17 @@ graph LR
 
 #### Where does the migration script run?
 
-| Option | Location | Pros | Cons |
-|--------|----------|------|------|
-| **A. Run in INT account** | Lambda/Step Function in INT | Direct access to int_ tables (no cross-account read needed). | Must call across to PROD API Gateway (cross-account invoke or internet path). |
+
+| Option                     | Location                     | Pros                                                                 | Cons                                                                           |
+| ---------------------------- | ------------------------------ | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **A. Run in INT account**  | Lambda/Step Function in INT  | Direct access to int_ tables (no cross-account read needed).         | Must call across to PROD API Gateway (cross-account invoke or internet path).  |
 | **B. Run in PROD account** | Lambda/Step Function in PROD | Direct access to PROD API Gateway (internal invoke, lowest latency). | Must assume a role in INT to read source tables (cross-account DynamoDB read). |
-| **C. Run externally** | Local machine / CI/CD runner | No account dependency for execution. | Must cross the internet to both INT (read) and PROD (write). Slowest option. |
+| **C. Run externally**      | Local machine / CI/CD runner | No account dependency for execution.                                 | Must cross the internet to both INT (read) and PROD (write). Slowest option.   |
 
 #### Recommended approach: Run in PROD, read from INT
 
 Running the migration in the **PROD account** is recommended because:
+
 - The write target (EPC API Gateway) is local — no cross-account invoke needed for the bulk writes
 - Reading from INT DynamoDB requires a cross-account IAM role, which is straightforward to configure
 - The migration script can use IAM auth directly against the PROD API Gateway (Option B internal path)
@@ -1335,6 +1432,7 @@ Create a role that the PROD migration Lambda/Step Function can assume:
 ```
 
 With permissions:
+
 ```json
 {
   "Effect": "Allow",
@@ -1355,6 +1453,7 @@ With permissions:
 **In the PROD account** (target):
 
 The migration executor role needs:
+
 - `sts:AssumeRole` on the INT source-read role (to read int_ tables)
 - `execute-api:Invoke` on the PROD API Gateway (to call the EPC API internally)
 
@@ -1379,17 +1478,19 @@ The migration executor role needs:
 #### targets.json location
 
 `targets.json` currently lives in the INT environment. For migration it should be copied to an S3 bucket accessible to the migration executor:
+
 - Copy to a PROD S3 bucket before migration, OR
 - Read cross-account from INT S3 (add `s3:GetObject` to the source-read role)
 
 #### Security controls
 
-| Control | Detail |
-|---------|--------|
-| Time-limited role | The `epc-migration-executor` role should have a session duration limit and be revoked/disabled after migration completes |
-| Audit trail | Log all cross-account role assumptions via CloudTrail in both accounts |
-| Least privilege | Source-read role grants read-only access to specific tables only — no write access to INT |
-| Network | No VPC peering required — API Gateway is a public AWS service endpoint accessible via IAM auth within the same region |
+
+| Control           | Detail                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Time-limited role | The`epc-migration-executor` role should have a session duration limit and be revoked/disabled after migration completes |
+| Audit trail       | Log all cross-account role assumptions via CloudTrail in both accounts                                                  |
+| Least privilege   | Source-read role grants read-only access to specific tables only — no write access to INT                              |
+| Network           | No VPC peering required — API Gateway is a public AWS service endpoint accessible via IAM auth within the same region  |
 
 ### Drawbacks of Option B
 
@@ -1401,12 +1502,13 @@ The migration executor role needs:
 
 ### Recommendation
 
-| Phase | Recommended Option | Rationale |
-|-------|-------------------|-----------|
+
+| Phase                               | Recommended Option      | Rationale                                                                                      |
+| ------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
 | Bulk initial migration (Steps 0–2) | **Option B (Internal)** | ~12,000+ API calls, no rate limit risk, no Apigee dependency, fastest path to populate the EPC |
-| Validation (Step 3) | **Option A (External)** | Must confirm the production consumer path works end-to-end |
-| Delta detection (Step 4) | **Option A (External)** | Runs on-demand by R&M team via normal operational tooling |
-| Re-runs / corrections | Either | Depends on volume — small corrections via Option A, bulk re-runs via Option B |
+| Validation (Step 3)                 | **Option A (External)** | Must confirm the production consumer path works end-to-end                                     |
+| Delta detection (Step 4)            | **Option A (External)** | Runs on-demand by R&M team via normal operational tooling                                      |
+| Re-runs / corrections               | Either                  | Depends on volume — small corrections via Option A, bulk re-runs via Option B                 |
 
 ---
 
@@ -1441,10 +1543,10 @@ The migration executor role needs:
 ## Files & Outputs
 
 
-| Artifact              | Location                         | Purpose                          |
-| ----------------------- | ---------------------------------- | ---------------------------------- |
-| Migration script      | TBD                              | Executes Steps 0-3               |
-| Validation script     | TBD                              | Executes Step 4                  |
+| Artifact              | Location                         | Purpose                            |
+| ----------------------- | ---------------------------------- | ------------------------------------ |
+| Migration script      | TBD                              | Executes Steps 0-3                 |
+| Validation script     | TBD                              | Executes Step 4                    |
 | Migration log         | `migration-log-targets.json`     | Source → EPC resource ID mappings |
-| Validation report     | `validation-report-targets.json` | Diff between expected and actual |
-| Reconstructed targets | `targets-reconstructed.json`     | Rebuilt from EPC queries         |
+| Validation report     | `validation-report-targets.json` | Diff between expected and actual   |
+| Reconstructed targets | `targets-reconstructed.json`     | Rebuilt from EPC queries           |
