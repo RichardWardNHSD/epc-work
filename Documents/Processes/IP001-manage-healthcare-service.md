@@ -178,111 +178,30 @@ CSV:
 
 ---
 
-#### Step 2a — Check whether the HealthcareService already exists
+#### Step 2a — Validate the CSV data
 
-Before creating a HealthcareService, the pipeline checks that one does not already exist
-for this service. The check uses `GET /HealthcareService` with the `ServiceId` from the CSV
-as the search parameter.
+The pipeline validates the CSV row before proceeding to create the HealthcareService.
+Validation checks include:
 
-##### How the CSV data is used
+- `ODSCode` is a valid, non-empty ODS code
+- `ServiceId` is a valid, non-empty identifier (single value or brace-delimited format)
+- `EndpointId` (if provided) is a valid UUID or brace-delimited list of UUIDs
 
-| CSV column | Used as | Notes |
-|------------|---------|-------|
-| `ServiceId` | `identifier` query parameter | Used to check if HealthcareService already exists — system rules as per [identifier format](#note-identifier-format-and-system-assumption) |
-| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
+If validation fails, the row is recorded as `FAILED` and the pipeline moves to the next row.
 
-##### Request
+| Validation check | Pipeline Action | Processing Report Entry |
+|------------------|-----------------|-------------------------|
+| All fields valid | Proceed to Step 3 (create) | — |
+| `ODSCode` empty or invalid | Do not proceed | `FAILED` — "Invalid ODSCode" |
+| `ServiceId` empty or invalid | Do not proceed | `FAILED` — "Invalid ServiceId" |
+| `EndpointId` invalid format | Do not proceed | `FAILED` — "Invalid EndpointId format" |
 
-```http
-GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999 HTTP/1.1
-Host: sandbox.api.service.nhs.uk
-Accept: application/fhir+json
-Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
-X-Request-Id: a1b2c3d4-1111-2222-3333-444455556666
-X-Correlation-Id: b2c3d4e5-2222-3333-4444-555566667777
-NHSD-End-User-Organisation-ODS: A1001
-```
-
-##### Parameters
-
-| Parameter | In | Example | Source | Notes |
-|-----------|----|---------|--------|-------|
-| `identifier` | query | `https://fhir.nhs.uk/Id/dos-service-id\|2000099999` | CSV `ServiceId` | URL-encode the `\|` character |
-| `X-Request-Id` | header | `a1b2c3d4-1111-2222-3333-444455556666` | Runtime | UUID |
-| `X-Correlation-Id` | header | `b2c3d4e5-2222-3333-4444-555566667777` | Runtime | UUID |
-| `NHSD-End-User-Organisation-ODS` | header | `A1001` | CSV `ODSCode` | ODS code of the requesting organisation |
-
-##### Pipeline behaviour — HealthcareService already exists (200 OK, total: 1)
-
-If the API returns an existing HealthcareService, the pipeline skips the row and records
-`SKIPPED` in the processing report.
-
-```json
-{
-  "resourceType": "Bundle",
-  "type": "searchset",
-  "total": 1,
-  "entry": [
-    {
-      "resource": {
-        "resourceType": "HealthcareService",
-        "id": "9f2c6f12-1a6d-4d9c-a111-123456789abc",
-        "meta": {
-          "lastUpdated": "2026-05-01T09:00:00+00:00",
-          "profile": ["https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"]
-        },
-        "identifier": [
-          {
-            "system": "https://fhir.nhs.uk/Id/dos-service-id",
-            "value": "2000099999"
-          }
-        ],
-        "active": true,
-        "name": "Anytown Urgent Treatment Centre",
-        "providedBy": {
-          "identifier": {
-            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-            "value": "A1001"
-          }
-        },
-        "endpoint": [
-          {
-            "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001"
-          }
-        ]
-      },
-      "search": { "mode": "match" }
-    }
-  ]
-}
-```
-
-##### Pipeline behaviour — HealthcareService does not exist (200 OK, total: 0)
-
-The pipeline proceeds to Step 3 (create the HealthcareService).
-
-```json
-{
-  "resourceType": "Bundle",
-  "type": "searchset",
-  "total": 0,
-  "entry": []
-}
-```
-
-##### Pipeline behaviour — Error responses
-
-If the lookup call fails, the pipeline records the row as `FAILED` in the processing report
-and moves to the next row. It does **not** attempt to create the HealthcareService.
-
-| API Response         | Pipeline Action                                                                | Processing Report Entry                                  |
-| ----------------------| --------------------------------------------------------------------------------| ----------------------------------------------------------|
-| `200 OK`, `total: 0` | Proceed to Step 3 (create)                                                     | —                                                        |
-| `200 OK`, `total: 1` | Skip — already exists                                                          | `SKIPPED` — "Already exists"                             |
-| `401 Unauthorized`   | Do not proceed                                                                 | `FAILED` — "Authentication error on lookup"              |
-| `403 Forbidden`      | Do not proceed                                                                 | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `5XX Server Error`   | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries"      |
-| Network timeout      | Retry up to 3 times; if still failing, do not proceed                          | `FAILED` — "Timeout on lookup after 3 retries"           |
+> **Note:** The pipeline does not perform a pre-check for duplicate HealthcareServices.
+> The EPC API enforces duplicate detection server-side — if a HealthcareService with the
+> same `identifier.system` + `identifier.value` already exists, the API will reject the
+> `POST` with a `409 Conflict` response and the pipeline records the row as `FAILED`. See
+> [Duplicate Detection](../duplicate-detection.md#healthcareservices) for the full
+> duplicate definition.
 
 ---
 
@@ -466,7 +385,7 @@ s3://epc-switch-processing-prod/reports/healthcareservices/create/epc-healthcare
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId,Status,Detail
 A1001,2000099999,Anytown Urgent Treatment Centre,{e1a2b3c4-0000-0000-0000-000000000001},CREATED,
-A1001,2000088888,Anytown Pharmacy,{e2b3c4d5-1111-2222-3333-444455556666},SKIPPED,Already exists
+A1001,2000088888,Anytown Pharmacy,{e2b3c4d5-1111-2222-3333-444455556666},FAILED,HealthcareService already exists (409 Conflict)
 A1001,2000077777,Anytown GP,{e3c4d5e6-0000-0000-0000-000000000001},FAILED,Endpoint e3c4d5e6-0000-0000-0000-000000000001 not found
 ```
 
@@ -475,8 +394,7 @@ A1001,2000077777,Anytown GP,{e3c4d5e6-0000-0000-0000-000000000001},FAILED,Endpoi
 | Status | Meaning | Action |
 |--------|---------|--------|
 | `CREATED` | HealthcareService created successfully | No action needed |
-| `SKIPPED` | HealthcareService already exists | No action needed |
-| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+| `FAILED` | Error during processing (includes duplicates — `409 Conflict`) | Investigate, correct, and re-submit |
 
 #### Retrieving the report
 
