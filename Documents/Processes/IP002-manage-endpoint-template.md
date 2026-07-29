@@ -502,7 +502,23 @@ CSV:
 
 ---
 
-#### Step 2a — Locate the Template
+#### Step 2a — Validate the CSV data
+
+The pipeline validates the CSV row before proceeding. Validation checks include:
+
+- `Address` is a valid, well-formed URL
+
+If validation fails, the row is recorded as `FAILED` and the pipeline moves to the next row.
+
+
+| Validation check               | Pipeline Action            | Processing Report Entry       |
+| -------------------------------- | ---------------------------- | ------------------------------- |
+| All fields valid               | Proceed to Step 2b (locate) | —                            |
+| `Address` empty or invalid URL | Do not proceed             | `FAILED` — "Invalid Address" |
+
+---
+
+#### Step 2b — Locate the Template
 
 The pipeline locates the existing Template using `GET /Endpoint/$template` with the
 `ProductId` from the CSV. If the Template is not found, the row is recorded as `FAILED` —
@@ -537,7 +553,7 @@ NHSD-End-User-Organisation-ODS: R778
 
 | API Response         | Pipeline Action                                                                | Processing Report Entry                                    |
 | ---------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `200 OK`, `total: 1` | Extract`entry[0].resource.id` — proceed to Step 2b                            | —                                                         |
+| `200 OK`, `total: 1` | Extract`entry[0].resource.id` — proceed to Step 3 (update)                    | —                                                         |
 | `200 OK`, `total: 0` | Template not found — do not proceed                                           | `FAILED` — "Template not found for ProductId {ProductId}" |
 | `401 Unauthorized`   | Do not proceed                                                                 | `FAILED` — "Authentication error on lookup"               |
 | `403 Forbidden`      | Do not proceed                                                                 | `FAILED` — "Authorisation denied for ODS code {ODSCode}"  |
@@ -546,32 +562,15 @@ NHSD-End-User-Organisation-ODS: R778
 
 ---
 
-#### Step 2b — Validate the CSV data
-
-The pipeline validates the CSV row before proceeding to update the Template. Validation
-checks include:
-
-- `Address` is a valid, well-formed URL
-
-If validation fails, the row is recorded as `FAILED` and the pipeline moves to the next row.
-
-
-| Validation check               | Pipeline Action            | Processing Report Entry       |
-| -------------------------------- | ---------------------------- | ------------------------------- |
-| All fields valid               | Proceed to Step 3 (update) | —                            |
-| `Address` empty or invalid URL | Do not proceed             | `FAILED` — "Invalid Address" |
-
----
-
 #### Step 3 — Update the Template
 
-Call `PUT /Endpoint/{id}/$template` with the full replacement payload. The `id` from Step 2a
+Call `PUT /Endpoint/{id}/$template` with the full replacement payload. The `id` from Step 2b
 is used in the path. All fields from the existing Template are carried forward, with the
 `Address` from the CSV replacing the old value.
 
 > **Note:** `PUT` is a full replacement — the entire resource must be included in the
 > payload even though only `address` may be changing. All other field values are copied
-> from the Template retrieved in Step 2a.
+> from the Template retrieved in Step 2b.
 
 ##### How the CSV data is used
 
@@ -818,9 +817,9 @@ The run/maintain team collects the required information and prepares a CSV file.
 
 
 | Column       | Required      | Description                                                       | Provided by       | Example                             |
-| -------------- | --------------- | ------------------------------------------------------------------- | ------------------- | ------------------------------------- |
+| --------------| ---------------| -------------------------------------------------------------------| -------------------| -------------------------------------|
 | `ODSCode`    | **Mandatory** | ODS code of the supplier organisation                             | Supplier          | `R778`                              |
-| `ProductId`  | **Mandatory** | Unique identifier for the supplier product ⚠️                   | Supplier          | `PinnaclePharmOutcomes-v2024.12.12` |
+| `ProductId`  | **Mandatory** | Unique identifier for the supplier product ⚠️                      | Supplier          | `PinnaclePharmOutcomes-v2024.12.12` |
 | `DeleteType` | Optional      | Type of deletion:`soft` or `hard` (defaults to `soft` if omitted) | Run/maintain team | `soft`                              |
 
 ```csv
