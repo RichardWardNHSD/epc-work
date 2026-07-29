@@ -285,7 +285,11 @@ The Lambda extracts:
 
 #### Step 2b — Locate the new supplier's Endpoint
 
-The Lambda looks up the new supplier's Endpoint using the `NewProductId`:
+The Lambda looks up the new supplier's Endpoints using the `NewProductId`. This query may
+return **multiple Endpoints** — a supplier's Template can have several child Endpoints with
+non-overlapping periods (e.g. successive time windows). The duplicate detection rules
+guarantee that no two Endpoints for the same Template will have overlapping periods, so at
+most one will be valid for any given date.
 
 ```http
 GET /Endpoint?identifier=https://fhir.nhs.uk/id/product-id|PROD-PHARMOUTCOMES-001&ConnectionType=http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest&PayloadType=http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars HTTP/1.1
@@ -297,32 +301,45 @@ X-Correlation-Id: {batch-correlation-id}
 NHSD-End-User-Organisation-ODS: X26
 ```
 
-The Lambda extracts the new Endpoint `id` (e.g., `ep-new-supplier-001`).
-
-> **If the Endpoint does not exist:** The row is marked as `FAILED — Endpoint not found`
+> **If no Endpoints are returned:** The row is marked as `FAILED — Endpoint not found`
 > in the processing report. No changes are made.
 
-#### Step 2c — Validate the Endpoint period covers the SwitchDate
+If one or more Endpoints are returned, proceed to Step 2c to select the correct one.
 
-Before proceeding with the switch, the pipeline validates that the new Endpoint's `period`
-is compatible with the `SwitchDate` from the CSV. An Endpoint that is not visible on the
-switch date would result in a successful API call but no working route for consumers.
+#### Step 2c — Select the Endpoint whose period covers the SwitchDate
 
-The pipeline checks:
+Step 2b may return multiple Endpoints for the same Template (with non-overlapping periods).
+The pipeline iterates through the returned Endpoints and selects the one whose `period`
+covers the `SwitchDate`. Because the EPC's duplicate detection rules prevent overlapping
+periods on the same Template, there will be **at most one** valid Endpoint for any given
+date.
 
-| Condition | Rule | Outcome if violated |
-|-----------|------|---------------------|
-| `period.start` is set | Must be ≤ `SwitchDate` | `FAILED` — "Endpoint period.start ({value}) is after SwitchDate ({SwitchDate})" |
-| `period.end` is set | Must be ≥ `SwitchDate` | `FAILED` — "Endpoint period.end ({value}) is before SwitchDate ({SwitchDate})" |
-| Neither `period.start` nor `period.end` is set | No constraint — always valid | Proceed to Step 3 |
-| Endpoint `status` is not `active` | Must be `active` | `FAILED` — "Endpoint status is {status}, expected active" |
+The pipeline evaluates each returned Endpoint against the `SwitchDate`:
+
+| Condition | Rule | Result |
+|-----------|------|--------|
+| `period.start` is set | Must be ≤ `SwitchDate` | Skip this Endpoint if violated |
+| `period.end` is set | Must be ≥ `SwitchDate` | Skip this Endpoint if violated |
+| Neither `period.start` nor `period.end` is set | No constraint — always valid for any date | Select this Endpoint |
+| Endpoint `status` is not `active` | Must be `active` | Skip this Endpoint |
+
+##### Outcome
+
+| Scenario | Pipeline Action | Processing Report Entry |
+|----------|-----------------|-------------------------|
+| Exactly one Endpoint's period covers `SwitchDate` and status is `active` | Select it — proceed to Step 3 | — |
+| No Endpoint's period covers `SwitchDate` | Do not proceed | `FAILED` — "No Endpoint for ProductId {NewProductId} has a period covering SwitchDate {SwitchDate}" |
+| Endpoint found but status is not `active` | Do not proceed | `FAILED` — "Endpoint status is {status}, expected active" |
 
 > **Why this matters:** The EPC's visibility rules require that the current date/time is
 > within the Endpoint's `period` for it to be returned to consumers. If the switch succeeds
 > but the Endpoint's period doesn't cover the switch date, the pharmacy will have no
-> visible Endpoint — routing will fail silently. This validation prevents that scenario.
-
-If validation passes, proceed to Step 3.
+> visible Endpoint — routing will fail silently. This selection step prevents that scenario.
+>
+> **Why there is at most one match:** The duplicate detection rules (see
+> [EPC-INV007 — Duplicates](https://nhsd-confluence.digital.nhs.uk/spaces/RA/pages/1373777154/EPC-INV007+-+Duplicates#EPCINV007Duplicates-WhatisaduplicateEndpoint%3F))
+> guarantee that no two Endpoints for the same parent Template can have overlapping periods.
+> This means the loop will find zero or one valid Endpoint — never more than one.
 
 #### Step 3 — Update the HealthcareService endpoint reference
 
@@ -385,7 +402,7 @@ NHSD-End-User-Organisation-ODS: X26
 | API Response | Pipeline Action | Processing Report Entry |
 |--------------|-----------------|-------------------------|
 | `200 OK` | Switch successful | `SUCCESS` |
-| Period validation failed | Do not proceed — Endpoint not visible on SwitchDate | `FAILED` — "Endpoint period does not cover SwitchDate" |
+| No Endpoint covers `SwitchDate` | Do not proceed — no valid Endpoint for this date | `FAILED` — "No Endpoint for ProductId {NewProductId} has a period covering SwitchDate {SwitchDate}" |
 | Endpoint status not `active` | Do not proceed | `FAILED` — "Endpoint status is {status}, expected active" |
 | `404 Not Found` (HealthcareService) | Do not proceed | `FAILED` — "Service not found" |
 | `404 Not Found` (Endpoint) | Do not proceed | `FAILED` — "Endpoint not found" |
@@ -438,8 +455,8 @@ Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/`
 |----------------|--------|
 | `Service not found` | Confirm DoS Service ID is correct; check if HealthcareService needs to be created |
 | `Endpoint not found` | Confirm the new supplier's Product ID is correct and their Endpoint Template + Endpoint exist |
-| `Endpoint period does not cover SwitchDate` | Check the Endpoint's `period.start` / `period.end` — either update the Endpoint period or correct the `SwitchDate` in the CSV |
-| `Endpoint status is {status}, expected active` | The new supplier's Endpoint is not active — contact the supplier or activate the Endpoint before re-submitting |
+| `No Endpoint has a period covering SwitchDate` | Check the Endpoints for the new supplier's Template — either update an Endpoint's period to cover the date, create a new Endpoint with the correct period, or correct the `SwitchDate` in the CSV |
+| `Endpoint status is {status}, expected active` | The matching Endpoint is not active — contact the supplier or activate the Endpoint before re-submitting |
 | `Conflict` | Investigate concurrent modification; re-submit the row |
 | `Server error after 3 retries` | Escalate to development team — likely an infrastructure issue |
 
