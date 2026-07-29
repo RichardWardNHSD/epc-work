@@ -178,6 +178,7 @@ aws s3 cp epc-healthcareservice-create-2026-07-07T093000.csv \
 > are illustrative examples and may not reflect the actual deployed Lambda function names.
 
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
+
 #### Step 2a — Validate the CSV data
 
 > **Note:** A duplicate-existence check is **not required** by the pipeline. The EPC API
@@ -192,17 +193,18 @@ The `epc-healthcareservice-processor` Lambda executes the following for **each r
 The pipeline validates the CSV row before proceeding to create the HealthcareService.
 Validation checks include:
 
-| Validation check | Rule | Pipeline Action | Processing Report Entry |
-|:-----------------|------|-----------------|-------------------------|
-| `ODSCode` present | Non-empty string | Do not proceed if empty | `FAILED` — "ODSCode is required" |
-| `ServiceId` present | Non-empty string (single value or brace-delimited format) | Do not proceed if empty | `FAILED` — "ServiceId is required" |
-| `ServiceId` valid format | Single value or brace-delimited `{val1,val2,...}` with no empty entries | Do not proceed if invalid | `FAILED` — "Invalid ServiceId format: {value}" |
-| `EndpointId` valid format (if provided) | Valid UUID or brace-delimited list of UUIDs `{id1,id2,...}` | Do not proceed if invalid | `FAILED` — "Invalid EndpointId format: {value}" |
-| All fields valid | All above checks pass | Proceed to Step 3 (create) | — |e does not perform a pre-check for duplicate HealthcareServices.
+
+| Validation check                        | Rule                                                       | Pipeline Action            | Processing Report Entry                          |
+| :---------------------------------------- | ------------------------------------------------------------ | ---------------------------- | -------------------------------------------------- |
+| `ODSCode` present                       | Non-empty string                                           | Do not proceed if empty    | `FAILED` — "ODSCode is required"                |
+| `ServiceId` present                     | Non-empty string (single value or brace-delimited format)  | Do not proceed if empty    | `FAILED` — "ServiceId is required"              |
+| `EndpointId` valid format (if provided) | Valid UUID or brace-delimited list of UUIDs`{id1,id2,...}` | Do not proceed if invalid  | `FAILED` — "Invalid EndpointId format: {value}" |
+| All fields valid                        | All above checks pass                                      | Proceed to Step 3 (create) | —                                               |
+
 > The EPC API enforces duplicate detection server-side — if a HealthcareService with the
 > same `identifier.system` + `identifier.value` already exists, the API will reject the
 > `POST` with a `409 Conflict` response and the pipeline records the row as `FAILED`. See
-> [Duplicate Detection](../duplicate-detection.md#healthcareservices) for the full
+> [Duplicate Detection](https://nhsd-confluence.digital.nhs.uk/spaces/RA/pages/1373777154/EPC-INV007+-+Duplicates) for the full
 > duplicate definition.
 
 ---
@@ -220,12 +222,12 @@ the resource `id`.
 ##### How the CSV data is used
 
 
-| CSV column    | Maps to payload field                                        | Example value                                                                     |
-| --------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `ODSCode`     | `providedBy.identifier.value`                                | `A1001`                                                                           |
-| `ServiceId`   | `identifier[].value` (one entry per identifier — see below) | `2000099999` or `{2000099999,https://fhir.nhs.uk/Id/ods-organization-code|A1001}` |
-| `ServiceName` | `name`                                                       | `Anytown Urgent Treatment Centre`                                                 |
-| `EndpointId`  | `endpoint[].reference`                                       | `Endpoint/e1a2b3c4-0000-0000-0000-000000000001`                                   |
+| CSV column    | Maps to payload field                                        | Example value                                                             |
+| --------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `ODSCode`     | `providedBy.identifier.value`                                | `A1001`                                                                   |
+| `ServiceId`   | `identifier[].value` (one entry per identifier — see below) | `2000099999` or `{2000099999,https://fhir.nhs.uk/Id/ods-organization-code |
+| `ServiceName` | `name`                                                       | `Anytown Urgent Treatment Centre`                                         |
+| `EndpointId`  | `endpoint[].reference`                                       | `Endpoint/e1a2b3c4-0000-0000-0000-000000000001`                           |
 
 `ODSCode` is also used as the `NHSD-End-User-Organisation-ODS` request header.
 
@@ -983,7 +985,7 @@ aws s3 cp epc-healthcareservice-delete-2026-07-08T101500.csv \
 
 | Operation                      | Path                                                                  | Description                                          |
 | -------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------ |
-| Search for a HealthcareService | `GET /HealthcareService?identifier={system}|{value}`                  | Find by DoS Service ID                               |
+| Search for a HealthcareService | `GET /HealthcareService?identifier={system}                           | {value}`                                             |
 | Search with included Endpoints | `GET /HealthcareService?_id={id}&_include=HealthcareService:endpoint` | Returns HealthcareService + all associated Endpoints |
 | Create a HealthcareService     | `POST /HealthcareService`                                             | Creates a new service record; EPC assigns`id`        |
 | Update a HealthcareService     | `PUT /HealthcareService/{id}`                                         | Full replacement — all fields must be included      |
