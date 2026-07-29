@@ -1,6 +1,11 @@
-# Managing HealthcareServices
+# Managing HealthcareServices (BaRS)
 
 ## Overview
+
+> **Scope:** This document describes the process for managing **BaRS HealthcareServices
+> only** — specifically HealthcareServices that are associated with BaRS Endpoints
+> (`connectionType` of `hl7-fhir-rest` and `payloadType` of `bars`). Other service types
+> (if introduced in future) will be documented separately.
 
 A `HealthcareService` resource represents a clinical service in the Endpoint Catalogue — for
 example, a pharmacy, an urgent treatment centre, or a GP practice offering a specific
@@ -178,6 +183,9 @@ aws s3 cp epc-healthcareservice-create-2026-07-07T093000.csv \
 > are illustrative examples and may not reflect the actual deployed Lambda function names.
 
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
+CSV:
+
+---
 
 #### Step 2a — Validate the CSV data
 
@@ -1035,7 +1043,9 @@ The API returns FHIR `OperationOutcome` resources for errors:
 
 ## Related documents
 
-
-| Document | Description                                                            |
-| ---------- | ------------------------------------------------------------------------ |
-| TBC      | Creating and managing the parent Templates that Endpoints inherit from |
+| Document | Description |
+|----------|-------------|
+| [Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md) | Creating and managing parent BaRS Templates |
+| [Managing Endpoints (BaRS)](./manage-endpoint.md) | Creating and managing child Endpoints |
+| [Daily Switch Process (BaRS)](./daily-switch-process.md) | Pharmacy supplier switch process |
+| [Duplicate Detection](../duplicate-detection.md) | Duplicate definitions and API enforcement rules |
