@@ -752,7 +752,7 @@ The run/maintain team collects the required information and prepares a CSV file.
 | -------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------- |
 | `ODSCode`    | **Mandatory** | ODS code of the providing organisation                                                                                                                              | Supplier / Commissioner | `A1001`                                    |
 | `ServiceId`  | **Mandatory** | Service identifier(s) used to locate the HealthcareService. See[identifier format](#note-identifier-format-and-system-assumption) for single/multiple/system rules. | DoS / Commissioner      | `2000099999` or `{2000099999,SVC-INT-001}` |
-| `DeleteType` | **Mandatory** | Type of deletion:`soft` or `hard`                                                                                                                                   | Run/maintain team       | `soft`                                     |
+| `DeleteType` | Optional      | Type of deletion:`soft` or `hard` (defaults to `soft` if omitted) | Run/maintain team | `soft`                              |
 
 ```csv
 ODSCode,ServiceId,DeleteType
