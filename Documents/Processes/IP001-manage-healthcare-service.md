@@ -23,12 +23,13 @@ HealthcareService is what binds the child Endpoint to a specific service.
 
 In the Endpoint Catalogue, a `HealthcareService` is a FHIR R4 resource that carries:
 
-| Field | Purpose |
-|-------|---------|
-| `identifier` | The service identity — typically a DoS Service ID |
-| `name` | Human-readable service name |
-| `active` | Whether the service is currently operational |
-| `providedBy` | The organisation (ODS code) that provides the service |
+
+| Field        | Purpose                                                           |
+| -------------- | ------------------------------------------------------------------- |
+| `identifier` | The service identity — typically a DoS Service ID                |
+| `name`       | Human-readable service name                                       |
+| `active`     | Whether the service is currently operational                      |
+| `providedBy` | The organisation (ODS code) that provides the service             |
 | `endpoint[]` | References to the Endpoint resources associated with this service |
 
 The HealthcareService does not hold technical connection details itself — those live on the
@@ -45,12 +46,13 @@ The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Required | Description | Provided by | Example |
-|--------|----------|-------------|-------------|---------|
-| `ODSCode` | **Mandatory** | ODS code of the organisation that provides this service | Supplier / Commissioner | `A1001` |
-| `ServiceId` | **Mandatory** | Service identifier(s). May be a single value or multiple identifiers in brace-delimited format. | DoS / Commissioner | `2000099999` or `{2000099999,SVC-INT-001}` |
-| `ServiceName` | Optional | Human-readable name of the service | Supplier / Commissioner | `Anytown Urgent Treatment Centre` |
-| `EndpointId` | Optional | FHIR resource id of the Endpoint to associate | EPC (from Template/Endpoint creation) | `e1a2b3c4-0000-0000-0000-000000000001` |
+
+| Column        | Required      | Description                                                                                     | Provided by                           | Example                                    |
+| --------------- | --------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------- |
+| `ODSCode`     | **Mandatory** | ODS code of the organisation that provides this service                                         | Supplier / Commissioner               | `A1001`                                    |
+| `ServiceId`   | **Mandatory** | Service identifier(s). May be a single value or multiple identifiers in brace-delimited format. | DoS / Commissioner                    | `2000099999` or `{2000099999,SVC-INT-001}` |
+| `ServiceName` | Optional      | Human-readable name of the service                                                              | Supplier / Commissioner               | `Anytown Urgent Treatment Centre`          |
+| `EndpointId`  | Optional      | FHIR resource id of the Endpoint to associate                                                   | EPC (from Template/Endpoint creation) | `e1a2b3c4-0000-0000-0000-000000000001`     |
 
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId
@@ -82,6 +84,7 @@ A1001,2000099999,Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000-0000-0000000
 ```
 
 Produces:
+
 ```json
 "identifier": [
   { "system": "https://fhir.nhs.uk/Id/dos-service-id", "value": "2000099999" }
@@ -96,6 +99,7 @@ A1001,{2000099999,2000088888},Anytown Urgent Treatment Centre,e1a2b3c4-0000-0000
 ```
 
 Produces:
+
 ```json
 "identifier": [
   { "system": "https://fhir.nhs.uk/Id/dos-service-id", "value": "2000099999" },
@@ -111,6 +115,7 @@ A1001,{2000099999,https://fhir.nhs.uk/Id/ods-organization-code|A1001},Anytown Ur
 ```
 
 Produces:
+
 ```json
 "identifier": [
   { "system": "https://fhir.nhs.uk/Id/dos-service-id", "value": "2000099999" },
@@ -125,7 +130,6 @@ The CSV may contain multiple rows — one per service. Each row is processed ind
 
 Multiple Endpoints can be associated with a single HealthcareService by including multiple
 `EndpointId` values wrapped in braces and separated by commas: `{id1,id2,id3}`.
-
 
 ##### Example: Multiple Endpoints
 
@@ -174,29 +178,27 @@ aws s3 cp epc-healthcareservice-create-2026-07-07T093000.csv \
 > are illustrative examples and may not reflect the actual deployed Lambda function names.
 
 The `epc-healthcareservice-processor` Lambda executes the following for **each row** in the
-CSV:
-
----
-
 #### Step 2a — Validate the CSV data
+
+> **Note:** A duplicate-existence check is **not required** by the pipeline. The EPC API
+> performs its own duplication checking on `POST /HealthcareService` — if a HealthcareService
+> already exists with the same `identifier.system` + `identifier.value` combination, the API
+> returns `409 Conflict`. The pipeline handles this response in Step 3 (see error table
+> below). This eliminates the need for a pre-check GET call and simplifies the pipeline to:
+> validate → create → handle response. See
+> [Duplicate Detection](../duplicate-detection.md#healthcareservices) for the full
+> duplicate definition.
 
 The pipeline validates the CSV row before proceeding to create the HealthcareService.
 Validation checks include:
 
-- `ODSCode` is a valid, non-empty ODS code
-- `ServiceId` is a valid, non-empty identifier (single value or brace-delimited format)
-- `EndpointId` (if provided) is a valid UUID or brace-delimited list of UUIDs
-
-If validation fails, the row is recorded as `FAILED` and the pipeline moves to the next row.
-
-| Validation check | Pipeline Action | Processing Report Entry |
-|------------------|-----------------|-------------------------|
-| All fields valid | Proceed to Step 3 (create) | — |
-| `ODSCode` empty or invalid | Do not proceed | `FAILED` — "Invalid ODSCode" |
-| `ServiceId` empty or invalid | Do not proceed | `FAILED` — "Invalid ServiceId" |
-| `EndpointId` invalid format | Do not proceed | `FAILED` — "Invalid EndpointId format" |
-
-> **Note:** The pipeline does not perform a pre-check for duplicate HealthcareServices.
+| Validation check | Rule | Pipeline Action | Processing Report Entry |
+|:-----------------|------|-----------------|-------------------------|
+| `ODSCode` present | Non-empty string | Do not proceed if empty | `FAILED` — "ODSCode is required" |
+| `ServiceId` present | Non-empty string (single value or brace-delimited format) | Do not proceed if empty | `FAILED` — "ServiceId is required" |
+| `ServiceId` valid format | Single value or brace-delimited `{val1,val2,...}` with no empty entries | Do not proceed if invalid | `FAILED` — "Invalid ServiceId format: {value}" |
+| `EndpointId` valid format (if provided) | Valid UUID or brace-delimited list of UUIDs `{id1,id2,...}` | Do not proceed if invalid | `FAILED` — "Invalid EndpointId format: {value}" |
+| All fields valid | All above checks pass | Proceed to Step 3 (create) | — |e does not perform a pre-check for duplicate HealthcareServices.
 > The EPC API enforces duplicate detection server-side — if a HealthcareService with the
 > same `identifier.system` + `identifier.value` already exists, the API will reject the
 > `POST` with a `409 Conflict` response and the pipeline records the row as `FAILED`. See
@@ -217,12 +219,13 @@ the resource `id`.
 
 ##### How the CSV data is used
 
-| CSV column | Maps to payload field | Example value |
-|------------|-----------------------|---------------|
-| `ODSCode` | `providedBy.identifier.value` | `A1001` |
-| `ServiceId` | `identifier[].value` (one entry per identifier — see below) | `2000099999` or `{2000099999,https://fhir.nhs.uk/Id/ods-organization-code\|A1001}` |
-| `ServiceName` | `name` | `Anytown Urgent Treatment Centre` |
-| `EndpointId` | `endpoint[].reference` | `Endpoint/e1a2b3c4-0000-0000-0000-000000000001` |
+
+| CSV column    | Maps to payload field                                        | Example value                                                                     |
+| --------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `ODSCode`     | `providedBy.identifier.value`                                | `A1001`                                                                           |
+| `ServiceId`   | `identifier[].value` (one entry per identifier — see below) | `2000099999` or `{2000099999,https://fhir.nhs.uk/Id/ods-organization-code|A1001}` |
+| `ServiceName` | `name`                                                       | `Anytown Urgent Treatment Centre`                                                 |
+| `EndpointId`  | `endpoint[].reference`                                       | `Endpoint/e1a2b3c4-0000-0000-0000-000000000001`                                   |
 
 `ODSCode` is also used as the `NHSD-End-User-Organisation-ODS` request header.
 
@@ -232,19 +235,20 @@ the resource `id`.
 
 ##### Payload field reference
 
-| Field | Source | Value / Notes |
-|-------|--------|---------------|
-| `resourceType` | Static | Always `HealthcareService` |
-| `meta.lastUpdated` | Runtime | Current date/time in `yyyy-MM-DDThh:mm:ss+hh:mm` format |
-| `meta.profile` | Static | `https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService` |
-| `identifier[].system` | **CSV `ServiceId`** (assumed or explicit) | `https://fhir.nhs.uk/Id/dos-service-id` unless a different system is explicitly stated per identifier |
-| `identifier[].value` | **CSV `ServiceId`** | One `identifier[]` entry is created per value in `ServiceId` — single value produces one entry, brace-delimited values produce multiple entries |
-| `active` | Static | Always `true` on creation |
-| `name` | **CSV `ServiceName`** | e.g. `Anytown Urgent Treatment Centre` |
-| `providedBy.identifier.system` | Static | Always `https://fhir.nhs.uk/Id/ods-organization-code` |
-| `providedBy.identifier.value` | **CSV `ODSCode`** | e.g. `A1001` |
-| `endpoint[].reference` | **CSV `EndpointId`** | e.g. `Endpoint/e1a2b3c4-0000-0000-0000-000000000001` |
-| `id` | EPC | Assigned by the EPC on creation — **do not include in payload** |
+
+| Field                          | Source                                    | Value / Notes                                                                                                                                   |
+| -------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resourceType`                 | Static                                    | Always`HealthcareService`                                                                                                                       |
+| `meta.lastUpdated`             | Runtime                                   | Current date/time in`yyyy-MM-DDThh:mm:ss+hh:mm` format                                                                                          |
+| `meta.profile`                 | Static                                    | `https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService`                                                                          |
+| `identifier[].system`          | **CSV `ServiceId`** (assumed or explicit) | `https://fhir.nhs.uk/Id/dos-service-id` unless a different system is explicitly stated per identifier                                           |
+| `identifier[].value`           | **CSV `ServiceId`**                       | One`identifier[]` entry is created per value in `ServiceId` — single value produces one entry, brace-delimited values produce multiple entries |
+| `active`                       | Static                                    | Always`true` on creation                                                                                                                        |
+| `name`                         | **CSV `ServiceName`**                     | e.g.`Anytown Urgent Treatment Centre`                                                                                                           |
+| `providedBy.identifier.system` | Static                                    | Always`https://fhir.nhs.uk/Id/ods-organization-code`                                                                                            |
+| `providedBy.identifier.value`  | **CSV `ODSCode`**                         | e.g.`A1001`                                                                                                                                     |
+| `endpoint[].reference`         | **CSV `EndpointId`**                      | e.g.`Endpoint/e1a2b3c4-0000-0000-0000-000000000001`                                                                                             |
+| `id`                           | EPC                                       | Assigned by the EPC on creation —**do not include in payload**                                                                                 |
 
 ##### Request
 
@@ -391,10 +395,11 @@ A1001,2000077777,Anytown GP,{e3c4d5e6-0000-0000-0000-000000000001},FAILED,Endpoi
 
 #### Status values
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| `CREATED` | HealthcareService created successfully | No action needed |
-| `FAILED` | Error during processing (includes duplicates — `409 Conflict`) | Investigate, correct, and re-submit |
+
+| Status    | Meaning                                                        | Action                              |
+| ----------- | ---------------------------------------------------------------- | ------------------------------------- |
+| `CREATED` | HealthcareService created successfully                         | No action needed                    |
+| `FAILED`  | Error during processing (includes duplicates —`409 Conflict`) | Investigate, correct, and re-submit |
 
 #### Retrieving the report
 
@@ -439,12 +444,13 @@ The run/maintain team collects the updated information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Required | Description | Provided by | Example |
-|--------|----------|-------------|-------------|---------|
-| `ODSCode` | **Mandatory** | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
-| `ServiceId` | **Mandatory** | Service identifier(s) used to locate the HealthcareService. See [identifier format](#note-identifier-format-and-system-assumption) for single/multiple/system rules. | DoS / Commissioner | `2000099999` or `{2000099999,SVC-INT-001}` |
-| `ServiceName` | Optional | Updated human-readable name | Supplier / Commissioner | `Anytown UTC (Extended Hours)` |
-| `EndpointId` | Optional | Full set of Endpoint(s) to associate | EPC | `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}` |
+
+| Column        | Required      | Description                                                                                                                                                         | Provided by             | Example                                                                       |
+| --------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------- |
+| `ODSCode`     | **Mandatory** | ODS code of the providing organisation                                                                                                                              | Supplier / Commissioner | `A1001`                                                                       |
+| `ServiceId`   | **Mandatory** | Service identifier(s) used to locate the HealthcareService. See[identifier format](#note-identifier-format-and-system-assumption) for single/multiple/system rules. | DoS / Commissioner      | `2000099999` or `{2000099999,SVC-INT-001}`                                    |
+| `ServiceName` | Optional      | Updated human-readable name                                                                                                                                         | Supplier / Commissioner | `Anytown UTC (Extended Hours)`                                                |
+| `EndpointId`  | Optional      | Full set of Endpoint(s) to associate                                                                                                                                | EPC                     | `{e1a2b3c4-0000-0000-0000-000000000001,e1a2b3c4-0000-0000-0000-000000000002}` |
 
 ```csv
 ODSCode,ServiceId,ServiceName,EndpointId
@@ -516,10 +522,11 @@ The pipeline locates the existing HealthcareService using `GET /HealthcareServic
 
 ##### How the CSV data is used
 
-| CSV column | Used as | Notes |
-|------------|---------|-------|
-| `ServiceId` | `identifier` query parameter | Used to locate the HealthcareService — system rules as per [identifier format](#note-identifier-format-and-system-assumption) |
-| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
+
+| CSV column  | Used as                                 | Notes                                                                                                                         |
+| ------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `ServiceId` | `identifier` query parameter            | Used to locate the HealthcareService — system rules as per[identifier format](#note-identifier-format-and-system-assumption) |
+| `ODSCode`   | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation                                                                                        |
 
 ##### Request
 
@@ -535,14 +542,15 @@ NHSD-End-User-Organisation-ODS: A1001
 
 ##### Pipeline behaviour
 
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK`, `total: 1` | Extract `entry[0].resource.id` — proceed to Step 3 (update) | — |
-| `200 OK`, `total: 0` | HealthcareService not found — do not proceed | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}" |
-| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
-| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
+
+| API Response         | Pipeline Action                                                                | Processing Report Entry                                             |
+| ---------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `200 OK`, `total: 1` | Extract`entry[0].resource.id` — proceed to Step 3 (update)                    | —                                                                  |
+| `200 OK`, `total: 0` | HealthcareService not found — do not proceed                                  | `FAILED` — "HealthcareService not found for ServiceId {ServiceId}" |
+| `401 Unauthorized`   | Do not proceed                                                                 | `FAILED` — "Authentication error on lookup"                        |
+| `403 Forbidden`      | Do not proceed                                                                 | `FAILED` — "Authorisation denied for ODS code {ODSCode}"           |
+| `5XX Server Error`   | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries"                |
+| Network timeout      | Retry up to 3 times; if still failing, do not proceed                          | `FAILED` — "Timeout on lookup after 3 retries"                     |
 
 ---
 
@@ -567,12 +575,13 @@ The CSV-to-payload mapping follows the same rules as
 The key difference for updates is that `PUT` is a full replacement — every field must be
 provided, and the `endpoint[]` array represents the **complete** set of associations.
 
-| CSV column | Maps to payload field | Notes |
-|------------|-----------------------|-------|
-| `ODSCode` | `providedBy.identifier.value` and `NHSD-End-User-Organisation-ODS` header | |
-| `ServiceId` | `identifier[]` | Single or multiple values — same system/parsing rules as Create (see [identifier format](#note-identifier-format-and-system-assumption)) |
-| `ServiceName` | `name` | The updated value |
-| `EndpointId` | `endpoint[].reference` | Full set of Endpoint references — **replaces** the existing list. Omitted Endpoints are disassociated. |
+
+| CSV column    | Maps to payload field                                                     | Notes                                                                                                                                    |
+| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ODSCode`     | `providedBy.identifier.value` and `NHSD-End-User-Organisation-ODS` header |                                                                                                                                          |
+| `ServiceId`   | `identifier[]`                                                            | Single or multiple values — same system/parsing rules as Create (see[identifier format](#note-identifier-format-and-system-assumption)) |
+| `ServiceName` | `name`                                                                    | The updated value                                                                                                                        |
+| `EndpointId`  | `endpoint[].reference`                                                    | Full set of Endpoint references —**replaces** the existing list. Omitted Endpoints are disassociated.                                   |
 
 ##### Request
 
@@ -683,10 +692,11 @@ A1001,2000077777,Anytown GP,,FAILED,HealthcareService not found for ServiceId 20
 
 #### Status values
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| `UPDATED` | HealthcareService updated successfully | No action needed |
-| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+| Status    | Meaning                                | Action                              |
+| ----------- | ---------------------------------------- | ------------------------------------- |
+| `UPDATED` | HealthcareService updated successfully | No action needed                    |
+| `FAILED`  | Error during processing                | Investigate, correct, and re-submit |
 
 #### Retrieving the report
 
@@ -714,10 +724,11 @@ aws s3 cp epc-healthcareservice-update-2026-07-08T101500.csv \
 
 There are two ways to remove a HealthcareService from active use:
 
-| Type | Mechanism | Reversible? | Use when |
-|------|-----------|-------------|----------|
-| Soft delete | Set `active` to `false` via `PUT /HealthcareService/{id}` | Yes — set `active` back to `true` to reinstate | Service is being temporarily withdrawn |
-| Hard delete | `DELETE /HealthcareService/{id}` | No — permanently removes the resource | Service is fully decommissioned. **Requires admin access.** |
+
+| Type        | Mechanism                                                | Reversible?                                    | Use when                                                   |
+| ------------- | ---------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ |
+| Soft delete | Set`active` to `false` via `PUT /HealthcareService/{id}` | Yes — set`active` back to `true` to reinstate | Service is being temporarily withdrawn                     |
+| Hard delete | `DELETE /HealthcareService/{id}`                         | No — permanently removes the resource         | Service is fully decommissioned.**Requires admin access.** |
 
 > **Note:** Deleting a HealthcareService does not automatically delete its associated
 > Endpoints. Endpoints must be managed independently. If the HealthcareService is deleted
@@ -734,11 +745,12 @@ The run/maintain team collects the required information and prepares a CSV file.
 
 #### CSV structure
 
-| Column | Required | Description | Provided by | Example |
-|--------|----------|-------------|-------------|---------|
-| `ODSCode` | **Mandatory** | ODS code of the providing organisation | Supplier / Commissioner | `A1001` |
-| `ServiceId` | **Mandatory** | Service identifier(s) used to locate the HealthcareService. See [identifier format](#note-identifier-format-and-system-assumption) for single/multiple/system rules. | DoS / Commissioner | `2000099999` or `{2000099999,SVC-INT-001}` |
-| `DeleteType` | Optional | Type of deletion: `soft` or `hard` (defaults to `soft` if omitted) | Run/maintain team | `soft` |
+
+| Column       | Required      | Description                                                                                                                                                         | Provided by             | Example                                    |
+| -------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | -------------------------------------------- |
+| `ODSCode`    | **Mandatory** | ODS code of the providing organisation                                                                                                                              | Supplier / Commissioner | `A1001`                                    |
+| `ServiceId`  | **Mandatory** | Service identifier(s) used to locate the HealthcareService. See[identifier format](#note-identifier-format-and-system-assumption) for single/multiple/system rules. | DoS / Commissioner      | `2000099999` or `{2000099999,SVC-INT-001}` |
+| `DeleteType` | Optional      | Type of deletion:`soft` or `hard` (defaults to `soft` if omitted)                                                                                                   | Run/maintain team       | `soft`                                     |
 
 ```csv
 ODSCode,ServiceId,DeleteType
@@ -871,12 +883,13 @@ Returns the updated HealthcareService with `active: false`. The pipeline records
 
 ###### Pipeline behaviour — Soft delete errors
 
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK` | Soft delete successful | `SOFT_DELETED` |
-| `404 Not Found` | HealthcareService does not exist | `FAILED` — "HealthcareService not found" |
-| `401` / `403` | Auth error | `FAILED` — "Authentication/authorisation error" |
-| `5XX` / timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Server error after 3 retries" |
+
+| API Response    | Pipeline Action                                       | Processing Report Entry                          |
+| ----------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| `200 OK`        | Soft delete successful                                | `SOFT_DELETED`                                   |
+| `404 Not Found` | HealthcareService does not exist                      | `FAILED` — "HealthcareService not found"        |
+| `401` / `403`   | Auth error                                            | `FAILED` — "Authentication/authorisation error" |
+| `5XX` / timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Server error after 3 retries"       |
 
 ---
 
@@ -907,12 +920,13 @@ records `DELETED` in the processing report.
 
 ###### Pipeline behaviour — Hard delete errors
 
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK` | Hard delete successful | `DELETED` |
-| `404 Not Found` | HealthcareService does not exist | `FAILED` — "HealthcareService not found" |
-| `401` / `403` | Auth error or insufficient permissions | `FAILED` — "Insufficient permissions for hard delete" |
-| `5XX` / timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Server error after 3 retries" |
+
+| API Response    | Pipeline Action                                       | Processing Report Entry                                |
+| ----------------- | ------------------------------------------------------- | -------------------------------------------------------- |
+| `200 OK`        | Hard delete successful                                | `DELETED`                                              |
+| `404 Not Found` | HealthcareService does not exist                      | `FAILED` — "HealthcareService not found"              |
+| `401` / `403`   | Auth error or insufficient permissions                | `FAILED` — "Insufficient permissions for hard delete" |
+| `5XX` / timeout | Retry up to 3 times; if still failing, record failure | `FAILED` — "Server error after 3 retries"             |
 
 ---
 
@@ -935,11 +949,12 @@ A1001,2000077777,hard,FAILED,Insufficient permissions for hard delete
 
 #### Status values
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| `DELETED` | HealthcareService permanently removed (hard delete) | No action needed |
-| `SOFT_DELETED` | HealthcareService deactivated (`active: false`) | No action needed — reinstate by updating `active` to `true` |
-| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+| Status         | Meaning                                             | Action                                                      |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| `DELETED`      | HealthcareService permanently removed (hard delete) | No action needed                                            |
+| `SOFT_DELETED` | HealthcareService deactivated (`active: false`)     | No action needed — reinstate by updating`active` to `true` |
+| `FAILED`       | Error during processing                             | Investigate, correct, and re-submit                         |
 
 #### Retrieving the report
 
@@ -965,14 +980,15 @@ aws s3 cp epc-healthcareservice-delete-2026-07-08T101500.csv \
 
 ## API operations reference
 
-| Operation | Path | Description |
-|-----------|------|-------------|
-| Search for a HealthcareService | `GET /HealthcareService?identifier={system}\|{value}` | Find by DoS Service ID |
+
+| Operation                      | Path                                                                  | Description                                          |
+| -------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------ |
+| Search for a HealthcareService | `GET /HealthcareService?identifier={system}|{value}`                  | Find by DoS Service ID                               |
 | Search with included Endpoints | `GET /HealthcareService?_id={id}&_include=HealthcareService:endpoint` | Returns HealthcareService + all associated Endpoints |
-| Create a HealthcareService | `POST /HealthcareService` | Creates a new service record; EPC assigns `id` |
-| Update a HealthcareService | `PUT /HealthcareService/{id}` | Full replacement — all fields must be included |
-| Soft delete (deactivate) | `PUT /HealthcareService/{id}` with `active: false` | Reversible — set `active: true` to reinstate |
-| Hard delete | `DELETE /HealthcareService/{id}` | Permanent removal — requires admin access |
+| Create a HealthcareService     | `POST /HealthcareService`                                             | Creates a new service record; EPC assigns`id`        |
+| Update a HealthcareService     | `PUT /HealthcareService/{id}`                                         | Full replacement — all fields must be included      |
+| Soft delete (deactivate)       | `PUT /HealthcareService/{id}` with `active: false`                    | Reversible — set`active: true` to reinstate         |
+| Hard delete                    | `DELETE /HealthcareService/{id}`                                      | Permanent removal — requires admin access           |
 
 ---
 
@@ -980,16 +996,17 @@ aws s3 cp epc-healthcareservice-delete-2026-07-08T101500.csv \
 
 The API returns FHIR `OperationOutcome` resources for errors:
 
-| HTTP Status | Meaning |
-|-------------|---------|
-| 200 | Success — resource returned or Bundle with results |
-| 400 | Bad request — invalid parameter value or format |
-| 401 | Unauthorised — missing or invalid Bearer token |
-| 403 | Forbidden — valid token but insufficient permissions |
-| 404 | Not found — no resource with the specified `id` |
-| 409 | Conflict — e.g. duplicate identifier |
-| 4XX | Other client error — see OperationOutcome for details |
-| 5XX | Server error — see OperationOutcome for details |
+
+| HTTP Status | Meaning                                                |
+| ------------- | -------------------------------------------------------- |
+| 200         | Success — resource returned or Bundle with results    |
+| 400         | Bad request — invalid parameter value or format       |
+| 401         | Unauthorised — missing or invalid Bearer token        |
+| 403         | Forbidden — valid token but insufficient permissions  |
+| 404         | Not found — no resource with the specified`id`        |
+| 409         | Conflict — e.g. duplicate identifier                  |
+| 4XX         | Other client error — see OperationOutcome for details |
+| 5XX         | Server error — see OperationOutcome for details       |
 
 ```json
 {
@@ -1016,6 +1033,7 @@ The API returns FHIR `OperationOutcome` resources for errors:
 
 ## Related documents
 
-| Document | Description |
-|----------|-------------|
-| TBC| Creating and managing the parent Templates that Endpoints inherit from |
+
+| Document | Description                                                            |
+| ---------- | ------------------------------------------------------------------------ |
+| TBC      | Creating and managing the parent Templates that Endpoints inherit from |
