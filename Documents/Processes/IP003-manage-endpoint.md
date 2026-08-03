@@ -553,9 +553,142 @@ An Endpoint's `status` and `period` can be changed via `PUT /Endpoint/{id}`. Onl
 two fields are mutable on a child Endpoint — all other fields are inherited from the
 Template.
 
-### Changing status
+---
+
+### Step 1 — Gather the required data
+
+The run/maintain team collects the required information and prepares a CSV file.
+
+#### CSV structure
+
+| Column | Required | Description | Provided by | Example |
+|--------|----------|-------------|-------------|---------|
+| `ODSCode` | **Mandatory** | ODS code of the supplier organisation that owns the Template | Supplier | `R778` |
+| `EndpointId` | **Mandatory** | FHIR resource id of the Endpoint to update | EPC | `ep-a1b2c3d4-0000-0000-0000-111122223333` |
+| `Status` | Optional | New status value — omit if not changing | Run/maintain | `suspended` |
+| `PeriodStart` | Optional | New period start date/time — omit if not changing | Run/maintain | `2026-07-01T00:00:00+00:00` |
+| `PeriodEnd` | Optional | New period end date/time — omit if not changing | Run/maintain | `2026-12-31T23:59:59+00:00` |
+
+```csv
+ODSCode,EndpointId,Status,PeriodStart,PeriodEnd
+R778,ep-a1b2c3d4-0000-0000-0000-111122223333,suspended,,
+R778,ep-b2c3d4e5-0000-0000-0000-222233334444,,2026-01-01T00:00:00+00:00,2026-06-30T23:59:59+00:00
+```
+
+> **Naming convention:** `epc-endpoint-update-YYYY-MM-DDTHHmmss.csv` (e.g.,
+> `epc-endpoint-update-2026-07-07T093000.csv`)
+
+The CSV may contain multiple rows — one per Endpoint. Each row is processed independently.
+
+> **Note:** At least one of `Status`, `PeriodStart`, or `PeriodEnd` must be provided. A
+> row with none of these fields set will be recorded as `FAILED` — "Nothing to update".
+
+---
+
+### Step 2 — Upload the CSV to S3
+
+Upload the CSV to the designated S3 bucket. This triggers the `epc-endpoint-processor`
+Lambda function automatically.
+
+#### Using the AWS CLI
+
+```bash
+aws s3 cp epc-endpoint-update-2026-07-07T093000.csv \
+  s3://epc-switch-processing-prod/incoming/endpoints/update/epc-endpoint-update-2026-07-07T093000.csv
+```
+
+#### Using the AWS Console
+
+1. Navigate to S3 → `epc-switch-processing-prod` → `incoming/endpoints/update/`
+2. Click **Upload**
+3. Select the CSV file
+4. Click **Upload**
+
+> **What happens on upload:** The S3 `PutObject` event triggers the
+> `epc-endpoint-processor` Lambda function. The Lambda reads the CSV and processes each
+> row independently, executing Steps 2a, 2b, and 3 for every row.
+>
+> **After processing:** The CSV file is moved from the `incoming/` folder to an
+> `archive/` folder in the same S3 bucket and retained for 30 days before automatic
+> deletion.
+
+---
+
+### Pipeline processing (automated)
+
+> **Note:** Lambda names used in this document (e.g., `epc-endpoint-processor`)
+> are illustrative examples and may not reflect the actual deployed Lambda function names.
+
+The `epc-endpoint-processor` Lambda executes the following for **each row** in the
+CSV:
+
+---
+
+#### Step 2a — Validate the CSV data
+
+The pipeline validates the CSV row before proceeding.
+
+| Validation check | Rule | Pipeline Action | Processing Report Entry |
+|:-----------------|------|-----------------|-------------------------|
+| `ODSCode` present | Non-empty string | Do not proceed if empty | `FAILED` — "ODSCode is required" |
+| `EndpointId` present | Non-empty string | Do not proceed if empty | `FAILED` — "EndpointId is required" |
+| At least one update field present | One of `Status`, `PeriodStart`, `PeriodEnd` must be set | Do not proceed if all empty | `FAILED` — "Nothing to update" |
+| `Status` valid (if provided) | Must be a recognised Endpoint status value | Do not proceed if invalid | `FAILED` — "Invalid Status: {value}" |
+| All fields valid | All above checks pass | Proceed to Step 2b (locate) | — |
+
+---
+
+#### Step 2b — Locate the Endpoint
+
+The pipeline retrieves the existing Endpoint using the `EndpointId` from the CSV. The
+current resource is needed to construct the full `PUT` payload.
 
 ##### Request
+
+```http
+GET /Endpoint/ep-a1b2c3d4-0000-0000-0000-111122223333 HTTP/1.1
+Host: sandbox.api.service.nhs.uk
+Accept: application/fhir+json
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
+X-Request-Id: g7h8i9j0-7777-8888-9999-000011112222
+X-Correlation-Id: h8i9j0k1-8888-9999-0000-111122223333
+NHSD-End-User-Organisation-ODS: R778
+```
+
+##### Pipeline behaviour
+
+| API Response | Pipeline Action | Processing Report Entry |
+|--------------|-----------------|-------------------------|
+| `200 OK` | Extract current resource — proceed to Step 3 (update) | — |
+| `404 Not Found` | Endpoint does not exist — do not proceed | `FAILED` — "Endpoint not found: {EndpointId}" |
+| `401 Unauthorized` | Do not proceed | `FAILED` — "Authentication error on lookup" |
+| `403 Forbidden` | Do not proceed | `FAILED` — "Authorisation denied for ODS code {ODSCode}" |
+| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error on lookup after 3 retries" |
+| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout on lookup after 3 retries" |
+
+---
+
+#### Step 3 — Update the Endpoint
+
+Call `PUT /Endpoint/{id}` with the full replacement payload. The pipeline takes the
+current resource retrieved in Step 2b and applies only the fields provided in the CSV,
+leaving all other fields unchanged.
+
+> **Note:** `PUT` is a full replacement — the entire resource must be included in the
+> payload. Fields not present in the CSV (e.g. `PeriodStart` if only `Status` is being
+> changed) are carried forward unchanged from the resource retrieved in Step 2b.
+
+##### How the CSV data is used
+
+| CSV column | Maps to payload field | Notes |
+|------------|-----------------------|-------|
+| `ODSCode` | `NHSD-End-User-Organisation-ODS` header | Identifies the requesting organisation |
+| `EndpointId` | Path parameter `{id}` | The Endpoint to update |
+| `Status` | `status` | Applied if provided; otherwise carried forward unchanged |
+| `PeriodStart` | `period.start` | Applied if provided; otherwise carried forward unchanged |
+| `PeriodEnd` | `period.end` | Applied if provided; otherwise carried forward unchanged |
+
+##### Request — changing status
 
 ```http
 PUT /Endpoint/ep-a1b2c3d4-0000-0000-0000-111122223333 HTTP/1.1
@@ -601,93 +734,9 @@ NHSD-End-User-Organisation-ODS: R778
 }
 ```
 
-##### Response — 200 OK
-
-Returns the updated Endpoint with the new status and all inherited fields resolved from
-the parent Template.
-
-```json
-{
-  "resourceType": "Endpoint",
-  "id": "ep-a1b2c3d4-0000-0000-0000-111122223333",
-  "meta": {
-    "lastUpdated": "2026-06-18T14:00:00+00:00",
-    "profile": [
-      "http://hl7.org/fhir/StructureDefinition/Endpoint"
-    ]
-  },
-  "identifier": [
-    {
-      "system": "https://fhir.nhs.uk/id/product-id",
-      "value": "PinnaclePharmOutcomes-v2024.12.12"
-    }
-  ],
-  "extension": [
-    {
-      "url": "http://hl7.org",
-      "valueReference": {
-        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
-        "display": "Parent Template Endpoint"
-      }
-    }
-  ],
-  "name": "Shirley Pharmacy BaRS Endpoint",
-  "status": "suspended",
-  "period": {
-    "start": "2026-07-01T00:00:00+00:00"
-  },
-  "name": "Endpoint Template",
-  "connectionType": {
-    "coding": [
-      {
-        "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
-        "code": "hl7-fhir-rest",
-        "display": "HL7 FHIR"
-      }
-    ]
-  },
-  "payloadType": [
-    {
-      "coding": [
-        {
-          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
-          "code": "bars",
-          "display": "BaRS"
-        }
-      ]
-    }
-  ],
-  "managingOrganization": [
-    {
-      "identifier": {
-        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-        "value": "R778"
-      }
-    }
-  ],
-  "address": "https://myService.nhs.uk/Base/Address",
-  "header": "public"
-}
-```
-
----
-
-### Setting a period end date
+##### Request — setting a period end date
 
 To expire an Endpoint (e.g. ahead of a supplier switch), set `period.end`:
-
-##### Request
-
-```http
-PUT /Endpoint/ep-a1b2c3d4-0000-0000-0000-111122223333 HTTP/1.1
-Host: sandbox.api.service.nhs.uk
-Content-Type: application/fhir+json;version=1.4.0
-Accept: application/fhir+json
-Authorization: Bearer eyJhbGciOiJSUzI1NiJ9...
-X-Request-Id: h8i9j0k1-1111-2222-3333-444455556666
-X-Correlation-Id: i9j0k1l2-2222-3333-4444-555566667777
-NHSD-End-User-Organisation-ODS: R778
-```
 
 ```json
 {
@@ -723,9 +772,12 @@ NHSD-End-User-Organisation-ODS: R778
 }
 ```
 
+Once `period.end` passes, the Endpoint is no longer returned to consumers in search
+results — it has expired.
+
 ##### Response — 200 OK
 
-Returns the updated Endpoint with the period end date set and all inherited fields resolved.
+Returns the updated Endpoint with all inherited fields resolved from the parent Template.
 
 ```json
 {
@@ -753,10 +805,9 @@ Returns the updated Endpoint with the period end date set and all inherited fiel
     }
   ],
   "name": "Shirley Pharmacy BaRS Endpoint",
-  "status": "active",
+  "status": "suspended",
   "period": {
-    "start": "2026-01-01T00:00:00+00:00",
-    "end": "2026-06-30T23:59:59+00:00"
+    "start": "2026-07-01T00:00:00+00:00"
   },
   "connectionType": {
     "coding": [
@@ -791,8 +842,51 @@ Returns the updated Endpoint with the period end date set and all inherited fiel
 }
 ```
 
-Once `period.end` passes, the Endpoint is no longer returned to consumers in search
-results — it has expired.
+---
+
+### Processing report
+
+After all rows are processed, the Lambda writes a report to S3:
+
+```
+s3://epc-switch-processing-prod/reports/endpoints/update/epc-endpoint-update-2026-07-07T093000-report.csv
+```
+
+#### Report CSV structure
+
+```csv
+ODSCode,EndpointId,Status,PeriodStart,PeriodEnd,Detail
+R778,ep-a1b2c3d4-0000-0000-0000-111122223333,UPDATED,,,
+R778,ep-b2c3d4e5-0000-0000-0000-222233334444,UPDATED,,,
+R778,ep-c3d4e5f6-0000-0000-0000-333344445555,FAILED,,,"Endpoint not found: ep-c3d4e5f6-0000-0000-0000-333344445555"
+```
+
+#### Status values
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| `UPDATED` | Endpoint updated successfully | No action needed |
+| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+#### Retrieving the report
+
+```bash
+aws s3 cp \
+  s3://epc-switch-processing-prod/reports/endpoints/update/epc-endpoint-update-2026-07-07T093000-report.csv \
+  ./epc-endpoint-update-2026-07-07T093000-report.csv
+```
+
+Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/endpoints/update/`
+
+#### Re-processing failed rows
+
+Extract the failed rows from the report, correct the data, and upload a new CSV containing
+only the corrected rows:
+
+```bash
+aws s3 cp epc-endpoint-update-2026-07-07T093000-fixes.csv \
+  s3://epc-switch-processing-prod/incoming/endpoints/update/epc-endpoint-update-2026-07-07T093000-fixes.csv
+```
 
 ---
 
