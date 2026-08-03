@@ -198,17 +198,16 @@ successful API response.
 
 Extract today's switches from the Master Switch Log (or receive them via an automated
 feed). Create a CSV file with the following structure.
-| `ODSCode` | **Mandatory** | ODS code of the pharmacy | Master Switch Log | `FQ024` |
-| `ServiceId` | **Mandatory** | DoS Service ID (the `Pharm+ DoS Service ID` column) | Master Switch Log | `2000110743` |
-| `OldProductId` | **Mandatory** | Product ID of the outgoing supplier's Endpoint Template | Master Switch Log / EPC | `CegedimPharmacy-v2024.06.01` |
-| `NewProductId` | **Mandatory** | Product ID of the incoming supplier's Endpoint Template | Master Switch Log / EPC | `PinnaclePharmOutcomes-v2024.12.12` |
-| `SwitchDate` | **Mandatory** | Effective date of the switch | Master Switch Log | `2026-07-07` |ded by             | Example                  |
-| ---------------- | --------------- | --------------------------------------------------------- | ------------------------- | -------------------------- |
-| `ODSCode`      | **Mandatory** | ODS code of the pharmacy                                | Master Switch Log       | `FQ024`                  |
-| `ServiceId`    | **Mandatory** | DoS Service ID (the`Pharm+ DoS Service ID` column)      | Master Switch Log       | `2000110743`             |
+
+#### CSV structure
+
+| Column         | Required      | Description                                             | Provided by             | Example                             |
+| ----------------| ---------------| ---------------------------------------------------------| -------------------------| -------------------------------------|
+| `ODSCode`      | **Mandatory** | ODS code of the pharmacy                                | Master Switch Log       | `FQ024`                             |
+| `ServiceId`    | **Mandatory** | DoS Service ID (the `Pharm+ DoS Service ID` column)     | Master Switch Log       | `2000110743`                        |
 | `OldProductId` | **Mandatory** | Product ID of the outgoing supplier's Endpoint Template | Master Switch Log / EPC | `CegedimPharmacy-v2024.06.01`       |
 | `NewProductId` | **Mandatory** | Product ID of the incoming supplier's Endpoint Template | Master Switch Log / EPC | `PinnaclePharmOutcomes-v2024.12.12` |
-| `SwitchDate`   | **Mandatory** | Effective date of the switch                            | Master Switch Log       | `2026-07-07`             |
+| `SwitchDate`   | **Mandatory** | Effective date of the switch                            | Master Switch Log       | `2026-07-07`                        |
 
 ```csv
 ODSCode,ServiceId,OldProductId,NewProductId,SwitchDate
@@ -353,7 +352,14 @@ The pipeline evaluates each returned Endpoint against the `SwitchDate`:
 #### Step 3 — Update the HealthcareService endpoint reference
 
 The Lambda issues a `PUT /HealthcareService/{id}` to replace the old Endpoint reference
-with the new one:
+with the new one. The Lambda constructs the `endpoint[]` array by taking the current
+`endpoint[]` retrieved in Step 2a, removing the reference to the old supplier's Endpoint,
+and inserting the new supplier's Endpoint in its place.
+
+> **Note:** A HealthcareService may have more than one Endpoint reference in its
+> `endpoint[]` array (e.g. different connection types for the same service). The switch
+> only replaces the single reference belonging to the old supplier's Template — all other
+> Endpoint references are preserved unchanged in the PUT payload.
 
 ```http
 PUT /HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc HTTP/1.1
@@ -380,6 +386,10 @@ NHSD-End-User-Organisation-ODS: X26
     {
       "system": "https://fhir.nhs.uk/Id/dos-service-id",
       "value": "2000110743"
+    },
+    {
+      "system": "https://fhir.nhs.uk/id/product-id",
+      "value": "PinnaclePharmOutcomes-v2024.12.12"
     }
   ],
   "active": true,
