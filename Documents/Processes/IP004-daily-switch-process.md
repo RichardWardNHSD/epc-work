@@ -30,6 +30,7 @@ the daily management of endpoint switches created by the Pharmacy First programm
 with all other BaRS endpoints.
 
 Key points:
+
 - The EPC Tool is **not directly linked** to the Endpoint Catalogue — it is purely a
   management interface
 - The actual Endpoint Catalogue is a `targets.json` file in the GitHub repository
@@ -41,6 +42,7 @@ Key points:
 ### Pre-requisites
 
 The R&M team needs:
+
 - Access to the EPC Tool
 - Access to the **MASTER - CPCS IT Supplier Submissions Log** (SharePoint spreadsheet)
 - Access to a team member who is an approver for the `NHSDigital/booking-and-referral-targets`
@@ -124,6 +126,7 @@ Thursday's daily process):
 ### Approval Process
 
 Any changes to the Endpoint Catalogue require an approver to:
+
 - Collate data sources (Master CPCS spreadsheet, DoS reconciliation, any additional emails)
 - In GitHub, open the Pull Request and navigate to "Files changed"
 - Cross-reference the number of changes against expected counts from the spreadsheet
@@ -133,13 +136,14 @@ Any changes to the Endpoint Catalogue require an approver to:
 
 ### Error Handling
 
-| Scenario | Action |
-|----------|--------|
-| Missing/incorrect data in the Master spreadsheet (identified before processing) | Exclude the record, email `england.dos@nhs.net`, don't mark as updated |
-| Missing/incorrect data (identified during processing — EPC Tool shows error) | Email `england.dos@nhs.net`, don't mark as updated |
-| Structural paste error | Clear the field, re-copy from the Master spreadsheet, re-paste, re-process |
-| Record error but data is correct | Use Supplier Endpoint / Service Provider Endpoint / Audit to investigate; escalate to BaRS team |
-| Unexpected EPC Tool error | Seek support from BaRS team members |
+
+| Scenario                                                                        | Action                                                                                          |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Missing/incorrect data in the Master spreadsheet (identified before processing) | Exclude the record, email`england.dos@nhs.net`, don't mark as updated                           |
+| Missing/incorrect data (identified during processing — EPC Tool shows error)   | Email`england.dos@nhs.net`, don't mark as updated                                               |
+| Structural paste error                                                          | Clear the field, re-copy from the Master spreadsheet, re-paste, re-process                      |
+| Record error but data is correct                                                | Use Supplier Endpoint / Service Provider Endpoint / Audit to investigate; escalate to BaRS team |
+| Unexpected EPC Tool error                                                       | Seek support from BaRS team members                                                             |
 
 ### Non-pharmacy endpoints
 
@@ -152,18 +156,19 @@ the Master CPCS header format and process as daily switches.
 
 ## Pain Points with the Current Process
 
-| Issue | Impact |
-|-------|--------|
-| **Multi-step manual workflow** | Copy from spreadsheet → paste into tool → click process → copy JSON → create branch → paste JSON → commit → create PR → notify → get approval → merge → test → update spreadsheet. ~15 discrete manual steps per batch. |
-| **Spreadsheet as source of truth** | The MASTER - CPCS IT Supplier Submissions Log is a shared Excel file with no validation, no API access, and audit limited to cell-level edit history. |
-| **EPC Tool is disconnected from the actual catalogue** | The tool is not linked to the GitHub repo — it generates JSON that a human must manually copy and commit. If they diverge, endpoints can be accidentally deleted. |
-| **GitHub-as-a-database** | The production endpoint catalogue is a flat JSON file in a Git repo. Every change requires a branch, a commit, a PR, a review, a merge, and a post-merge smoke test. |
-| **No scheduling** | Switches cannot be pre-staged. They must be manually executed on the day. If the team is unavailable (bank holidays, sickness), switches are delayed. |
-| **No automation** | There is no API to trigger switches programmatically. Every step requires human interaction with a web UI or GitHub. |
-| **Single point of failure** | Only the R&M team can execute switches. No self-service for suppliers. |
-| **No rollback** | If a switch is applied incorrectly, reversing it requires re-running the entire process with corrected data. |
-| **Weekend/out-of-hours gaps** | Switches requested for weekends or bank holidays must wait or require out-of-hours support. |
-| **Manual approval is a bottleneck** | Every change — even a single pharmacy switch — requires a PR review, merge, and smoke test. |
+
+| Issue                                                  | Impact                                                                                                                                                                                                                  |
+| --------------------------------------------------------| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Multi-step manual workflow**                         | Copy from spreadsheet → paste into tool → click process → copy JSON → create branch → paste JSON → commit → create PR → notify → get approval → merge → test → update spreadsheet. ~15 discrete manual steps per batch. |
+| **Spreadsheet as source of truth**                     | The MASTER - CPCS IT Supplier Submissions Log is a shared Excel file with no validation, no API access, and audit limited to cell-level edit history.                                                                   |
+| **EPC Tool is disconnected from the actual catalogue** | The tool is not linked to the GitHub repo — it generates JSON that a human must manually copy and commit. If they diverge, endpoints can be accidentally deleted.                                                       |
+| **GitHub-as-a-database**                               | The production endpoint catalogue is a flat JSON file in a Git repo. Every change requires a branch, a commit, a PR, a review, a merge, and a post-merge smoke test.                                                    |
+| **No scheduling**                                      | Switches cannot be pre-staged. They must be manually executed on the day. If the team is unavailable (bank holidays, sickness), switches are delayed.                                                                   |
+| **No automation**                                      | There is no API to trigger switches programmatically. Every step requires human interaction with a web UI or GitHub.                                                                                                    |
+| **Single point of failure**                            | Only the R&M team can execute switches. No self-service for suppliers.                                                                                                                                                  |
+| **No rollback**                                        | If a switch is applied incorrectly, reversing it requires re-running the entire process with corrected data.                                                                                                            |
+| **Weekend/out-of-hours gaps**                          | Switches requested for weekends or bank holidays must wait or require out-of-hours support.                                                                                                                             |
+| **Manual approval is a bottleneck**                    | Every change — even a single pharmacy switch — requires a PR review, merge, and smoke test.                                                                                                                             |
 
 ---
 
@@ -176,6 +181,7 @@ The new EPC replaces the entire EPC Tool + GitHub workflow with a FHIR R4 API. T
 HealthcareService from the old supplier's Endpoint to the new supplier's Endpoint.
 
 There is no more:
+
 - Manual JSON generation
 - GitHub branches, commits, or Pull Requests
 - Copy-paste between spreadsheets and web tools
@@ -183,7 +189,6 @@ There is no more:
 
 The BaRS Proxy reads directly from the EPC API — changes take effect immediately on
 successful API response.
-
 
 ### New daily workflow — Step by step
 
@@ -193,22 +198,23 @@ successful API response.
 
 Extract today's switches from the Master Switch Log (or receive them via an automated
 feed). Create a CSV file with the following structure.
-
-#### CSV structure
-
-| Column | Required | Description | Provided by | Example |
-|--------|----------|-------------|-------------|---------|
 | `ODSCode` | **Mandatory** | ODS code of the pharmacy | Master Switch Log | `FQ024` |
 | `ServiceId` | **Mandatory** | DoS Service ID (the `Pharm+ DoS Service ID` column) | Master Switch Log | `2000110743` |
-| `OldProductId` | **Mandatory** | Product ID of the outgoing supplier's Endpoint Template | Master Switch Log / EPC | `PROD-CEGEDIM-001` |
-| `NewProductId` | **Mandatory** | Product ID of the incoming supplier's Endpoint Template | Master Switch Log / EPC | `PROD-PHARMOUTCOMES-001` |
-| `SwitchDate` | **Mandatory** | Effective date of the switch | Master Switch Log | `2026-07-07` |
+| `OldProductId` | **Mandatory** | Product ID of the outgoing supplier's Endpoint Template | Master Switch Log / EPC | `CegedimPharmacy-v2024.06.01` |
+| `NewProductId` | **Mandatory** | Product ID of the incoming supplier's Endpoint Template | Master Switch Log / EPC | `PinnaclePharmOutcomes-v2024.12.12` |
+| `SwitchDate` | **Mandatory** | Effective date of the switch | Master Switch Log | `2026-07-07` |ded by             | Example                  |
+| ---------------- | --------------- | --------------------------------------------------------- | ------------------------- | -------------------------- |
+| `ODSCode`      | **Mandatory** | ODS code of the pharmacy                                | Master Switch Log       | `FQ024`                  |
+| `ServiceId`    | **Mandatory** | DoS Service ID (the`Pharm+ DoS Service ID` column)      | Master Switch Log       | `2000110743`             |
+| `OldProductId` | **Mandatory** | Product ID of the outgoing supplier's Endpoint Template | Master Switch Log / EPC | `CegedimPharmacy-v2024.06.01`       |
+| `NewProductId` | **Mandatory** | Product ID of the incoming supplier's Endpoint Template | Master Switch Log / EPC | `PinnaclePharmOutcomes-v2024.12.12` |
+| `SwitchDate`   | **Mandatory** | Effective date of the switch                            | Master Switch Log       | `2026-07-07`             |
 
 ```csv
 ODSCode,ServiceId,OldProductId,NewProductId,SwitchDate
-FQ024,2000110743,PROD-CEGEDIM-001,PROD-PHARMOUTCOMES-001,2026-07-07
-FKV30,2000017778,PROD-POSITIVE-001,PROD-PHARMOUTCOMES-001,2026-07-07
-FH123,2000099999,PROD-PHARMOUTCOMES-001,PROD-CEGEDIM-001,2026-07-07
+FQ024,2000110743,CegedimPharmacy-v2024.06.01,PinnaclePharmOutcomes-v2024.12.12,2026-07-07
+FKV30,2000017778,PositiveSolutions-v2024.03.15,PinnaclePharmOutcomes-v2024.12.12,2026-07-07
+FH123,2000099999,PinnaclePharmOutcomes-v2024.12.12,CegedimPharmacy-v2024.06.01,2026-07-07
 ```
 
 > **Naming convention:** `epc-switches-YYYY-MM-DDTHHmmss.csv` (e.g., `epc-switches-2026-07-07T093000.csv`)
@@ -280,6 +286,7 @@ NHSD-End-User-Organisation-ODS: X26
 ```
 
 The Lambda extracts:
+
 - The HealthcareService `id` (e.g., `9f2c6f12-1a6d-4d9c-a111-123456789abc`)
 - The current `endpoint[]` array (to confirm the old Endpoint is referenced)
 
@@ -292,7 +299,7 @@ guarantee that no two Endpoints for the same Template will have overlapping peri
 most one will be valid for any given date.
 
 ```http
-GET /Endpoint?identifier=https://fhir.nhs.uk/id/product-id|PROD-PHARMOUTCOMES-001&ConnectionType=http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest&PayloadType=http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars HTTP/1.1
+GET /Endpoint?identifier=https://fhir.nhs.uk/id/product-id|PinnaclePharmOutcomes-v2024.12.12&ConnectionType=http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest&PayloadType=http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars HTTP/1.1
 Host: api.service.nhs.uk
 Accept: application/fhir+json
 Authorization: Bearer {lambda-service-token}
@@ -316,20 +323,22 @@ date.
 
 The pipeline evaluates each returned Endpoint against the `SwitchDate`:
 
-| Condition | Rule | Result |
-|-----------|------|--------|
-| `period.start` is set | Must be ≤ `SwitchDate` | Skip this Endpoint if violated |
-| `period.end` is set | Must be ≥ `SwitchDate` | Skip this Endpoint if violated |
-| Neither `period.start` nor `period.end` is set | No constraint — always valid for any date | Select this Endpoint |
-| Endpoint `status` is not `active` | Must be `active` | Skip this Endpoint |
+
+| Condition                                     | Rule                                       | Result                         |
+| ----------------------------------------------- | -------------------------------------------- | -------------------------------- |
+| `period.start` is set                         | Must be ≤`SwitchDate`                     | Skip this Endpoint if violated |
+| `period.end` is set                           | Must be ≥`SwitchDate`                     | Skip this Endpoint if violated |
+| Neither`period.start` nor `period.end` is set | No constraint — always valid for any date | Select this Endpoint           |
+| Endpoint`status` is not `active`              | Must be`active`                            | Skip this Endpoint             |
 
 ##### Outcome
 
-| Scenario | Pipeline Action | Processing Report Entry |
-|----------|-----------------|-------------------------|
-| Exactly one Endpoint's period covers `SwitchDate` and status is `active` | Select it — proceed to Step 3 | — |
-| No Endpoint's period covers `SwitchDate` | Do not proceed | `FAILED` — "No Endpoint for ProductId {NewProductId} has a period covering SwitchDate {SwitchDate}" |
-| Endpoint found but status is not `active` | Do not proceed | `FAILED` — "Endpoint status is {status}, expected active" |
+
+| Scenario                                                                | Pipeline Action                | Processing Report Entry                                                                              |
+| ------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Exactly one Endpoint's period covers`SwitchDate` and status is `active` | Select it — proceed to Step 3 | —                                                                                                   |
+| No Endpoint's period covers`SwitchDate`                                 | Do not proceed                 | `FAILED` — "No Endpoint for ProductId {NewProductId} has a period covering SwitchDate {SwitchDate}" |
+| Endpoint found but status is not`active`                                | Do not proceed                 | `FAILED` — "Endpoint status is {status}, expected active"                                           |
 
 > **Why this matters:** The EPC's visibility rules require that the current date/time is
 > within the Endpoint's `period` for it to be returned to consumers. If the switch succeeds
@@ -371,10 +380,6 @@ NHSD-End-User-Organisation-ODS: X26
     {
       "system": "https://fhir.nhs.uk/Id/dos-service-id",
       "value": "2000110743"
-    },
-    {
-      "system": "https://fhir.nhs.uk/id/product-id",
-      "value": "PROD-PHARMOUTCOMES-001"
     }
   ],
   "active": true,
@@ -399,17 +404,18 @@ NHSD-End-User-Organisation-ODS: X26
 
 #### Pipeline behaviour — Error responses
 
-| API Response | Pipeline Action | Processing Report Entry |
-|--------------|-----------------|-------------------------|
-| `200 OK` | Switch successful | `SUCCESS` |
-| No Endpoint covers `SwitchDate` | Do not proceed — no valid Endpoint for this date | `FAILED` — "No Endpoint for ProductId {NewProductId} has a period covering SwitchDate {SwitchDate}" |
-| Endpoint status not `active` | Do not proceed | `FAILED` — "Endpoint status is {status}, expected active" |
-| `404 Not Found` (HealthcareService) | Do not proceed | `FAILED` — "Service not found" |
-| `404 Not Found` (Endpoint) | Do not proceed | `FAILED` — "Endpoint not found" |
-| `409 Conflict` | Do not proceed | `FAILED` — "Conflict (concurrent update)" |
-| `4XX` other | Do not proceed | `FAILED` — "{error detail from OperationOutcome}" |
-| `5XX Server Error` | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error after 3 retries" |
-| Network timeout | Retry up to 3 times; if still failing, do not proceed | `FAILED` — "Timeout after 3 retries" |
+
+| API Response                        | Pipeline Action                                                                | Processing Report Entry                                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `200 OK`                            | Switch successful                                                              | `SUCCESS`                                                                                            |
+| No Endpoint covers`SwitchDate`      | Do not proceed — no valid Endpoint for this date                              | `FAILED` — "No Endpoint for ProductId {NewProductId} has a period covering SwitchDate {SwitchDate}" |
+| Endpoint status not`active`         | Do not proceed                                                                 | `FAILED` — "Endpoint status is {status}, expected active"                                           |
+| `404 Not Found` (HealthcareService) | Do not proceed                                                                 | `FAILED` — "Service not found"                                                                      |
+| `404 Not Found` (Endpoint)          | Do not proceed                                                                 | `FAILED` — "Endpoint not found"                                                                     |
+| `409 Conflict`                      | Do not proceed                                                                 | `FAILED` — "Conflict (concurrent update)"                                                           |
+| `4XX` other                         | Do not proceed                                                                 | `FAILED` — "{error detail from OperationOutcome}"                                                   |
+| `5XX Server Error`                  | Retry up to 3 times with exponential backoff; if still failing, do not proceed | `FAILED` — "Server error after 3 retries"                                                           |
+| Network timeout                     | Retry up to 3 times; if still failing, do not proceed                          | `FAILED` — "Timeout after 3 retries"                                                                |
 
 ---
 
@@ -425,19 +431,20 @@ s3://epc-switch-processing-prod/reports/epc-switches-2026-07-07T093000-report.cs
 
 ```csv
 ODSCode,ServiceId,OldProductId,NewProductId,SwitchDate,Status,Detail
-FQ024,2000110743,PROD-CEGEDIM-001,PROD-PHARMOUTCOMES-001,2026-07-07,SUCCESS,
-FKV30,2000017778,PROD-POSITIVE-001,PROD-PHARMOUTCOMES-001,2026-07-07,SUCCESS,
-FH123,2000099999,PROD-PHARMOUTCOMES-001,PROD-CEGEDIM-001,2026-07-07,FAILED,Endpoint not found for PROD-CEGEDIM-001
+FQ024,2000110743,CegedimPharmacy-v2024.06.01,PinnaclePharmOutcomes-v2024.12.12,2026-07-07,SUCCESS,
+FKV30,2000017778,PositiveSolutions-v2024.03.15,PinnaclePharmOutcomes-v2024.12.12,2026-07-07,SUCCESS,
+FH123,2000099999,PinnaclePharmOutcomes-v2024.12.12,CegedimPharmacy-v2024.06.01,2026-07-07,FAILED,No Endpoint for ProductId CegedimPharmacy-v2024.06.01 has a period covering SwitchDate 2026-07-07
 ```
 
 ---
 
 #### Status values
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| `SUCCESS` | Switch completed successfully — live immediately | No action needed |
-| `FAILED` | Error during processing | Investigate, correct, and re-submit |
+
+| Status    | Meaning                                           | Action                              |
+| ----------- | --------------------------------------------------- | ------------------------------------- |
+| `SUCCESS` | Switch completed successfully — live immediately | No action needed                    |
+| `FAILED`  | Error during processing                           | Investigate, correct, and re-submit |
 
 #### Retrieving the report
 
@@ -451,14 +458,15 @@ Or via the AWS Console: S3 → `epc-switch-processing-prod` → `reports/`
 
 #### Action on failed results
 
-| Failure reason | Action |
-|----------------|--------|
-| `Service not found` | Confirm DoS Service ID is correct; check if HealthcareService needs to be created |
-| `Endpoint not found` | Confirm the new supplier's Product ID is correct and their Endpoint Template + Endpoint exist |
-| `No Endpoint has a period covering SwitchDate` | Check the Endpoints for the new supplier's Template — either update an Endpoint's period to cover the date, create a new Endpoint with the correct period, or correct the `SwitchDate` in the CSV |
-| `Endpoint status is {status}, expected active` | The matching Endpoint is not active — contact the supplier or activate the Endpoint before re-submitting |
-| `Conflict` | Investigate concurrent modification; re-submit the row |
-| `Server error after 3 retries` | Escalate to development team — likely an infrastructure issue |
+
+| Failure reason                                 | Action                                                                                                                                                                                            |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Service not found`                            | Confirm DoS Service ID is correct; check if HealthcareService needs to be created                                                                                                                 |
+| `Endpoint not found`                           | Confirm the new supplier's Product ID is correct and their Endpoint Template + Endpoint exist                                                                                                     |
+| `No Endpoint has a period covering SwitchDate` | Check the Endpoints for the new supplier's Template — either update an Endpoint's period to cover the date, create a new Endpoint with the correct period, or correct the`SwitchDate` in the CSV |
+| `Endpoint status is {status}, expected active` | The matching Endpoint is not active — contact the supplier or activate the Endpoint before re-submitting                                                                                         |
+| `Conflict`                                     | Investigate concurrent modification; re-submit the row                                                                                                                                            |
+| `Server error after 3 retries`                 | Escalate to development team — likely an infrastructure issue                                                                                                                                    |
 
 #### Re-processing failed rows
 
@@ -526,20 +534,21 @@ The response should show the HealthcareService with the new supplier's Endpoint 
 
 ### What's better
 
-| Aspect | Before (EPC Tool + GitHub) | After (EPC API) |
-|--------|---------------------------|-----------------|
-| **Steps per batch** | ~15 manual steps across 4 systems | Upload CSV → review report (2 steps) |
-| **Execution** | Copy/paste → tool → copy JSON → GitHub branch → commit → PR → review → merge → test | Batch CSV upload → pipeline processes all rows via API |
-| **Change propagation** | Only takes effect after PR merge and Proxy cache refresh | Immediate — API write is the change |
-| **Scheduling** | Must be done on the day | Can use `period.start` / `period.end` to pre-stage switches days or weeks ahead |
-| **Audit** | Spreadsheet edit history + Git commit log (disconnected) | Full FHIR resource versioning; every change has timestamp, actor, and reason |
-| **Validation** | Human reviews a preview table in the EPC Tool | API validates Product IDs, Service IDs, and Endpoint existence before applying |
-| **Rollback** | Re-run the entire process with corrected data | Revert the HealthcareService `endpoint[]` to the previous reference |
-| **Out-of-hours** | Requires human presence | Pre-staged switches execute automatically when `period.start` arrives |
-| **Supplier self-service** | Not possible | Suppliers can manage their own Endpoint status via delegated authority |
-| **Error handling** | Errors discovered post-merge by users reporting broken routing | Pipeline reports failures immediately; conflicts detected before changes are applied |
-| **Approval** | Every change requires a GitHub PR review | Built-in RBAC; routine switches are self-approving within policy |
-| **Weekly reconciliation** | Manual CSV exchange with DoS team + re-process | EPC API is the single source of truth; reconciliation is automated comparison |
+
+| Aspect                    | Before (EPC Tool + GitHub)                                                                  | After (EPC API)                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **Steps per batch**       | ~15 manual steps across 4 systems                                                           | Upload CSV → review report (2 steps)                                                |
+| **Execution**             | Copy/paste → tool → copy JSON → GitHub branch → commit → PR → review → merge → test | Batch CSV upload → pipeline processes all rows via API                              |
+| **Change propagation**    | Only takes effect after PR merge and Proxy cache refresh                                    | Immediate — API write is the change                                                 |
+| **Scheduling**            | Must be done on the day                                                                     | Can use`period.start` / `period.end` to pre-stage switches days or weeks ahead       |
+| **Audit**                 | Spreadsheet edit history + Git commit log (disconnected)                                    | Full FHIR resource versioning; every change has timestamp, actor, and reason         |
+| **Validation**            | Human reviews a preview table in the EPC Tool                                               | API validates Product IDs, Service IDs, and Endpoint existence before applying       |
+| **Rollback**              | Re-run the entire process with corrected data                                               | Revert the HealthcareService`endpoint[]` to the previous reference                   |
+| **Out-of-hours**          | Requires human presence                                                                     | Pre-staged switches execute automatically when`period.start` arrives                 |
+| **Supplier self-service** | Not possible                                                                                | Suppliers can manage their own Endpoint status via delegated authority               |
+| **Error handling**        | Errors discovered post-merge by users reporting broken routing                              | Pipeline reports failures immediately; conflicts detected before changes are applied |
+| **Approval**              | Every change requires a GitHub PR review                                                    | Built-in RBAC; routine switches are self-approving within policy                     |
+| **Weekly reconciliation** | Manual CSV exchange with DoS team + re-process                                              | EPC API is the single source of truth; reconciliation is automated comparison        |
 
 ---
 
@@ -551,22 +560,22 @@ need for daily manual execution entirely.
 ### How it works
 
 1. When a switch request is received (e.g., "switch pharmacy FH123 to PharmOutcomes on 1 July"):
+
    - Set `period.end` = `2026-06-30T23:59:59+00:00` on the current Endpoint
    - Create a new Endpoint (child of the new supplier's Template) with `period.start` = `2026-07-01T00:00:00+00:00`
    - Associate both Endpoints with the HealthcareService
-
 2. Before the switch date: consumers querying the service see the old supplier's Endpoint (its period is still valid).
-
 3. On the switch date: the EPC API's period-based visibility filtering automatically shows the new Endpoint and hides the old one. **No human intervention is needed on the day.**
 
 ### Impact on the R&M team
 
-| Current | Future |
-|---------|--------|
+
+| Current                                            | Future                                                             |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
 | Must process switches every working day (Mon–Fri) | Process switch requests when they arrive — execution is automatic |
-| Bank holidays and weekends are a gap | Switches execute automatically regardless of calendar |
-| Team capacity is a bottleneck | Switch volume is decoupled from team availability |
-| Reactive (process today's batch) | Proactive (stage next week's switches today) |
+| Bank holidays and weekends are a gap               | Switches execute automatically regardless of calendar              |
+| Team capacity is a bottleneck                      | Switch volume is decoupled from team availability                  |
+| Reactive (process today's batch)                   | Proactive (stage next week's switches today)                       |
 
 ---
 
@@ -575,11 +584,12 @@ need for daily manual execution entirely.
 During the transition from the current process to the EPC API, both systems will operate
 in parallel:
 
-| Phase | Master Spreadsheet | EPC Tool + GitHub | EPC API |
-|-------|-------------------|-------------------|---------|
-| **Phase 1 — Shadow** | Primary source | Switches executed here | Switches mirrored here for validation |
-| **Phase 2 — Dual-run** | Primary source | Fallback only | Switches executed here; GitHub updated as secondary |
-| **Phase 3 — EPC API primary** | Archived / read-only | Decommissioned | All switches via EPC API; no manual GitHub changes |
+
+| Phase                          | Master Spreadsheet   | EPC Tool + GitHub      | EPC API                                             |
+| -------------------------------- | ---------------------- | ------------------------ | ----------------------------------------------------- |
+| **Phase 1 — Shadow**          | Primary source       | Switches executed here | Switches mirrored here for validation               |
+| **Phase 2 — Dual-run**        | Primary source       | Fallback only          | Switches executed here; GitHub updated as secondary |
+| **Phase 3 — EPC API primary** | Archived / read-only | Decommissioned         | All switches via EPC API; no manual GitHub changes  |
 
 ### What the R&M team needs for transition
 
@@ -597,11 +607,12 @@ in parallel:
 Once delegated authority is fully operational, suppliers can manage their own Endpoint
 lifecycle without R&M intervention:
 
-| Action | Who does it today | Who does it with EPC API |
-|--------|-------------------|--------------------------|
-| Create a new Endpoint (new product version) | R&M team (via EPC Tool) | Supplier (via API with their Product ID credentials) |
-| Update Endpoint status (suspend/restore) | R&M team | Supplier |
-| Report readiness for a switch | Supplier tells R&M via email/spreadsheet | Supplier activates their Endpoint; R&M (or automation) updates the HealthcareService reference |
+
+| Action                                      | Who does it today                        | Who does it with EPC API                                                                       |
+| --------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Create a new Endpoint (new product version) | R&M team (via EPC Tool)                  | Supplier (via API with their Product ID credentials)                                           |
+| Update Endpoint status (suspend/restore)    | R&M team                                 | Supplier                                                                                       |
+| Report readiness for a switch               | Supplier tells R&M via email/spreadsheet | Supplier activates their Endpoint; R&M (or automation) updates the HealthcareService reference |
 
 This reduces the R&M team's daily workload from "execute every switch manually" to
 "monitor and handle exceptions". The routine work is automated or delegated; the team
@@ -611,16 +622,17 @@ focuses on governance, escalations, and onboarding new suppliers/services.
 
 ## Summary
 
-| | Current (EPC Tool + GitHub) | EPC API (Day 1) | EPC API (Future) |
-|-|----------------------------|-----------------|------------------|
-| **Source of truth** | Master spreadsheet + GitHub `targets.json` (disconnected) | EPC API (FHIR resources) | EPC API |
-| **Execution** | Manual 15-step process across 4 systems | Batch CSV → pipeline | Pre-staged + supplier self-service |
-| **Change propagation** | After PR merge + cache refresh | Immediate on API write | Immediate |
-| **Scheduling** | Same-day only | Same-day or pre-staged | Fully pre-staged |
-| **Audit** | Spreadsheet + Git commits (disconnected) | FHIR resource versions | FHIR resource versions + event log |
-| **Rollback** | Re-run entire process | Revert endpoint[] reference | Automatic (period-based expiry) |
-| **R&M effort per switch** | ~5–10 minutes (including PR cycle) | ~30 seconds (prepare CSV row) | Zero (automated) |
-| **Weekend coverage** | Gap or out-of-hours support | Pre-staged switches execute automatically | Fully automated |
+
+|                           | Current (EPC Tool + GitHub)                              | EPC API (Day 1)                           | EPC API (Future)                   |
+| --------------------------- | ---------------------------------------------------------- | ------------------------------------------- | ------------------------------------ |
+| **Source of truth**       | Master spreadsheet + GitHub`targets.json` (disconnected) | EPC API (FHIR resources)                  | EPC API                            |
+| **Execution**             | Manual 15-step process across 4 systems                  | Batch CSV → pipeline                     | Pre-staged + supplier self-service |
+| **Change propagation**    | After PR merge + cache refresh                           | Immediate on API write                    | Immediate                          |
+| **Scheduling**            | Same-day only                                            | Same-day or pre-staged                    | Fully pre-staged                   |
+| **Audit**                 | Spreadsheet + Git commits (disconnected)                 | FHIR resource versions                    | FHIR resource versions + event log |
+| **Rollback**              | Re-run entire process                                    | Revert endpoint[] reference               | Automatic (period-based expiry)    |
+| **R&M effort per switch** | ~5–10 minutes (including PR cycle)                      | ~30 seconds (prepare CSV row)             | Zero (automated)                   |
+| **Weekend coverage**      | Gap or out-of-hours support                              | Pre-staged switches execute automatically | Fully automated                    |
 
 ---
 
@@ -628,16 +640,17 @@ focuses on governance, escalations, and onboarding new suppliers/services.
 
 The EPC API returns FHIR `OperationOutcome` resources for errors:
 
-| HTTP Status | Meaning |
-|-------------|---------|
-| 200 | Success — resource returned or Bundle with results |
-| 400 | Bad request — invalid parameter value or format |
-| 401 | Unauthorised — missing or invalid Bearer token |
-| 403 | Forbidden — valid token but insufficient permissions |
-| 404 | Not found — no HealthcareService or Endpoint with the specified identifier |
-| 409 | Conflict — concurrent modification |
-| 4XX | Other client error — see OperationOutcome for details |
-| 5XX | Server error — see OperationOutcome for details |
+
+| HTTP Status | Meaning                                                                     |
+| ------------- | ----------------------------------------------------------------------------- |
+| 200         | Success — resource returned or Bundle with results                         |
+| 400         | Bad request — invalid parameter value or format                            |
+| 401         | Unauthorised — missing or invalid Bearer token                             |
+| 403         | Forbidden — valid token but insufficient permissions                       |
+| 404         | Not found — no HealthcareService or Endpoint with the specified identifier |
+| 409         | Conflict — concurrent modification                                         |
+| 4XX         | Other client error — see OperationOutcome for details                      |
+| 5XX         | Server error — see OperationOutcome for details                            |
 
 ```json
 {
@@ -664,9 +677,10 @@ The EPC API returns FHIR `OperationOutcome` resources for errors:
 
 ## Related documents
 
-| Document | Description |
-|----------|-------------|
-| [Managing Endpoints (BaRS)](./manage-endpoint.md) | Full Endpoint lifecycle — create, update, delete |
-| [Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md) | Creating and managing parent BaRS Templates |
-| [Managing HealthcareServices](./manage-healthcare-service.md) | HealthcareService creation, update, and Endpoint association |
-| [Interim Support Process Access](./interim-support-process-access.md) | How the R&M team accesses the EPC during the transition |
+
+| Document                                                              | Description                                                  |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [Managing Endpoints (BaRS)](./manage-endpoint.md)                     | Full Endpoint lifecycle — create, update, delete            |
+| [Managing Endpoint Templates (BaRS)](./manage-endpoint-template.md)   | Creating and managing parent BaRS Templates                  |
+| [Managing HealthcareServices](./manage-healthcare-service.md)         | HealthcareService creation, update, and Endpoint association |
+| [Interim Support Process Access](./interim-support-process-access.md) | How the R&M team accesses the EPC during the transition      |
