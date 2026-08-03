@@ -7,7 +7,7 @@
 | ------- | -------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
 | **0** | Parse targets.json & enrich from DynamoDB                                | targets.json + int_ tables | `service_to_url`, `unique_urls`, `url_metadata`, `provider_lookup`, `endpoint_details` |
 | **1** | Create Endpoint Template + child Endpoint for each unique URL            | ~13 unique URLs            | Template ID + Endpoint ID per URL (from API responses)                                 |
-| **2** | Create HealthcareService for each service ID                             | ~4,000+ service IDs        | HealthcareService linked to its Endpoint                                               |
+| **2** | Create HealthcareService for each service ID                             | ~10,284 service IDs        | HealthcareService linked to its Endpoint                                               |
 | **3** | Validate by querying the EPC and comparing against original targets.json | EPC API queries            | Pass/fail report                                                                       |
 | **4** | Delta detection — generate IP001/IP002/IP003 CSVs for anything missing  | EPC API queries            | CSVs for R&M team to action                                                            |
 
@@ -119,7 +119,7 @@ with open('targets.json') as f:
 service_section = data["NHSD-Target-Identifier"]["https://fhir.nhs.uk/Id/dos-service-id"]
 
 # Full mapping: service_id → url
-service_to_url = service_section  # ~4000+ entries
+service_to_url = service_section  # ~10,284 entries
 
 # Unique URLs (case-insensitive dedup)
 seen = {}
@@ -136,8 +136,8 @@ print(f"Unique endpoint URLs: {len(unique_urls)}")
 
 **Output:**
 
-- `service_to_url`: dict of ~4,000+ entries
-- `unique_urls`: list of ~13 unique URLs
+- `service_to_url`: dict of 10,284 entries
+- `unique_urls`: list of 13 unique URLs
 
 **Example `service_to_url`:**
 
@@ -835,7 +835,7 @@ sequenceDiagram
         Script->>Log: Record url → endpoint_id (from response)
     end
 
-    Note over Script: Step 3 - HealthcareServices (~4000+)
+    Note over Script: Step 3 - HealthcareServices (~10,284)
     loop For each service_id in targets.json
         Script->>Log: Lookup endpoint_id by URL from endpoint_log
         Script->>Script: Resolve provider ODS from provider_lookup
@@ -844,7 +844,7 @@ sequenceDiagram
         Script->>Log: Record service_id → hcs_id (from response)
     end
 
-    Note over Script: Step 4 - Validation (~4000 queries)
+    Note over Script: Step 4 - Validation (10,284 queries)
     loop For each service_id in targets.json
         Script->>EPC: GET /HealthcareService?identifier=...&_include=endpoint
         EPC-->>Script: Bundle {HealthcareService + Endpoint}
@@ -862,16 +862,16 @@ sequenceDiagram
 | ----------------------------- | --------------------------- | ------------------------ | -------------------------------------------------------------------- |
 | Step 0 (parse + enrich)     | 4,000+ services, ~13 URLs | 0 (DynamoDB only)      | 4 table scans (orgs, templates, endpoints, healthcareservices)     |
 | Step 1 (templates)          | ~13 unique URLs           | ~13 POSTs              | One template per unique supplier URL                               |
-| Step 2 (child endpoints)    | ~4,000+                   | ~4,000+ POSTs          | One child endpoint per service ID (with period from int_endpoints) |
-| Step 3 (HealthcareServices) | ~4,000+                   | ~4,000+ POSTs          | One per service ID                                                 |
-| Step 4 (validation)         | ~4,000+                   | ~4,000+ GETs           | One query per service ID                                           |
-| **Total**                   |                           | **~12,000+ API calls** |                                                                    |
+| Step 2 (child endpoints)    | ~10,284                   | ~10,284 POSTs          | One child endpoint per service ID (with period from int_endpoints) |
+| Step 3 (HealthcareServices) | ~10,284                   | ~10,284 POSTs          | One per service ID                                                 |
+| Step 4 (validation)         | ~10,284                   | ~10,284 GETs           | One query per service ID                                           |
+| **Total**                   |                           | **~20,594 API calls** |                                                                    |
 
-At ~10 requests/second, estimated runtime: ~20 minutes.
+At ~10 requests/second, estimated runtime: ~35 minutes.
 
 This is significantly fewer API calls than the full int_ table migration because:
 
-- Only ~13 Templates/Endpoints (not thousands — one per URL, not one per service)
+- Only 13 Templates/Endpoints (not thousands — one per URL, not one per service)
 - No inactive/placeholder data to process
 
 ---
@@ -900,12 +900,12 @@ This is significantly fewer API calls than the full int_ table migration because
 | Source of truth            | DynamoDB tables                                    | targets.json flat file                                              |
 | Templates created          | One per template row (~50-100)                     | One per unique URL (~13)                                            |
 | Child Endpoints created    | One per endpoint row (~5,000)                      | One per unique URL (~13)                                            |
-| HealthcareServices created | One per HCS row (~5,000, includes inactive)        | One per targets.json entry (~4,000, all active)                     |
+| HealthcareServices created | One per HCS row (~5,000, includes inactive)        | One per targets.json entry (~10,284, all active)                     |
 | Inactive services included | Yes                                                | No — only actively routed services                                 |
 | Provider organisation      | From int_healthcareservices.ProviderOrganisationId | Required — resolved from int_healthcareservices in Step 0b         |
 | Service name               | From int_healthcareservices.Name                   | Required — resolved from int_healthcareservices in Step 0b         |
 | Endpoint per service       | Dedicated endpoint per service                     | Dedicated endpoint per service (period resolved from int_endpoints) |
-| Total API calls            | ~14,000                                            | ~12,000+                                                            |
+| Total API calls            | ~14,000                                            | ~20,594                                                            |
 | Complexity                 | Higher (more data, more lookups)                   | Lower (flat file drives everything)                                 |
 
 ---
@@ -1276,7 +1276,7 @@ graph LR
 | Speed                  | Slower (internet latency + Apigee overhead + rate limits) | **Faster** (no internet hop, no rate limits, configurable throttle) |
 | Setup complexity       | Requires OAuth token management, Apigee proxy deployed    | Requires IAM role with API Gateway invoke permissions               |
 | Apigee dependency      | Yes — blocked if proxy not deployed                      | **No** — can run before Apigee is configured                       |
-| Rate limit risk        | High for ~12,000+ calls                                   | Low — can increase API Gateway throttle temporarily                |
+| Rate limit risk        | High for ~20,594 calls                                   | Low — can increase API Gateway throttle temporarily                |
 | Ownership validation   | Full Apigee policy enforcement                            | **Bypassed** — migration runs with elevated trust                  |
 | Audit trail            | Complete (Apigee injects all headers)                     | **Incomplete** unless migration script self-supplies audit headers  |
 | Data integrity         | EPC Lambda validates all payloads regardless of route     | Same — Lambda validation is identical                              |
@@ -1423,7 +1423,7 @@ The migration executor role needs:
 
 | Phase                               | Recommended Option      | Rationale                                                                                      |
 | ------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
-| Bulk initial migration (Steps 0–2) | **Option B (Internal)** | ~12,000+ API calls, no rate limit risk, no Apigee dependency, fastest path to populate the EPC |
+| Bulk initial migration (Steps 0–2) | **Option B (Internal)** | ~20,594 API calls, no rate limit risk, no Apigee dependency, fastest path to populate the EPC |
 | Validation (Step 3)                 | **Option A (External)** | Must confirm the production consumer path works end-to-end                                     |
 | Delta detection (Step 4)            | **Option A (External)** | Runs on-demand by R&M team via normal operational tooling                                      |
 | Re-runs / corrections               | Either                  | Depends on volume — small corrections via Option A, bulk re-runs via Option B                 |
