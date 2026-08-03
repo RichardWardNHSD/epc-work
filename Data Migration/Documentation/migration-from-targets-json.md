@@ -1223,9 +1223,9 @@ sequenceDiagram
 
 ## Execution Options: External vs Internal API
 
-The migration can be executed via two routes to the EPC. Both produce identical results in DynamoDB — the difference is how the API is reached and what sits between the migration script and the EPC Lambda.
+The migration can be executed via two routes to the EPC. Both produce identical results in DynamoDB — the difference is how the API is reached and what sits between the migration script and the EPC Lambda. **Option A (via Apigee) is the preferred approach** as it exercises the full production path. Option B (direct AWS API Gateway) is the fallback if Apigee is not yet available in the target environment.
 
-### Option A: External — via Apigee EPC Proxy (internet-facing)
+### Option A: External — via Apigee EPC Proxy (recommended)
 
 ```mermaid
 graph LR
@@ -1246,7 +1246,7 @@ graph LR
 | **Dependency**           | Requires EPC Proxy to be deployed and configured in Apigee                |
 | **Suitable for**         | R&M-triggered delta processing, validation queries, production operations |
 
-### Option B: Internal — via AWS API Gateway directly (recommended for bulk migration)
+### Option B: Internal — via AWS API Gateway directly (fallback if Apigee not available)
 
 ```mermaid
 graph LR
@@ -1423,10 +1423,11 @@ The migration executor role needs:
 
 | Phase                               | Recommended Option      | Rationale                                                                                      |
 | ------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
-| Bulk initial migration (Steps 0–2) | **Option B (Internal)** | ~20,594 API calls, no rate limit risk, no Apigee dependency, fastest path to populate the EPC |
+| Bulk initial migration (Steps 0–2) | **Option A (External)** | Preferred — exercises the full production path, ensures Apigee policies and audit trail are in place from day one |
+| Bulk initial migration (Steps 0–2) | Option B (Internal) — fallback | Use only if Apigee EPC Proxy is not yet deployed to PROD, or if rate limiting makes Option A impractical for the volume |
 | Validation (Step 3)                 | **Option A (External)** | Must confirm the production consumer path works end-to-end                                     |
 | Delta detection (Step 4)            | **Option A (External)** | Runs on-demand by R&M team via normal operational tooling                                      |
-| Re-runs / corrections               | Either                  | Depends on volume — small corrections via Option A, bulk re-runs via Option B                 |
+| Re-runs / corrections               | **Option A (External)** | Standard path. Only fall back to Option B if volume or Apigee availability requires it         |
 
 ---
 
