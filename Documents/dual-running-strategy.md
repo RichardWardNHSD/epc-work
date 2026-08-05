@@ -91,7 +91,7 @@ sequenceDiagram
     NEW->>EPC: POST/PATCH via EPC API
     Note over RECON: Runs after both processes complete
     RECON->>TJ: Read all entries
-    RECON->>EPC: Query all HealthcareServices + Endpoints
+    RECON->>EPC: Query all Endpoints (GET /Endpoint?_has:HealthcareService.Identifier=...)
     RECON->>RECON: Compare service_id → URL mappings
     RECON->>RM: Publish reconciliation report
 ```
@@ -104,9 +104,11 @@ sequenceDiagram
 
 For every DoS service ID that exists in `targets.json`:
 
-1. Query the EPC: `GET /HealthcareService?identifier=https://fhir.nhs.uk/Id/dos-service-id|{service_id}&_include=HealthcareService:endpoint`
-2. Extract the active Endpoint's `address`
+1. Query the EPC for Endpoints associated with that service: `GET /Endpoint?_has:HealthcareService.Identifier=https://fhir.nhs.uk/Id/dos-service-id|{service_id}`
+2. Extract the active Endpoint's `address` from the returned Bundle
 3. Compare (case-insensitive, trailing-slash-tolerant) against the URL in targets.json
+
+> **Note:** `_include=HealthcareService:endpoint` is not supported on `GET /HealthcareService`. The `GET /Endpoint` search with `_has` is the correct way to retrieve Endpoints for a given HealthcareService identifier. This also provides visibility filtering (status, period) and supports filtering by `connectionType` and `payloadType`.
 
 ### Report output
 
