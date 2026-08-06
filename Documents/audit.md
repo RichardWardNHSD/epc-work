@@ -37,7 +37,7 @@ The application audit layer (this feature) captures business-level change events
 - **Actor**: The authenticated user who performed the change, identified by claims in the bearer token.
 - **Actor_Organisation**: The ODS code of the organisation associated with the Actor, as asserted in the bearer token claims.
 - **Resource_Type**: One of the four catalogued FHIR resource types: `HealthcareService`, `Template`, `Endpoint`, or `List`.
-- **Change_Type**: A coded value describing the nature of the change. Valid values: `created`, `updated`, `deleted`, `status-changed`.
+- **Change_Type**: A coded value describing the nature of the change. Valid values: `created`, `updated`, `deleted`.
 - **Bearer_Token**: The OAuth 2.0 access token supplied by the caller in the `Authorization` header, issued by NHS CIS2.
 - **ODS_Code**: An NHS Organisation Data Service code uniquely identifying an NHS organisation.
 - **Product_Identifier**: The identifier of a product or programme associated with an Endpoint or Template (e.g. a BaRS product code).
@@ -71,7 +71,6 @@ The application audit layer (this feature) captures business-level change events
    - `POST` resulting in a new resource → `created`
    - `PUT` or `PATCH` on an existing resource → `updated`
    - `DELETE` on an existing resource → `deleted`
-   - `PATCH` or `PUT` that changes only the `status` field of an Endpoint or Template → `status-changed`
 5. THE Audit_Service SHALL store Audit_Records in a durable, append-only store such that existing records cannot be modified or deleted through any API operation.
 
 ### 3.2 Requirement 2: Actor Identity from Bearer Token
@@ -116,7 +115,6 @@ The application audit layer (this feature) captures business-level change events
 | organisation          | actorOrganisation (ODS_Code)                                              |
 | product-id            | Product_Identifier associated with the changed resource                   |
 | endpoint-id           | Endpoint_Identifier of the changed Endpoint                               |
-| endpoint-status       | The status value recorded at the time of the change                       |
 | healthcare-service-id | Healthcare_Service_Identifier of the changed or related HealthcareService |
 | url                   | The address field of the Endpoint or Template at the time of the change   |
 | connection-type       | The connectionType code of the Endpoint or Template                       |
@@ -372,7 +370,6 @@ CloudWatch Dashboard ← CloudWatch Metrics + Logs Insights
 
 - **GSI1** (`GSI1PK`, `GSI1SK`): Supports queries by organisation + time range
 - **GSI2** (`resourceType`, `SK`): Supports queries by resource type + time range
-- **GSI3** (`endpointStatus`, `SK`): Supports queries by endpoint status + time range
 
 **Table settings:**
 
@@ -403,9 +400,7 @@ The audit write occurs inside the same Lambda invocation as the resource write:
 ```
 IF method == POST → "created"
 IF method == DELETE → "deleted"
-IF method == PUT or PATCH:
-   IF only status field changed → "status-changed"
-   ELSE → "updated"
+IF method == PUT or PATCH → "updated"
 ```
 
 ##### 5.1.3.3 3. Audit Query Implementation
@@ -616,7 +611,7 @@ The following table shows how each Endpoint Catalogue NFR (v1, 6 August 2026) is
 | NFR-1 | Every change is recorded automatically; failed changes produce no entry     | Fully met              | Req 1 (Audit Record Creation on Write Operations), Req 3 (Audit Coverage for All Resource Types) | All successful POST/PUT/PATCH/DELETE operations on all four resource types automatically produce an Audit_Record. Failed operations (4xx/5xx) do not create entries.                                                                                                                                                  |
 | NFR-2 | Each entry shows who, what org, when, resource affected, and change type    | Mostly met             | Req 2 (Actor Identity from Bearer Token), Req 5 (Audit Record Content)                           | actorId, actorOrganisation (ODS), timestamp, resourceType, resourceId, and changeType are all recorded.**Note:** Full individual-user attribution cannot be met until RBAC is in place; until then audit records identity at organisation level only. Gaps: no local-time display; no distinct "renamed" change type. |
 | NFR-3 | Before-and-after values for fields that changed                             | Fully met              | Req 5 (Audit Record Content)                                                                     | Both a`beforeSnapshot` and `afterSnapshot` are stored on every Audit_Record as full FHIR/JSON representations. This captures all field changes including full-record replacements via PUT. Consumers can diff the two snapshots to identify exactly which fields changed.                                             |
-| NFR-4 | Search by ODS code, service name, endpoint, status, org, date range         | Mostly met             | Req 4 (Audit Query API — Search and Retrieval)                                                  | Supports search by organisation (ODS), healthcare-service-id, endpoint-id, endpoint-status, date/date-from/date-to, url, connection-type, payload-type, product-id. Gap: no partial/fuzzy match on service name.                                                                                                      |
+| NFR-4 | Search by ODS code, service name, endpoint, status, org, date range         | Mostly met             | Req 4 (Audit Query API — Search and Retrieval)                                                  | Supports search by organisation (ODS), healthcare-service-id, endpoint-id, date/date-from/date-to, url, connection-type, payload-type, product-id. Gap: no partial/fuzzy match on service name.                                                                                                      |
 | NFR-5 | History is tamper-proof, no duplicates, no gaps, retained 1 year            | Mostly met             | Req 7 (Audit Record Immutability and Retention), Req 1 (AC 5 — append-only store)               | No modify/delete API exposed; DynamoDB IAM restricts to PutItem + Query only; retention is 7 years (exceeds 1-year ask). Gap: no explicit idempotency mechanism to guarantee zero duplicates.                                                                                                                         |
 | NFR-6 | Drill-down from service to endpoints, suppliers, and history in 1–2 clicks | Not met (out of scope) | —                                                                                               | This is a UI/UX requirement. audit.md is an API-level specification only. Needs separate front-end spec.                                                                                                                                                                                                              |
 | NFR-7 | Errors are clear, actionable, include a correlation ID                      | Fully met              | Req 8 (Audit Query API — Error Handling), Req 11 (Distributed Tracing)                          | FHIR OperationOutcome responses with diagnostics and specific field/value identification. Correlation ID returned in X-Correlation-Id header and propagated through all logs.                                                                                                                                         |
@@ -634,7 +629,7 @@ The following table captures gaps between this document (EPC-INV010) and the End
 | ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | NFR-1 | "supplier add/remove" produces an audit entry                                            | audit.md does not reference a Supplier resource type — only HealthcareService, Template, Endpoint, and List                                    | Medium   | Clarify whether supplier management is in scope and how it maps to the four defined resource types                                                                                      |
 | NFR-2 | Timestamps shown in readable local time, not just raw UTC                                | audit.md stores and returns UTC only — no local-time representation                                                                            | Medium   | Decide whether the API should return a secondary localised timestamp field or whether this is a UI-layer concern                                                                        |
-| NFR-2 | "renamed" listed as a distinct change type                                               | audit.md only defines`created`, `updated`, `deleted`, `status-changed` — a rename would be recorded as `updated` with no distinct code         | Low      | Consider adding a`renamed` change type or document that renames are a subset of `updated`                                                                                               |
+| NFR-2 | "renamed" listed as a distinct change type                                               | audit.md only defines`created`, `updated`, `deleted` — a rename would be recorded as `updated` with no distinct code         | Low      | Consider adding a`renamed` change type or document that renames are a subset of `updated`                                                                                               |
 | NFR-2 | Individual user-level identity ("who made the change")                                   | Cannot be fully met until RBAC is in place — until then, audit records identity at organisation level (ODS code) only                          | High     | Dependency on RBAC implementation. Once RBAC is live and individual user claims are available in the bearer token, actorId will capture the specific user. Track as a known constraint. |
 | NFR-4 | Search by service name including partial/fuzzy matches                                   | Audit Query API only supports exact-match identifiers (healthcare-service-id, endpoint-id, ODS code) — no free-text or partial-match parameter | Medium   | Either add a text-search parameter to the Audit Query API or document this as a UI-layer feature                                                                                        |
 | NFR-5 | "The same change always produces exactly one entry — no duplicates, no gaps"            | Retry logic (exponential backoff on audit write failure) could produce duplicates if a write succeeds but the response times out                | Medium   | Add an explicit idempotency mechanism (e.g. conditional PutItem with audit record ID) to prevent duplicate entries                                                                      |
