@@ -147,6 +147,7 @@ The application audit layer (this feature) captures business-level change events
 | changeType        | string                     | Change_Type code                                                                           |
 | beforeSnapshot    | object (FHIR/JSON) or null | Full FHIR/JSON representation of the resource before the change (null for`created` events) |
 | afterSnapshot     | object (FHIR/JSON) or null | Full FHIR/JSON representation of the resource after the change (null for`deleted` events)  |
+| ttl               | integer (Unix epoch)       | Expiry timestamp (creation date + 1 year) used by DynamoDB TTL for automatic housekeeping  |
 
 2. THE Audit_Service SHALL record both a **before** and **after** snapshot of the resource in FHIR/JSON format on every Audit_Record:
    - For `created` events: `beforeSnapshot` SHALL be `null`; `afterSnapshot` SHALL contain the full FHIR/JSON representation of the resource as created.
@@ -157,22 +158,9 @@ The application audit layer (this feature) captures business-level change events
 
 ### 3.6 Requirement 6: Access Control for Audit Query API
 
-**User Story:** As an Endpoint Administrator, I want the audit query API to be protected so that only authenticated and authorised callers can retrieve audit records.
-
-> **Note:** Only one access control mode will be required in the initial implementation. Given that the Audit Query API is likely to be hosted on the AWS API Gateway (not the Apigee platform), and RBAC is delayed, **IAM-based access control is the recommended option** for the initial release. Bearer token access control is documented below as the alternative should the API be exposed via Apigee or once RBAC is in place.
+**User Story:** As an Endpoint Administrator, I want the audit query API to be protected so that only authenticated callers can retrieve audit records, and organisations can only see audit records relevant to them unless they hold an elevated role.
 
 #### 3.6.1 Acceptance Criteria
-
-##### Option A: IAM-based access control (recommended for initial release)
-
-1. THE Audit_Query_API SHALL be deployed on AWS API Gateway with IAM authorisation enabled.
-2. THE Audit_Query_API SHALL require requests to be signed with valid AWS IAM credentials (SigV4) and SHALL return `403 Forbidden` for requests with missing or invalid credentials.
-3. Access to the Audit_Query_API SHALL be controlled via IAM policies attached to roles granted to authorised teams (e.g. Endpoint Administrators, support staff).
-4. THE IAM policies SHALL permit authorised callers to retrieve Audit_Records for any resource without restriction on `actorOrganisation` (audit records are not restricted by ownership).
-5. IF a request to the Audit_Query_API is made without valid IAM credentials, THEN THE Audit_Query_API SHALL return HTTP status `403` with an appropriate error message.
-6. IF a request to the Audit_Query_API supplies an invalid search parameter name, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and error code `INVALID_PARAMETER`.
-
-##### Option B: Bearer token access control (if exposed via Apigee / once RBAC is available)
 
 1. THE Audit_Query_API SHALL require a valid Bearer_Token on all requests and SHALL return `401 Unauthorized` for requests with a missing, expired, or invalid token.
 2. WHEN a caller supplies a valid Bearer_Token, THE Audit_Query_API SHALL permit the caller to retrieve Audit_Records for any resource without restriction on `actorOrganisation` (audit records are not restricted by ownership — any authenticated caller may query the full audit trail).
@@ -187,7 +175,7 @@ The application audit layer (this feature) captures business-level change events
 
 1. THE Audit_Service SHALL NOT expose any API operation that allows an Audit_Record to be modified after creation.
 2. THE Audit_Service SHALL NOT expose any API operation that allows an Audit_Record to be deleted.
-3. THE Audit_Service SHALL retain Audit_Records for a minimum of 7 years from the date of creation.
+3. THE Audit_Service SHALL retain Audit_Records for a minimum of 1 year from the date of creation.
 4. WHILE an Audit_Record exists in the store, THE Audit_Service SHALL return it in query results that match its fields, regardless of the age of the record.
 
 ### 3.8 Requirement 8: Audit Query API — Error Handling
@@ -196,12 +184,14 @@ The application audit layer (this feature) captures business-level change events
 
 #### 3.8.1 Acceptance Criteria
 
-1. IF `date-from` is supplied with a value that is not a valid ISO 8601 date, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message identifying the invalid parameter and its value.
-2. IF `date-to` is supplied with a value that is not a valid ISO 8601 date, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message identifying the invalid parameter and its value.
-3. IF `date-from` is supplied with a value that is later than `date-to`, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message stating that `date-from` must not be later than `date-to`.
-4. IF `date` is supplied together with either `date-from` or `date-to`, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message stating that `date` cannot be combined with `date-from` or `date-to`.
-5. WHEN the Audit_Query_API returns an error response, THE Audit_Query_API SHALL use the FHIR `OperationOutcome` resource format consistent with the error response format used by the rest of the Endpoint Catalog API.
+#### 3.7.1 Acceptance Criteria
 
+1. THE Audit_Service SHALL NOT expose any API operation that allows an Audit_Record to be modified after creation.
+2. THE Audit_Service SHALL NOT expose any API operation that allows an Audit_Record to be deleted.
+3. THE Audit_Service SHALL retain Audit_Records for a minimum of 1 year from the date of creation.
+4. WHILE an Audit_Record exists in the store, THE Audit_Service SHALL return it in query results that match its fields, regardless of the age of the record.
+5. THE Audit_Service SHALL automatically remove Audit_Records after the retention period has elapsed by using DynamoDB Time-to-Live (TTL). Each Audit_Record SHALL include a `ttl` attribute set to the Unix epoch timestamp 1 year from the record's creation date.
+6. THE Audit_Service SHALL NOT rely on manual or scheduled housekeeping processes to remove expired records — TTL-based expiry SHALL be the sole mechanism for audit record deletion.
 ### 3.9 Requirement 9: API Gateway Audit (Apigee / Splunk)
 
 **User Story:** As a platform operator, I want all inbound requests to the Endpoint Catalog API to be logged at the gateway layer, so that I have a complete low-level request trail that complements the application-level audit records.
@@ -311,7 +301,7 @@ The application audit layer (this feature) captures business-level change events
 1. CloudWatch Logs for Lambda functions and API Gateway access logs SHALL be retained for 90 days in CloudWatch.
 2. After 90 days, logs SHALL be archived to S3 for a further retention period of 1 year.
 3. Archived logs SHALL be queryable using S3 Select or Athena if needed for historical investigation.
-4. Audit records in DynamoDB SHALL be retained indefinitely (minimum 7 years per Requirement 7).
+4. Audit records in DynamoDB SHALL be retained for 1 year, after which they are automatically removed via DynamoDB TTL (per Requirement 7).
 
 ## 4 Endpoint Catalogue NFR
 
@@ -390,6 +380,7 @@ CloudWatch Dashboard ← CloudWatch Metrics + Logs Insights
 - Point-in-time recovery: Enabled
 - Deletion protection: Enabled
 - Encryption: AWS-managed key (default)
+- TTL attribute: `ttl` (enables automatic deletion of records after the 1-year retention period)
 
 ##### 5.1.3.2 2. Audit Write Logic
 
@@ -400,8 +391,9 @@ The audit write occurs inside the same Lambda invocation as the resource write:
 2. Perform resource write (DynamoDB PutItem/UpdateItem/DeleteItem)
 3. IF resource write succeeds:
    a. Construct Audit_Record from operation context + bearer token claims
-   b. Write Audit_Record to epc-audit table (PutItem)
-   c. IF audit write fails:
+   b. Set `ttl` attribute to current timestamp + 1 year (Unix epoch seconds)
+   c. Write Audit_Record to epc-audit table (PutItem)
+   d. IF audit write fails:
       i.  Retry with exponential backoff (max 3 attempts)
       ii. IF all retries fail: emit AuditRecordWriteFailed metric, log error, continue
           (do NOT fail the originating response)
@@ -565,7 +557,7 @@ The dashboard is defined in the infrastructure-as-code (Terraform) as a `aws_clo
 | -------------------------- | ----------------------- | -------------------- | ---------------------------------------- |
 | Lambda application logs  | 90 days               | S3 export (1 year) | Via CloudWatch Logs subscription → S3 |
 | API Gateway access logs  | 90 days               | S3 export (1 year) | Same mechanism                         |
-| Audit records (DynamoDB) | Indefinite (in-table) | —                 | 7-year minimum per Requirement 7       |
+| Audit records (DynamoDB) | 1 year (TTL-managed)  | —                 | Automatically expired via DynamoDB TTL per Requirement 7 |
 
 For the S3 archive:
 
@@ -625,7 +617,7 @@ The following table shows how each Endpoint Catalogue NFR (v1, 6 August 2026) is
 | NFR-2 | Each entry shows who, what org, when, resource affected, and change type    | Mostly met             | Req 2 (Actor Identity from Bearer Token), Req 5 (Audit Record Content)                           | actorId, actorOrganisation (ODS), timestamp, resourceType, resourceId, and changeType are all recorded.**Note:** Full individual-user attribution cannot be met until RBAC is in place; until then audit records identity at organisation level only. Gaps: no local-time display; no distinct "renamed" change type. |
 | NFR-3 | Before-and-after values for fields that changed                             | Fully met              | Req 5 (Audit Record Content)                                                                     | Both a`beforeSnapshot` and `afterSnapshot` are stored on every Audit_Record as full FHIR/JSON representations. This captures all field changes including full-record replacements via PUT. Consumers can diff the two snapshots to identify exactly which fields changed.                                             |
 | NFR-4 | Search by ODS code, service name, endpoint, status, org, date range         | Mostly met             | Req 4 (Audit Query API — Search and Retrieval)                                                  | Supports search by organisation (ODS), healthcare-service-id, endpoint-id, date/date-from/date-to, url, connection-type, payload-type, product-id. Gap: no partial/fuzzy match on service name.                                                                                                                       |
-| NFR-5 | History is tamper-proof, no duplicates, no gaps, retained 1 year            | Mostly met             | Req 7 (Audit Record Immutability and Retention), Req 1 (AC 5 — append-only store)               | No modify/delete API exposed; DynamoDB IAM restricts to PutItem + Query only; retention is 7 years (exceeds 1-year ask). Gap: no explicit idempotency mechanism to guarantee zero duplicates.                                                                                                                         |
+| NFR-5 | History is tamper-proof, no duplicates, no gaps, retained 1 year            | Mostly met             | Req 7 (Audit Record Immutability and Retention), Req 1 (AC 5 — append-only store)               | No modify/delete API exposed; DynamoDB IAM restricts to PutItem + Query only; retention is 1 year (matches the NFR ask), with automatic TTL-based housekeeping. Gap: no explicit idempotency mechanism to guarantee zero duplicates.                                                                                                                         |
 | NFR-6 | Drill-down from service to endpoints, suppliers, and history in 1–2 clicks | Not met (out of scope) | —                                                                                               | This is a UI/UX requirement. audit.md is an API-level specification only. Needs separate front-end spec.                                                                                                                                                                                                              |
 | NFR-7 | Errors are clear, actionable, include a correlation ID                      | Fully met              | Req 8 (Audit Query API — Error Handling), Req 11 (Distributed Tracing)                          | FHIR OperationOutcome responses with diagnostics and specific field/value identification. Correlation ID returned in X-Correlation-Id header and propagated through all logs.                                                                                                                                         |
 | NFR-8 | Performance holds as scope expands; downtime communicated                   | Partially met          | NFR-02 (Audit query latency ≤ 2s P95), NFR-09 (Health check ≤ 3s)                              | Latency targets defined. DynamoDB on-demand scaling handles load growth. Gap: no explicit data-growth/archiving strategy; no downtime communication process documented.                                                                                                                                               |
