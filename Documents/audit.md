@@ -636,3 +636,22 @@ For the S3 archive:
 | Log retention (Req 15) | CloudWatch Logs + S3 | 90-day hot, 1-year cold archive |
 | Dashboard | CloudWatch Dashboards | Single pane: audit, health, logs |
 | Gateway audit (Req 9) | API Gateway access logging | JSON access logs to CloudWatch |
+
+
+---
+
+## 6 NFR Alignment Gap Analysis
+
+The following table captures gaps between this document (EPC-INV010) and the Endpoint Catalogue NFR requirements (v1, 6 August 2026).
+
+| NFR | NFR Requirement | Gap | Severity | Notes / Suggested Action |
+|-----|----------------|-----|----------|--------------------------|
+| NFR-2 | Timestamps shown in readable local time, not just raw UTC | audit.md stores and returns UTC only — no local-time representation | Medium | Decide whether the API should return a secondary localised timestamp field or whether this is a UI-layer concern |
+| NFR-2 | "renamed" listed as a distinct change type | audit.md only defines `created`, `updated`, `deleted`, `status-changed` — a rename would be recorded as `updated` with no distinct code | Low | Consider adding a `renamed` change type or document that renames are a subset of `updated` |
+| NFR-3 | Before-and-after values: "old → new for the fields that actually changed" | audit.md only stores the resource state after the change (create/update) or before (delete) — no field-level diff | High | Design decision needed: store field-level diffs on updates, or accept snapshot-only approach and document the trade-off |
+| NFR-4 | Search by service name including partial/fuzzy matches | Audit Query API only supports exact-match identifiers (healthcare-service-id, endpoint-id, ODS code) — no free-text or partial-match parameter | Medium | Either add a text-search parameter to the Audit Query API or document this as a UI-layer feature |
+| NFR-5 | "The same change always produces exactly one entry — no duplicates, no gaps" | Retry logic (exponential backoff on audit write failure) could produce duplicates if a write succeeds but the response times out | Medium | Add an explicit idempotency mechanism (e.g. conditional PutItem with audit record ID) to prevent duplicate entries |
+| NFR-6 | Drill-down navigation: service → endpoints → suppliers → history in one or two clicks | Not addressed — audit.md is an API-level specification with no UI/UX component | Medium | Acknowledge as a UI requirement and track separately in a front-end spec |
+| NFR-8 | Performance holds as scope expands; scheduled downtime communicated in advance | Latency NFRs exist (2s P95) but no strategy for data growth over time (archiving, partitioning) and no downtime communication process | Low | Document a data-growth strategy (e.g. time-based partitioning) and define a downtime communication process |
+| NFR-9 | A change is visible to others within a few seconds; history reflects true order | No explicit consistency model stated — DynamoDB GSI queries use eventually-consistent reads by default | Medium | Specify whether strongly-consistent reads are used for audit queries or document the expected propagation delay (typically < 1s for DynamoDB) |
+| NFR-1 | "supplier add/remove" produces an audit entry | audit.md does not reference a Supplier resource type — only HealthcareService, Template, Endpoint, and List | Medium | Clarify whether supplier management is in scope and how it maps to the four defined resource types |
