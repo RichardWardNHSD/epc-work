@@ -553,11 +553,11 @@ The dashboard is defined in the infrastructure-as-code (Terraform) as a `aws_clo
 #### 5.1.4 Log Retention Strategy
 
 
-| Log source               | CloudWatch retention  | Archive            | Notes                                  |
-| -------------------------- | ----------------------- | -------------------- | ---------------------------------------- |
-| Lambda application logs  | 90 days               | S3 export (1 year) | Via CloudWatch Logs subscription → S3 |
-| API Gateway access logs  | 90 days               | S3 export (1 year) | Same mechanism                         |
-| Audit records (DynamoDB) | 1 year (TTL-managed)  | —                 | Automatically expired via DynamoDB TTL per Requirement 7 |
+| Log source               | CloudWatch retention | Archive            | Notes                                                    |
+| --------------------------| ----------------------| --------------------| ----------------------------------------------------------|
+| Lambda application logs  | 90 days              | S3 export (1 year) | Via CloudWatch Logs subscription → S3                    |
+| API Gateway access logs  | 90 days              | S3 export (1 year) | Same mechanism                                           |
+| Audit records (DynamoDB) | 1 year (TTL-managed) | —                  | Automatically expired via DynamoDB TTL per Requirement 7 |
 
 For the S3 archive:
 
