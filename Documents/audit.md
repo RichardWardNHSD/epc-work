@@ -286,25 +286,22 @@ The application audit layer (this feature) captures business-level change events
 
 ## 4 Endpoint Catalogue NFR
 
-
-| #      | Requirement                | Category      | Acceptance Criteria                                                                                                                                                                |
-| --------| ----------------------------| ---------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| NFR-01 | Audit write latency        | Performance   | Adding an audit record SHALL NOT increase the P95 latency of the originating write operation by more than 100ms                                                                    |
-| NFR-02 | Audit query latency        | Performance   | GET /AuditEvent queries SHALL return results within 2 seconds (P95) for result sets of up to 1000 records                                                                          |
-| NFR-03 | Audit query pagination     | Performance   | Paginated queries SHALL return each page within 2 seconds (P95) regardless of offset                                                                                               |
-| NFR-04 | Audit storage durability   | Reliability   | Audit_Records SHALL be stored with 99.999999999% (11 nines) durability                                                                                                             |
-| NFR-05 | Audit availability         | Reliability   | The Audit_Query_API SHALL be available 99.9% of the time measured monthly                                                                                                          |
-| NFR-06 | Audit write resilience     | Reliability   | IF the audit store is temporarily unavailable, THE Audit_Service SHALL retry the write with exponential backoff (max 3 retries) and SHALL NOT fail the originating write operation |
-| NFR-07 | Audit write dead-letter    | Reliability   | IF all retries are exhausted, THE Audit_Service SHALL place the failed audit record on a dead-letter queue for later reprocessing and SHALL emit an AuditRecordWriteFailed metric  |
-| NFR-08 | Structured log volume      | Capacity      | The logging infrastructure SHALL support ingestion of up to 100 requests/second without data loss                                                                                  |
-| NFR-09 | Health check response time | Performance   | GET /_status SHALL respond within 3 seconds under normal conditions                                                                                                                |
-| NFR-10 | Metric emission latency    | Observability | Custom metrics SHALL appear in CloudWatch within 60 seconds of emission                                                                                                            |
-| NFR-11 | Alert notification latency | Observability | Alarm state changes SHALL trigger SNS notification within 5 minutes of the threshold breach                                                                                        |
-| NFR-12 | Log search latency         | Observability | CloudWatch Logs Insights queries SHALL return results within 30 seconds for queries spanning 24 hours of log data                                                                  |
-
-| NFR-13 | Audit record size          | Capacity      | Individual Audit_Records SHALL not exceed 400KB (DynamoDB item size limit)                                                                                                         |
-| NFR-14 | Correlation ID propagation | Traceability  | 100% of structured log entries for a given request SHALL contain the same correlationId                                                                                            |
-| NFR-15 | No sensitive data in logs  | Security      | Structured logs SHALL NOT contain bearer token values, patient identifiers, or data classified as sensitive                                                                        |
+| # | Requirement | Category | Acceptance Criteria |
+|---|-------------|----------|---------------------|
+| NFR-01 | Audit write latency | Performance | Adding an audit record SHALL NOT increase the P95 latency of the originating write operation by more than 100ms |
+| NFR-02 | Audit query latency | Performance | GET /AuditEvent queries SHALL return results within 2 seconds (P95) for result sets of up to 1000 records |
+| NFR-03 | Audit query pagination | Performance | Paginated queries SHALL return each page within 2 seconds (P95) regardless of offset |
+| NFR-04 | Audit storage durability | Reliability | Audit_Records SHALL be stored with 99.999999999% (11 nines) durability |
+| NFR-05 | Audit availability | Reliability | The Audit_Query_API SHALL be available 99.9% of the time measured monthly |
+| NFR-06 | Audit write resilience | Reliability | IF the audit store is temporarily unavailable, THE Audit_Service SHALL retry the write with exponential backoff (max 3 retries) and SHALL NOT fail the originating write operation |
+| NFR-07 | Audit write dead-letter | Reliability | IF all retries are exhausted, THE Audit_Service SHALL place the failed audit record on a dead-letter queue for later reprocessing and SHALL emit an AuditRecordWriteFailed metric |
+| NFR-08 | Structured log volume | Capacity | The logging infrastructure SHALL support ingestion of up to 100 requests/second without data loss |
+| NFR-09 | Metric emission latency | Observability | Custom metrics SHALL appear in CloudWatch within 60 seconds of emission |
+| NFR-10 | Alert notification latency | Observability | Alarm state changes SHALL trigger SNS notification within 5 minutes of the threshold breach |
+| NFR-11 | Log search latency | Observability | CloudWatch Logs Insights queries SHALL return results within 30 seconds for queries spanning 24 hours of log data |
+| NFR-12 | Audit record size | Capacity | Individual Audit_Records SHALL not exceed 400KB (DynamoDB item size limit) |
+| NFR-13 | Correlation ID propagation | Traceability | 100% of structured log entries for a given request SHALL contain the same correlationId |
+| NFR-14 | No sensitive data in logs | Security | Structured logs SHALL NOT contain bearer token values, patient identifiers, or data classified as sensitive |
 
 ---
 
