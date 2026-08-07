@@ -1,4 +1,4 @@
-# EPC-INV010 - Audit
+# Audit and Logging
 
 ---
 
@@ -158,14 +158,26 @@ The application audit layer (this feature) captures business-level change events
 
 ### 3.6 Requirement 6: Access Control for Audit Query API
 
-**User Story:** As an Endpoint Administrator, I want the audit query API to be protected so that only authenticated callers can retrieve audit records, and organisations can only see audit records relevant to them unless they hold an elevated role.
+**User Story:** As an Endpoint Administrator, I want the audit query API to be protected so that only authenticated and authorised callers can retrieve audit records.
 
-#### 3.6.1 Acceptance Criteria
+> **Note:** The Audit Query API may be exposed via either the AWS API Gateway (IAM-secured) or the Apigee platform (bearer token-secured). Only one access control mode will be required in the initial implementation. Given that RBAC is delayed and the API is likely to be hosted on AWS API Gateway, **IAM-based access control is the recommended option** for the initial release. Bearer token access control is documented below as the alternative should the API be exposed via Apigee or once RBAC is in place.
+
+#### 3.6.1 Acceptance Criteria — Common
+
+1. THE Audit_Query_API SHALL only be accessible to authenticated and authorised callers — unauthenticated requests SHALL be rejected.
+2. Authorised callers SHALL be permitted to retrieve Audit_Records for any resource without restriction on `actorOrganisation` (audit records are not restricted by ownership).
+3. IF a request to the Audit_Query_API supplies an invalid search parameter name, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and error code `INVALID_PARAMETER`.
+
+#### 3.6.2 Option A: IAM-based access control (AWS API Gateway — recommended for initial release)
+
+1. THE Audit_Query_API SHALL be deployed on AWS API Gateway with IAM authorisation enabled.
+2. Requests SHALL be signed with valid AWS IAM credentials (SigV4). Requests with missing or invalid credentials SHALL be rejected with HTTP `403 Forbidden`.
+3. Access SHALL be controlled via IAM policies attached to roles granted to authorised teams (e.g. Endpoint Administrators, support staff).
+
+#### 3.6.3 Option B: Bearer token access control (Apigee — alternative / future with RBAC)
 
 1. THE Audit_Query_API SHALL require a valid Bearer_Token on all requests and SHALL return `401 Unauthorized` for requests with a missing, expired, or invalid token.
-2. WHEN a caller supplies a valid Bearer_Token, THE Audit_Query_API SHALL permit the caller to retrieve Audit_Records for any resource without restriction on `actorOrganisation` (audit records are not restricted by ownership — any authenticated caller may query the full audit trail).
-3. IF a request to the Audit_Query_API is made without a valid Bearer_Token, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `401` and error code `SEND_UNAUTHORIZED`.
-4. IF a request to the Audit_Query_API supplies an invalid search parameter name, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and error code `INVALID_PARAMETER`.
+2. IF a request is made without a valid Bearer_Token, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `401` and error code `SEND_UNAUTHORIZED`.
 
 ### 3.7 Requirement 7: Audit Record Immutability and Retention
 
@@ -177,6 +189,8 @@ The application audit layer (this feature) captures business-level change events
 2. THE Audit_Service SHALL NOT expose any API operation that allows an Audit_Record to be deleted.
 3. THE Audit_Service SHALL retain Audit_Records for a minimum of 1 year from the date of creation.
 4. WHILE an Audit_Record exists in the store, THE Audit_Service SHALL return it in query results that match its fields, regardless of the age of the record.
+5. THE Audit_Service SHALL automatically remove Audit_Records after the retention period has elapsed by using DynamoDB Time-to-Live (TTL). Each Audit_Record SHALL include a `ttl` attribute set to the Unix epoch timestamp 1 year from the record's creation date.
+6. THE Audit_Service SHALL NOT rely on manual or scheduled housekeeping processes to remove expired records — TTL-based expiry SHALL be the sole mechanism for audit record deletion.
 
 ### 3.8 Requirement 8: Audit Query API — Error Handling
 
@@ -184,15 +198,15 @@ The application audit layer (this feature) captures business-level change events
 
 #### 3.8.1 Acceptance Criteria
 
-#### 3.7.1 Acceptance Criteria
+1. IF `date-from` is supplied with a value that is not a valid ISO 8601 date, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message identifying the invalid parameter and its value.
 
-1. THE Audit_Service SHALL NOT expose any API operation that allows an Audit_Record to be modified after creation.
-2. THE Audit_Service SHALL NOT expose any API operation that allows an Audit_Record to be deleted.
-3. THE Audit_Service SHALL retain Audit_Records for a minimum of 1 year from the date of creation.
-4. WHILE an Audit_Record exists in the store, THE Audit_Service SHALL return it in query results that match its fields, regardless of the age of the record.
-5. THE Audit_Service SHALL automatically remove Audit_Records after the retention period has elapsed by using DynamoDB Time-to-Live (TTL). Each Audit_Record SHALL include a `ttl` attribute set to the Unix epoch timestamp 1 year from the record's creation date.
-6. THE Audit_Service SHALL NOT rely on manual or scheduled housekeeping processes to remove expired records — TTL-based expiry SHALL be the sole mechanism for audit record deletion.
-### 3.9 Requirement 9: API Gateway Audit (Apigee / Splunk)
+2. IF `date-to` is supplied with a value that is not a valid ISO 8601 date, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message identifying the invalid parameter and its value.
+
+3. IF `date-from` is supplied with a value that is later than `date-to`, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message stating that `date-from` must not be later than `date-to`.
+
+4. IF `date` is supplied together with either `date-from` or `date-to`, THEN THE Audit_Query_API SHALL return a FHIR `OperationOutcome` with HTTP status `400` and a `diagnostics` message stating that `date` cannot be combined with `date-from` or `date-to`.
+
+5. WHEN the Audit_Query_API returns an error response, THE Audit_Query_API SHALL use the FHIR `OperationOutcome` resource format consistent with the error response format used by the rest of the Endpoint Catalog API.
 
 **User Story:** As a platform operator, I want all inbound requests to the Endpoint Catalog API to be logged at the gateway layer, so that I have a complete low-level request trail that complements the application-level audit records.
 
@@ -307,7 +321,7 @@ The application audit layer (this feature) captures business-level change events
 
 
 | #      | Requirement                | Category      | Acceptance Criteria                                                                                                                                                                |
-| -------- | ---------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| --------| ----------------------------| ---------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | NFR-01 | Audit write latency        | Performance   | Adding an audit record SHALL NOT increase the P95 latency of the originating write operation by more than 100ms                                                                    |
 | NFR-02 | Audit query latency        | Performance   | GET /AuditEvent queries SHALL return results within 2 seconds (P95) for result sets of up to 1000 records                                                                          |
 | NFR-03 | Audit query pagination     | Performance   | Paginated queries SHALL return each page within 2 seconds (P95) regardless of offset                                                                                               |
@@ -554,10 +568,10 @@ The dashboard is defined in the infrastructure-as-code (Terraform) as a `aws_clo
 
 
 | Log source               | CloudWatch retention | Archive            | Notes                                                    |
-| --------------------------| ----------------------| --------------------| ----------------------------------------------------------|
-| Lambda application logs  | 90 days              | S3 export (1 year) | Via CloudWatch Logs subscription → S3                    |
+| -------------------------- | ---------------------- | -------------------- | ---------------------------------------------------------- |
+| Lambda application logs  | 90 days              | S3 export (1 year) | Via CloudWatch Logs subscription → S3                   |
 | API Gateway access logs  | 90 days              | S3 export (1 year) | Same mechanism                                           |
-| Audit records (DynamoDB) | 1 year (TTL-managed) | —                  | Automatically expired via DynamoDB TTL per Requirement 7 |
+| Audit records (DynamoDB) | 1 year (TTL-managed) | —                 | Automatically expired via DynamoDB TTL per Requirement 7 |
 
 For the S3 archive:
 
@@ -617,7 +631,7 @@ The following table shows how each Endpoint Catalogue NFR (v1, 6 August 2026) is
 | NFR-2 | Each entry shows who, what org, when, resource affected, and change type    | Mostly met             | Req 2 (Actor Identity from Bearer Token), Req 5 (Audit Record Content)                           | actorId, actorOrganisation (ODS), timestamp, resourceType, resourceId, and changeType are all recorded.**Note:** Full individual-user attribution cannot be met until RBAC is in place; until then audit records identity at organisation level only. Gaps: no local-time display; no distinct "renamed" change type. |
 | NFR-3 | Before-and-after values for fields that changed                             | Fully met              | Req 5 (Audit Record Content)                                                                     | Both a`beforeSnapshot` and `afterSnapshot` are stored on every Audit_Record as full FHIR/JSON representations. This captures all field changes including full-record replacements via PUT. Consumers can diff the two snapshots to identify exactly which fields changed.                                             |
 | NFR-4 | Search by ODS code, service name, endpoint, status, org, date range         | Mostly met             | Req 4 (Audit Query API — Search and Retrieval)                                                  | Supports search by organisation (ODS), healthcare-service-id, endpoint-id, date/date-from/date-to, url, connection-type, payload-type, product-id. Gap: no partial/fuzzy match on service name.                                                                                                                       |
-| NFR-5 | History is tamper-proof, no duplicates, no gaps, retained 1 year            | Mostly met             | Req 7 (Audit Record Immutability and Retention), Req 1 (AC 5 — append-only store)               | No modify/delete API exposed; DynamoDB IAM restricts to PutItem + Query only; retention is 1 year (matches the NFR ask), with automatic TTL-based housekeeping. Gap: no explicit idempotency mechanism to guarantee zero duplicates.                                                                                                                         |
+| NFR-5 | History is tamper-proof, no duplicates, no gaps, retained 1 year            | Mostly met             | Req 7 (Audit Record Immutability and Retention), Req 1 (AC 5 — append-only store)               | No modify/delete API exposed; DynamoDB IAM restricts to PutItem + Query only; retention is 1 year (matches the NFR ask), with automatic TTL-based housekeeping. Gap: no explicit idempotency mechanism to guarantee zero duplicates.                                                                                  |
 | NFR-6 | Drill-down from service to endpoints, suppliers, and history in 1–2 clicks | Not met (out of scope) | —                                                                                               | This is a UI/UX requirement. audit.md is an API-level specification only. Needs separate front-end spec.                                                                                                                                                                                                              |
 | NFR-7 | Errors are clear, actionable, include a correlation ID                      | Fully met              | Req 8 (Audit Query API — Error Handling), Req 11 (Distributed Tracing)                          | FHIR OperationOutcome responses with diagnostics and specific field/value identification. Correlation ID returned in X-Correlation-Id header and propagated through all logs.                                                                                                                                         |
 | NFR-8 | Performance holds as scope expands; downtime communicated                   | Partially met          | NFR-02 (Audit query latency ≤ 2s P95), NFR-09 (Health check ≤ 3s)                              | Latency targets defined. DynamoDB on-demand scaling handles load growth. Gap: no explicit data-growth/archiving strategy; no downtime communication process documented.                                                                                                                                               |
@@ -630,14 +644,14 @@ The following table shows how each Endpoint Catalogue NFR (v1, 6 August 2026) is
 The following table captures gaps between this document (EPC-INV010) and the Endpoint Catalogue NFR requirements (v1, 6 August 2026).
 
 
-| NFR   | NFR Requirement                                                                          | Gap                                                                                                                                             | Severity | Notes / Suggested Action                                                                                                                                                                |
-| ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NFR-1 | "supplier add/remove" produces an audit entry                                            | audit.md does not reference a Supplier resource type — only HealthcareService, Template, Endpoint, and List                                    | Medium   | Clarify whether supplier management is in scope and how it maps to the four defined resource types                                                                                      |
-| NFR-2 | Timestamps shown in readable local time, not just raw UTC                                | audit.md stores and returns UTC only — no local-time representation                                                                            | Medium   | Decide whether the API should return a secondary localised timestamp field or whether this is a UI-layer concern                                                                        |
-| NFR-2 | "renamed" listed as a distinct change type                                               | audit.md only defines`created`, `updated`, `deleted` — a rename would be recorded as `updated` with no distinct code                           | Low      | Consider adding a`renamed` change type or document that renames are a subset of `updated`                                                                                               |
-| NFR-2 | Individual user-level identity ("who made the change")                                   | Cannot be fully met until RBAC is in place — until then, audit records identity at organisation level (ODS code) only                          | High     | Dependency on RBAC implementation. Once RBAC is live and individual user claims are available in the bearer token, actorId will capture the specific user. Track as a known constraint. |
-| NFR-4 | Search by service name including partial/fuzzy matches                                   | Audit Query API only supports exact-match identifiers (healthcare-service-id, endpoint-id, ODS code) — no free-text or partial-match parameter | Medium   | Either add a text-search parameter to the Audit Query API or document this as a UI-layer feature                                                                                        |
-| NFR-5 | "The same change always produces exactly one entry — no duplicates, no gaps"            | Retry logic (exponential backoff on audit write failure) could produce duplicates if a write succeeds but the response times out                | Medium   | Add an explicit idempotency mechanism (e.g. conditional PutItem with audit record ID) to prevent duplicate entries                                                                      |
+| NFR   | NFR Requirement                                                                       | Gap                                                                                                                                            | Severity | Notes / Suggested Action                                                                                                                                                                |
+| -------| ---------------------------------------------------------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------| ----------| -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NFR-1 | "supplier add/remove" produces an audit entry                                         | audit.md does not reference a Supplier resource type — only HealthcareService, Template, Endpoint, and List                                    | Medium   | Clarify whether supplier management is in scope and how it maps to the four defined resource types                                                                                      |
+| NFR-2 | Timestamps shown in readable local time, not just raw UTC                             | audit.md stores and returns UTC only — no local-time representation                                                                            | Medium   | Decide whether the API should return a secondary localised timestamp field or whether this is a UI-layer concern                                                                        |
+| NFR-2 | "renamed" listed as a distinct change type                                            | audit.md only defines`created`, `updated`, `deleted` — a rename would be recorded as `updated` with no distinct code                           | Low      | Consider adding a`renamed` change type or document that renames are a subset of `updated`                                                                                               |
+| NFR-2 | Individual user-level identity ("who made the change")                                | Cannot be fully met until RBAC is in place — until then, audit records identity at organisation level (ODS code) only                          | High     | Dependency on RBAC implementation. Once RBAC is live and individual user claims are available in the bearer token, actorId will capture the specific user. Track as a known constraint. |
+| NFR-4 | Search by service name including partial/fuzzy matches                                | Audit Query API only supports exact-match identifiers (healthcare-service-id, endpoint-id, ODS code) — no free-text or partial-match parameter | Medium   | Either add a text-search parameter to the Audit Query API or document this as a UI-layer feature                                                                                        |
+| NFR-5 | "The same change always produces exactly one entry — no duplicates, no gaps"          | Retry logic (exponential backoff on audit write failure) could produce duplicates if a write succeeds but the response times out               | Medium   | Add an explicit idempotency mechanism (e.g. conditional PutItem with audit record ID) to prevent duplicate entries                                                                      |
 | NFR-6 | Drill-down navigation: service → endpoints → suppliers → history in one or two clicks | Not addressed — audit.md is an API-level specification with no UI/UX component                                                                 | Medium   | Acknowledge as a UI requirement and track separately in a front-end spec                                                                                                                |
-| NFR-8 | Performance holds as scope expands; scheduled downtime communicated in advance           | Latency NFRs exist (2s P95) but no strategy for data growth over time (archiving, partitioning) and no downtime communication process           | Low      | Document a data-growth strategy (e.g. time-based partitioning) and define a downtime communication process                                                                              |
-| NFR-9 | A change is visible to others within a few seconds; history reflects true order          | No explicit consistency model stated — DynamoDB GSI queries use eventually-consistent reads by default                                         | Medium   | Specify whether strongly-consistent reads are used for audit queries or document the expected propagation delay (typically < 1s for DynamoDB)                                           |
+| NFR-8 | Performance holds as scope expands; scheduled downtime communicated in advance        | Latency NFRs exist (2s P95) but no strategy for data growth over time (archiving, partitioning) and no downtime communication process          | Low      | Document a data-growth strategy (e.g. time-based partitioning) and define a downtime communication process                                                                              |
+| NFR-9 | A change is visible to others within a few seconds; history reflects true order       | No explicit consistency model stated — DynamoDB GSI queries use eventually-consistent reads by default                                         | Medium   | Specify whether strongly-consistent reads are used for audit queries or document the expected propagation delay (typically < 1s for DynamoDB)                                           |
