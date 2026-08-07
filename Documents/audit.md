@@ -271,30 +271,11 @@ The application audit layer (this feature) captures business-level change events
 4. THE `correlationId` SHALL appear in every structured log entry emitted during the processing of that request.
 5. THE Endpoint Catalog API SHALL return the `correlationId` in the response as the `X-Correlation-Id` header.
 
-### 3.12 Requirement 12: Alerting Thresholds
-
-**User Story:** As a platform operator, I want automated alerts when key operational metrics exceed defined thresholds, so that the team is notified of potential issues before they affect users.
-
-#### 3.12.1 Acceptance Criteria
-
-1. THE following CloudWatch Alarms SHALL be configured:
-
-
-| Alarm                | Metric                        | Condition                         | Period | Action                   |
-| ---------------------- | ------------------------------- | ----------------------------------- | -------- | -------------------------- |
-| High error rate      | API GW 5XXError               | > 5% of total requests            | 5 min  | SNS → team notification |
-| High latency         | API GW Latency                | P95 > 2000 ms                     | 5 min  | SNS → team notification |
-| Audit write failure  | Custom AuditRecordWriteFailed | > 0                               | 1 min  | SNS → team notification |
-| Lambda throttles     | Lambda Throttles              | > 0                               | 1 min  | SNS → team notification |
-| DynamoDB throttles   | DynamoDB ThrottledRequests    | > 0                               | 5 min  | SNS → team notification |
-
-2. All alarms SHALL publish to an SNS topic. The team subscribes via email, Slack (via AWS Chatbot), or PagerDuty (via SNS → HTTPS endpoint).
-
-### 3.13 Requirement 13: Log Retention and Accessibility
+### 3.12 Requirement 12: Log Retention and Accessibility
 
 **User Story:** As a platform operator, I want logs to be retained for a defined period and accessible for investigation, so that I can troubleshoot issues that occurred in the past.
 
-#### 3.13.1 Acceptance Criteria
+#### 3.12.1 Acceptance Criteria
 
 1. CloudWatch Logs for Lambda functions and API Gateway access logs SHALL be retained for 90 days in CloudWatch.
 2. After 90 days, logs SHALL be archived to S3 for a further retention period of 1 year.
@@ -397,6 +378,8 @@ The audit write occurs inside the same Lambda invocation as the resource write:
           (do NOT fail the originating response)
 4. Return response to caller
 ```
+
+**Audit-specific alerting:** The `AuditRecordWriteFailed` metric SHALL trigger a CloudWatch Alarm (threshold: > 0, period: 1 min) that publishes to the team SNS notification topic. General system health alarms (error rate, latency, throttling) are defined in the [observability specification](observability.md).
 
 **Change_Type derivation:**
 
