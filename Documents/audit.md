@@ -302,7 +302,7 @@ The application audit layer (this feature) captures business-level change events
 
 ---
 
-## 5 NFR Coverage Mapping
+## 5 R&M NFR Coverage Mapping
 
 The following shows how each Run Maintain NFR (Endpoint catalogue NFR v1, 6 August 2026) is addressed by the requirements in this document. The NFRs are referenced using the format **NFR-RM-XX** to identify them as Referrals & Management NFRs.
 
