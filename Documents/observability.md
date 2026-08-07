@@ -181,6 +181,22 @@ trending, centralised alerting).
 
 ---
 
+## Health check endpoint (nice to have)
+
+A dedicated health check endpoint (`GET /_status`) would allow external monitors
+(e.g. Route 53 health checks, uptime services) to actively poll the service and
+detect unavailability before users are affected. This is a **nice-to-have** for
+the initial release but should be considered for a future iteration.
+
+If implemented, the endpoint would:
+
+- Return HTTP `200` with `{"status": "pass"}` when the service is healthy
+- Verify DynamoDB connectivity and return HTTP `503` with failure detail if lost
+- Not require authentication (lightweight, unauthenticated route)
+- Respond within 3 seconds under normal conditions
+
+---
+
 ## Open items
 
 | # | Item | Owner | Status |

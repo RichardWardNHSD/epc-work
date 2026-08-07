@@ -77,14 +77,26 @@ The application audit layer (this feature) captures business-level change events
 
 **User Story:** As an Endpoint Administrator, I want the audit record to capture who made each change using their authenticated identity, so that I can hold individuals and organisations accountable.
 
-> **Note:** This requirement cannot be fully met until RBAC (Role-Based Access Control) is in place. Until then, audit will record identity at the **organisation level** only (ODS code from the bearer token). Individual user-level attribution will be added once RBAC is implemented and individual user claims are available in the token.
+> **Note:** This requirement cannot be fully met until RBAC (Role-Based Access Control) is in place. Until then, audit will record identity at the **organisation level** only. Individual user-level attribution will be added once RBAC is implemented and individual user claims are available in the token. The source of actor identity depends on whether the write API is exposed via Apigee (bearer token) or AWS API Gateway (IAM).
 
-#### 3.2.1 Acceptance Criteria
+#### 3.2.1 Acceptance Criteria — Common
 
-1. WHEN creating an Audit_Record, THE Audit_Service SHALL extract the Actor identity exclusively from the Bearer_Token claims and SHALL NOT use the `NHSD-End-User-Organisation-ODS` request header as the source of the Actor_Organisation.
-2. WHEN creating an Audit_Record, THE Audit_Service SHALL record the Actor_Organisation as the ODS_Code asserted in the Bearer_Token's organisation claim (the same claim used for ODS spoofing prevention as defined in the authorisation model).
-3. IF the Bearer_Token does not contain a resolvable user identifier claim, THEN THE Audit_Service SHALL reject the write operation with a `401 Unauthorized` response and SHALL NOT create an Audit_Record.
-4. THE Audit_Service SHALL store the `actorId` and `actorOrganisation` as separate, independently queryable fields on every Audit_Record.
+1. THE Audit_Service SHALL store the `actorId` and `actorOrganisation` as separate, independently queryable fields on every Audit_Record.
+2. THE Audit_Service SHALL NOT use the `NHSD-End-User-Organisation-ODS` request header as the source of the Actor_Organisation.
+
+#### 3.2.2 Option A: IAM-based identity (AWS API Gateway)
+
+1. WHEN creating an Audit_Record, THE Audit_Service SHALL extract the Actor identity from the IAM principal (role/user ARN) associated with the signed request.
+2. THE Audit_Service SHALL record `actorId` as the IAM role or user ARN that signed the request.
+3. THE Audit_Service SHALL record `actorOrganisation` as the ODS_Code derived from the IAM role's tags or a mapping maintained by the platform (e.g. an IAM role-to-ODS lookup).
+4. IF the request does not carry valid IAM credentials, THEN the AWS API Gateway SHALL reject it with HTTP `403 Forbidden` before it reaches the Audit_Service — no Audit_Record is created.
+
+#### 3.2.3 Option B: Bearer token identity (Apigee / future RBAC)
+
+1. WHEN creating an Audit_Record, THE Audit_Service SHALL extract the Actor identity exclusively from the Bearer_Token claims.
+2. THE Audit_Service SHALL record `actorOrganisation` as the ODS_Code asserted in the Bearer_Token's organisation claim (the same claim used for ODS spoofing prevention as defined in the authorisation model).
+3. THE Audit_Service SHALL record `actorId` as the user identifier claim from the Bearer_Token (available once RBAC is in place; until then this field will reflect the organisation-level identity).
+4. IF the Bearer_Token does not contain a resolvable identity claim, THEN THE Audit_Service SHALL reject the write operation with a `401 Unauthorized` response and SHALL NOT create an Audit_Record.
 
 ### 3.3 Requirement 3: Audit Coverage for All Resource Types
 
@@ -259,38 +271,11 @@ The application audit layer (this feature) captures business-level change events
 4. THE `correlationId` SHALL appear in every structured log entry emitted during the processing of that request.
 5. THE Endpoint Catalog API SHALL return the `correlationId` in the response as the `X-Correlation-Id` header.
 
-### 3.12 Requirement 12: Health Check Endpoint
-
-**User Story:** As a platform operator, I want the Endpoint Catalog API to expose a health check endpoint, so that monitoring systems can detect when the service is unavailable or degraded.
-
-#### 3.12.1 Acceptance Criteria
-
-1. THE Endpoint Catalog API SHALL expose a `GET /_status` endpoint that returns HTTP `200` with a JSON body `{"status": "pass"}` when the service is healthy.
-2. THE health check SHALL verify connectivity to DynamoDB by performing a lightweight operation (e.g. `DescribeTable`) and SHALL return HTTP `503` with `{"status": "fail", "detail": "..."}` if connectivity is lost.
-3. THE `GET /_status` endpoint SHALL NOT require authentication (no bearer token required).
-4. THE `GET /_status` endpoint SHALL respond within 3 seconds under normal operating conditions.
-
-### 3.13 Requirement 13: Metrics and Instrumentation
-
-**User Story:** As a platform operator, I want the Endpoint Catalog API to emit operational metrics, so that I can build dashboards and detect anomalies in request volume, error rates, and latency.
-
-#### 3.13.1 Acceptance Criteria
-
-1. THE Endpoint Catalog API SHALL emit the following metrics to CloudWatch Metrics:
-
-   - Request count (per endpoint, per HTTP method)
-   - Error count (4xx and 5xx, per endpoint)
-   - Request latency (P50, P95, P99, per endpoint)
-   - Audit record write count
-   - Audit query execution count
-2. THE Endpoint Catalog API SHALL emit custom metrics using CloudWatch Embedded Metric Format (EMF) from within the Lambda function.
-3. THE built-in AWS metrics (API Gateway request count, Lambda duration, Lambda errors, DynamoDB consumed capacity) SHALL be available without additional application code.
-
-### 3.14 Requirement 14: Alerting Thresholds
+### 3.12 Requirement 12: Alerting Thresholds
 
 **User Story:** As a platform operator, I want automated alerts when key operational metrics exceed defined thresholds, so that the team is notified of potential issues before they affect users.
 
-#### 3.14.1 Acceptance Criteria
+#### 3.12.1 Acceptance Criteria
 
 1. THE following CloudWatch Alarms SHALL be configured:
 
@@ -299,18 +284,17 @@ The application audit layer (this feature) captures business-level change events
 | ---------------------- | ------------------------------- | ----------------------------------- | -------- | -------------------------- |
 | High error rate      | API GW 5XXError               | > 5% of total requests            | 5 min  | SNS → team notification |
 | High latency         | API GW Latency                | P95 > 2000 ms                     | 5 min  | SNS → team notification |
-| Health check failing | Custom HealthCheckStatus      | = 0 (unhealthy) for 2 consecutive | 1 min  | SNS → team notification |
 | Audit write failure  | Custom AuditRecordWriteFailed | > 0                               | 1 min  | SNS → team notification |
 | Lambda throttles     | Lambda Throttles              | > 0                               | 1 min  | SNS → team notification |
 | DynamoDB throttles   | DynamoDB ThrottledRequests    | > 0                               | 5 min  | SNS → team notification |
 
 2. All alarms SHALL publish to an SNS topic. The team subscribes via email, Slack (via AWS Chatbot), or PagerDuty (via SNS → HTTPS endpoint).
 
-### 3.15 Requirement 15: Log Retention and Accessibility
+### 3.13 Requirement 13: Log Retention and Accessibility
 
 **User Story:** As a platform operator, I want logs to be retained for a defined period and accessible for investigation, so that I can troubleshoot issues that occurred in the past.
 
-#### 3.15.1 Acceptance Criteria
+#### 3.13.1 Acceptance Criteria
 
 1. CloudWatch Logs for Lambda functions and API Gateway access logs SHALL be retained for 90 days in CloudWatch.
 2. After 90 days, logs SHALL be archived to S3 for a further retention period of 1 year.
@@ -511,7 +495,6 @@ Built-in AWS metrics (no code required):
 | ---------------------- | ------------------------------- | ----------------------------------- | -------- | -------------------------- |
 | High error rate      | API GW 5XXError               | > 5% of total requests            | 5 min  | SNS → team notification |
 | High latency         | API GW Latency                | P95 > 2000 ms                     | 5 min  | SNS → team notification |
-| Health check failing | Custom HealthCheckStatus      | = 0 (unhealthy) for 2 consecutive | 1 min  | SNS → team notification |
 | Audit write failure  | Custom AuditRecordWriteFailed | > 0                               | 1 min  | SNS → team notification |
 | Lambda throttles     | Lambda Throttles              | > 0                               | 1 min  | SNS → team notification |
 | DynamoDB throttles   | DynamoDB ThrottledRequests    | > 0                               | 5 min  | SNS → team notification |
