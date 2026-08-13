@@ -10,11 +10,19 @@
 
 The Endpoint Catalog Audit Trail feature provides a complete, immutable history of all changes made to resources managed by the Endpoint Catalog API. The audit trail covers all four resource types — HealthcareService, Template, Endpoint, and List — and records who made each change, from which organisation, when, and what kind of change it was. A dedicated query API allows Endpoint Administrators and support staff to search and retrieve audit records using a range of filters.
 
-The feature satisfies the original user story EPCSe006:
+The feature satisfies two requirements from the Endpoint Catalogue Service Requirements (v1.8):
 
-> As an Endpoint Administrator, I want a full audit history of any changes applied to an endpoint so that I have a clear view of when endpoints are added, amended, changed status, etc. for audit and support purposes.
+1. **EPCSe006 — Provision of Audit** (Section 4.6): the original user story scoped to Endpoints:
 
-The scope has been extended to cover all resource types in the Endpoint Catalog, not just Endpoints.
+   > As an Endpoint Administrator, I want a full audit history of any changes applied to an endpoint so that I have a clear view of when endpoints are added, amended, changed status, etc. for audit and support purposes.
+
+2. **EPC-NF-06 — Auditing** (Non-Functional): a broader, resource-agnostic requirement that mandates auditing across all resource types:
+
+   > The solution MUST audit all information access attempts and actions, retaining all pertinent data therein, as well as forwarding relevant access logs to CSOC.
+
+   EPC-NF-06 covers all changes to all resources managed by the Endpoint Catalog — not just Endpoints — and extends to information access attempts as well as write operations.
+
+The scope of this feature therefore covers all resource types in the Endpoint Catalog, not just Endpoints, in line with EPC-NF-06.
 
 ### 1.1 Audit layers
 
