@@ -78,7 +78,7 @@ graph TD
 
     SENDER -->|POST /$process-message| BARS_API
     BARS_API --> BARS_PROXY
-    BARS_PROXY -->|GET /Endpoint<br/>via EPC API| EPC_API
+    BARS_PROXY -->|GET /Endpoint<br/>proxy chaining| EPC_PROXY
     BARS_PROXY -->|Forward message<br/>mTLS| RECEIVER
 
     RM -->|CSV pipeline / API calls| EPC_API
@@ -111,10 +111,15 @@ The existing messaging product. Sender systems submit referrals and bookings via
 | Attribute | Value |
 |-----------|-------|
 | Role | Message routing proxy |
-| Relationship to EPC | **Consumer** — calls the EPC API to resolve endpoint addresses |
-| Authentication to EPC | App-restricted OAuth (same as any other EPC API consumer) |
+| Relationship to EPC | **Consumer** — calls the EPC Proxy to resolve endpoint addresses |
+| Authentication to EPC | Proxy chaining within Apigee (internal proxy-to-proxy call) |
 
-The BaRS Proxy is **loosely coupled** to the EPC — it calls the published EPC API like any other consumer, not directly to the backend. This ensures:
+> **Note:** It is believed the BaRS Proxy will call the EPC Proxy using **Apigee proxy chaining**
+> (an internal proxy-to-proxy invocation within the Apigee platform). This avoids an
+> external round-trip and keeps the call within the API management layer. **This needs to
+> be confirmed with the APIM team.**
+
+The BaRS Proxy is **loosely coupled** to the EPC — it calls the EPC through the published API contract, not directly to the AWS backend. This ensures:
 
 - No direct dependency on the EPC's internal infrastructure
 - The EPC backend can be changed or redeployed without affecting the BaRS Proxy
@@ -123,7 +128,7 @@ The BaRS Proxy is **loosely coupled** to the EPC — it calls the published EPC 
 When a sender submits a message, the Proxy:
 
 1. Extracts the `NHSD-Target-Identifier` header (DoS service ID)
-2. Calls the EPC API: `GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}`
+2. Calls the EPC (via proxy chaining): `GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}`
 3. Receives the active Endpoint(s) with the resolved receiver address
 4. Forwards the original message to that address via mTLS
 
@@ -310,21 +315,22 @@ The pipeline authenticates to the PROD EPC API through Apigee using the same OAu
 sequenceDiagram
     participant Sender
     participant BaRS_Proxy as BaRS Proxy (Apigee)
-    participant EPC_API as EPC API (Apigee)
+    participant EPC_Proxy as EPC Proxy (Apigee)
     participant EPC_GW as API Gateway (AWS)
     participant Lambda
     participant DDB as DynamoDB
     participant Receiver
 
     Sender->>BaRS_Proxy: POST /$process-message<br/>NHSD-Target-Identifier: {system}|{service_id}
-    BaRS_Proxy->>EPC_API: GET /Endpoint (app-restricted OAuth)
-    EPC_API->>EPC_GW: Validated request
+    Note over BaRS_Proxy,EPC_Proxy: Proxy chaining (internal Apigee call)
+    BaRS_Proxy->>EPC_Proxy: GET /Endpoint
+    EPC_Proxy->>EPC_GW: Validated request
     EPC_GW->>Lambda: Invoke Endpoint lookup
     Lambda->>DDB: Query active Endpoints
     DDB-->>Lambda: Matching Endpoint(s)
     Lambda-->>EPC_GW: FHIR Bundle
-    EPC_GW-->>EPC_API: Response
-    EPC_API-->>BaRS_Proxy: Endpoint address
+    EPC_GW-->>EPC_Proxy: Response
+    EPC_Proxy-->>BaRS_Proxy: Endpoint address
     BaRS_Proxy->>Receiver: Forward message (mTLS)
 ```
 
@@ -364,7 +370,7 @@ sequenceDiagram
 
 | Consumer                       | Method               | Description                   |
 | --------------------------------| ----------------------| -------------------------------|
-| BaRS Proxy → EPC API           | App-restricted       | Signed JWT → bearer token     |
+| BaRS Proxy → EPC Proxy         | Proxy chaining       | Internal Apigee proxy-to-proxy call (to be confirmed) |
 | R&M Pipeline → EPC API         | App-restricted       | Signed JWT → bearer token     |
 | Endpoint Suppliers → EPC API   | App-restricted       | Signed JWT → bearer token     |
 | Admin users → EPC API (future) | CIS2 user-restricted | NHS CIS2 login → bearer token |
