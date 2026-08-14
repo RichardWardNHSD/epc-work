@@ -23,8 +23,8 @@ The system comprises two logically distinct capabilities:
 |-----------|-------------|---------|
 | **Endpoint Catalogue** (API Gateway + Lambda + DynamoDB) | **PROD** (AWS BaRS workload account) | Live endpoint resolution for BaRS Proxy; production data store |
 | **EPC Updation Interim Tactical Solution** (S3 + Lambda pipeline) | **INT** (AWS BaRS workload account) | Batch processing of CSV uploads; calls through to the EPC API in PROD |
-| **BaRS Proxy** | **PROD** (Apigee) | Runtime message routing — resolves endpoints via EPC |
-| **EPC Proxy** | **PROD** (Apigee) | Authenticates external consumers and routes to EPC backend |
+| **BaRS Proxy** | **PROD** (Apigee) | Runtime message routing — resolves endpoints via EPC API |
+| **EPC API + EPC Proxy** | **PROD** (Apigee) | Published API product + proxy that authenticates consumers and routes to EPC backend |
 
 The Interim Tactical Solution is hosted in the **Integration (INT)** environment. It processes CSV files uploaded by the R&M team and calls the EPC API (in PROD) via Apigee using app-restricted authentication. This separation ensures that the batch processing workload does not share compute resources with the live endpoint resolution path, and provides an additional layer of isolation for data management operations.
 
@@ -286,6 +286,7 @@ graph TD
     end
 
     subgraph "PROD Environment"
+        EPC_API_P[EPC API<br/>Apigee]
         EPC_PROXY_P[EPC Proxy<br/>Apigee]
         APIGW_P[API Gateway<br/>AWS]
         LAMBDA_P[Lambda<br/>Business Logic]
@@ -297,7 +298,8 @@ graph TD
     INGEST -->|Valid rows| SQS
     SQS --> ENRICH
     ENRICH --> UPDATE
-    UPDATE -->|API calls<br/>OAuth app-restricted| EPC_PROXY_P
+    UPDATE -->|API calls<br/>OAuth app-restricted| EPC_API_P
+    EPC_API_P --> EPC_PROXY_P
     EPC_PROXY_P --> APIGW_P
     APIGW_P --> LAMBDA_P
     LAMBDA_P --> DDB_P
@@ -398,7 +400,7 @@ sequenceDiagram
     participant INGEST as File Ingestion Lambda (INT)
     participant SQS as SQS Queue (INT)
     participant ENRICH as Data Enrichment Lambda (INT)
-    participant EPC_PROXY as EPC Proxy (Apigee - PROD)
+    participant EPC_API as EPC API (Apigee - PROD)
     participant APIGW as API Gateway (AWS - PROD)
     participant Lambda as Lambda (PROD)
     participant DDB as DynamoDB (PROD)
@@ -410,13 +412,15 @@ sequenceDiagram
     INGEST->>SQS: Place valid rows on queue
     SQS->>ENRICH: Process each row
     ENRICH->>ENRICH: Data enrichment (lookups, mapping)
-    ENRICH->>EPC_PROXY: POST/PUT/DELETE (OAuth app-restricted)
-    EPC_PROXY->>APIGW: Validated request with trusted headers
+    ENRICH->>EPC_API: POST/PUT/DELETE (OAuth app-restricted)
+    Note over EPC_API,APIGW: EPC Proxy validates token, injects headers
+    EPC_API->>APIGW: Validated request with trusted headers
     APIGW->>Lambda: Invoke operation
     Lambda->>DDB: Execute CRUD operation
     DDB-->>Lambda: Confirm
-    Lambda-->>EPC_PROXY: Response
-    EPC_PROXY-->>ENRICH: Success/Failure
+    Lambda-->>APIGW: Response
+    APIGW-->>EPC_API: Response
+    EPC_API-->>ENRICH: Success/Failure
     ENRICH->>S3_OUT: Write results report
     RM->>S3_OUT: Review results
 ```
@@ -429,10 +433,10 @@ sequenceDiagram
 
 | Access Path | Method | Token Type |
 |-------------|--------|------------|
-| BaRS Proxy → EPC (via EPC Proxy) | App-restricted | Signed JWT → bearer token (same as any consumer) |
-| R&M Pipeline → EPC (via EPC Proxy) | App-restricted | Signed JWT → bearer token |
-| Endpoint Suppliers → EPC (via EPC Proxy) | App-restricted | Signed JWT → bearer token |
-| Admin users → EPC (future, via EPC Proxy) | CIS2 user-restricted | NHS CIS2 login → bearer token |
+| BaRS Proxy → EPC API | App-restricted | Signed JWT → bearer token (same as any consumer) |
+| R&M Pipeline → EPC API | App-restricted | Signed JWT → bearer token |
+| Endpoint Suppliers → EPC API | App-restricted | Signed JWT → bearer token |
+| Admin users → EPC API (future) | CIS2 user-restricted | NHS CIS2 login → bearer token |
 
 ### 8.2 Authorisation
 
@@ -447,7 +451,7 @@ sequenceDiagram
 
 | Pattern | Implementation |
 |---------|---------------|
-| mTLS | BaRS Proxy ↔ EPC Gateway; EPC Gateway ↔ Receiver systems |
+| mTLS | EPC Proxy (Apigee) ↔ EPC Gateway (AWS); BaRS Proxy ↔ Receiver systems |
 | JWT tokens | OAuth 2.0 app-restricted flow via NHS England API Platform |
 | IAM | AWS IAM roles for Lambda execution, DynamoDB access, S3 access |
 | Secrets management | AWS Secrets Manager — centrally managed, accessed at runtime |
