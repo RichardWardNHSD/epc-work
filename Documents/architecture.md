@@ -36,50 +36,54 @@ The Endpoint Catalogue itself is deployed across **dev**, **INT**, and **PROD** 
 
 The architecture is organised into four distinct layers, each with clear responsibilities:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           CONSUMERS                                              │
-│  Sender Systems  │  Receiver Systems  │  R&M Team  │  Endpoint Suppliers        │
-└────────┬─────────────────┬──────────────────┬────────────────┬──────────────────┘
-         │                 │                  │                │
-         ▼                 ▼                  ▼                ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     LAYER 1: API LAYER (Apigee)                                  │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                       │
-│  │   BaRS API   │    │  BaRS Proxy  │    │  EPC Proxy   │                       │
-│  │  (API Product)│    │  (Apigee Proxy)│   │ (Apigee Proxy)│                      │
-│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘                       │
-└─────────┼───────────────────┼───────────────────┼───────────────────────────────┘
-          │                   │                   │
-          ▼                   ▼                   ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     LAYER 2: GATEWAY (AWS)                                        │
-│                    ┌──────────────────────┐                                      │
-│                    │   AWS API Gateway    │                                      │
-│                    │   (EPC Gateway)      │                                      │
-│                    └──────────┬───────────┘                                      │
-└──────────────────────────────┼──────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     LAYER 3: COMPUTE (AWS)                                        │
-│  ┌──────────────────────────────────────────────────────────────┐               │
-│  │                    AWS Lambda Functions                       │               │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌──────────┐  │               │
-│  │  │  Endpoint  │ │  Template  │ │ Healthcare │ │   List   │  │               │
-│  │  │   CRUD     │ │    CRUD    │ │  Service   │ │   CRUD   │  │               │
-│  │  └────────────┘ └────────────┘ └────────────┘ └──────────┘  │               │
-│  └──────────────────────────────────────────────────────────────┘               │
-└─────────────────────────────────┬───────────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     LAYER 4: PERSISTENCE (AWS)                                   │
-│                    ┌──────────────────────┐                                      │
-│                    │      DynamoDB        │                                      │
-│                    │  (Endpoint Data)     │                                      │
-│                    └──────────────────────┘                                      │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Consumers
+        SENDER[Sender Systems]
+        RECEIVER[Receiver Systems]
+        RM[R&M Team]
+        SUPPLIER[Endpoint Suppliers]
+    end
+
+    subgraph "Layer 1: API Layer — Apigee"
+        BARS_API[BaRS API<br/>API Product]
+        BARS_PROXY[BaRS Proxy<br/>Apigee Proxy]
+        EPC_PROXY[EPC Proxy<br/>Apigee Proxy]
+    end
+
+    subgraph "Layer 2: Gateway — AWS"
+        APIGW[AWS API Gateway<br/>EPC Gateway]
+    end
+
+    subgraph "Layer 3: Compute — AWS"
+        LAMBDA_EP[Lambda: Endpoint CRUD]
+        LAMBDA_TPL[Lambda: Template CRUD]
+        LAMBDA_HCS[Lambda: HealthcareService CRUD]
+        LAMBDA_LIST[Lambda: List CRUD]
+    end
+
+    subgraph "Layer 4: Persistence — AWS"
+        DDB[(DynamoDB<br/>Endpoint Data)]
+    end
+
+    SENDER -->|POST /$process-message| BARS_API
+    BARS_API --> BARS_PROXY
+    BARS_PROXY -->|GET /Endpoint<br/>mTLS internal call| APIGW
+    BARS_PROXY -->|Forward message<br/>mTLS| RECEIVER
+
+    RM -->|CSV pipeline / API calls| EPC_PROXY
+    SUPPLIER -->|OAuth bearer token| EPC_PROXY
+    EPC_PROXY --> APIGW
+
+    APIGW --> LAMBDA_EP
+    APIGW --> LAMBDA_TPL
+    APIGW --> LAMBDA_HCS
+    APIGW --> LAMBDA_LIST
+
+    LAMBDA_EP --> DDB
+    LAMBDA_TPL --> DDB
+    LAMBDA_HCS --> DDB
+    LAMBDA_LIST --> DDB
 ```
 
 ---
@@ -244,43 +248,39 @@ The Interim Tactical Solution is the CSV-to-API pipeline that enables the R&M te
 
 ### 5.1 Architecture
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│              INT ENVIRONMENT (AWS)                            │
-│                                                              │
-│  ┌───────────┐    ┌─────────────────────────────────────┐    │
-│  │  S3 Input │    │      Processing Lambdas             │    │
-│  │   Bucket  │───▶│  ┌────────────┐  ┌──────────────┐   │    │
-│  └───────────┘    │  │File Ingest │  │Data Enrichment│   │    │
-│                   │  │(Validation)│  │  (per row)    │   │    │
-│  ┌───────────┐    │  └─────┬──────┘  └──────┬───────┘   │    │
-│  │ S3 Output │    │        │                 │           │    │
-│  │  (Results)│◀───│────────┼─────────────────┘           │    │
-│  └───────────┘    │        ▼                             │    │
-│                   │  ┌──────────┐                         │    │
-│                   │  │   SQS    │                         │    │
-│                   │  │  Queue   │                         │    │
-│                   │  └────┬─────┘                         │    │
-│                   └───────┼──────────────────────────────┘    │
-│                           │                                   │
-└───────────────────────────┼───────────────────────────────────┘
-                            │
-                            │  API calls (via Apigee, app-restricted OAuth)
-                            ▼
-┌──────────────────────────────────────────────────────────────┐
-│              PROD ENVIRONMENT                                 │
-│                                                              │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    │
-│  │  EPC Proxy   │───▶│ API Gateway  │───▶│   Lambda     │    │
-│  │  (Apigee)    │    │   (AWS)      │    │  (Business   │    │
-│  └──────────────┘    └──────────────┘    │   Logic)     │    │
-│                                          └──────┬───────┘    │
-│                                                 │            │
-│                                          ┌──────▼───────┐    │
-│                                          │  DynamoDB    │    │
-│                                          │  (PROD)      │    │
-│                                          └──────────────┘    │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph "INT Environment — AWS"
+        S3_IN[S3 Input Bucket<br/>CSV uploads]
+        S3_OUT[S3 Output Bucket<br/>Results reports]
+        INGEST[File Ingestion Lambda<br/>Format & field validation]
+        SQS[SQS Queue<br/>Message buffering]
+        ENRICH[Data Enrichment Lambda<br/>Per-row enrichment]
+        UPDATE[EPC Updating Lambda<br/>Calls EPC API]
+        EMAIL[SNS / Email<br/>Error notifications]
+    end
+
+    subgraph "PROD Environment"
+        EPC_PROXY_P[EPC Proxy<br/>Apigee]
+        APIGW_P[API Gateway<br/>AWS]
+        LAMBDA_P[Lambda<br/>Business Logic]
+        DDB_P[(DynamoDB<br/>PROD)]
+    end
+
+    RM_TEAM[R&M Team] -->|Upload CSV| S3_IN
+    S3_IN -->|S3 event trigger| INGEST
+    INGEST -->|Valid rows| SQS
+    SQS --> ENRICH
+    ENRICH --> UPDATE
+    UPDATE -->|API calls<br/>OAuth app-restricted| EPC_PROXY_P
+    EPC_PROXY_P --> APIGW_P
+    APIGW_P --> LAMBDA_P
+    LAMBDA_P --> DDB_P
+
+    UPDATE -->|Write results| S3_OUT
+    UPDATE -->|Errors| EMAIL
+    EMAIL -->|Notify| RM_TEAM
+    S3_OUT -->|Review| RM_TEAM
 ```
 
 ### 5.2 Components
@@ -340,47 +340,57 @@ The pipeline authenticates to the PROD EPC API through Apigee using the same OAu
 
 ## 6 Data Flow: Real-Time API Request
 
-```
-1. Sender → BaRS Proxy (Apigee):  POST /$process-message
-                                   Header: NHSD-Target-Identifier: {system}|{service_id}
+```mermaid
+sequenceDiagram
+    participant Sender
+    participant BaRS_Proxy as BaRS Proxy (Apigee)
+    participant EPC_GW as EPC Gateway (AWS API GW)
+    participant Lambda
+    participant DDB as DynamoDB
+    participant Receiver
 
-2. BaRS Proxy → EPC Gateway:      GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}
-                                   (mTLS authenticated, internal platform call)
-
-3. EPC Gateway → Lambda:           Invokes Endpoint lookup function
-
-4. Lambda → DynamoDB:              Query for active Endpoints matching the HealthcareService identifier
-
-5. Lambda → EPC Gateway:           Returns FHIR Bundle with active Endpoint(s), Template fields resolved
-
-6. EPC Gateway → BaRS Proxy:       Response with endpoint address
-
-7. BaRS Proxy → Receiver:          Forwards original message to resolved address (via mTLS)
+    Sender->>BaRS_Proxy: POST /$process-message<br/>NHSD-Target-Identifier: {system}|{service_id}
+    BaRS_Proxy->>EPC_GW: GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}<br/>(mTLS internal call)
+    EPC_GW->>Lambda: Invoke Endpoint lookup
+    Lambda->>DDB: Query active Endpoints for HealthcareService
+    DDB-->>Lambda: Matching Endpoint(s)
+    Lambda-->>EPC_GW: FHIR Bundle (active Endpoints, Template fields resolved)
+    EPC_GW-->>BaRS_Proxy: Endpoint address returned
+    BaRS_Proxy->>Receiver: Forward original message (mTLS)
 ```
 
 ---
 
 ## 7 Data Flow: Endpoint Management (via Interim Tactical Solution)
 
-```
-1. R&M Team → S3 (INT):           Uploads CSV file to input bucket
+```mermaid
+sequenceDiagram
+    participant RM as R&M Team
+    participant S3_IN as S3 Input (INT)
+    participant INGEST as File Ingestion Lambda (INT)
+    participant SQS as SQS Queue (INT)
+    participant ENRICH as Data Enrichment Lambda (INT)
+    participant EPC_PROXY as EPC Proxy (Apigee - PROD)
+    participant APIGW as API Gateway (AWS - PROD)
+    participant Lambda as Lambda (PROD)
+    participant DDB as DynamoDB (PROD)
+    participant S3_OUT as S3 Output (INT)
 
-2. S3 → File Ingestion Lambda:    S3 event notification triggers validation
-
-3. File Ingestion Lambda:          Validates format, mandatory fields
-                                   Places valid rows on SQS queue
-
-4. SQS → Data Enrichment Lambda:  Processes each row, enriches data
-
-5. Enrichment Lambda → Apigee:    Calls EPC API (PROD) with OAuth token
-                                   POST/PUT/DELETE /Endpoint, /HealthcareService, etc.
-
-6. EPC Proxy (Apigee) → EPC Gateway → Lambda → DynamoDB:
-                                   Validates, authorises, executes operation
-
-7. Results → S3 (INT):            Success/failure report written to output bucket
-
-8. Errors → SNS → Email:          R&M team notified of failures
+    RM->>S3_IN: Upload CSV file
+    S3_IN->>INGEST: S3 event notification
+    INGEST->>INGEST: Validate format & mandatory fields
+    INGEST->>SQS: Place valid rows on queue
+    SQS->>ENRICH: Process each row
+    ENRICH->>ENRICH: Data enrichment (lookups, mapping)
+    ENRICH->>EPC_PROXY: POST/PUT/DELETE (OAuth app-restricted)
+    EPC_PROXY->>APIGW: Validated request with trusted headers
+    APIGW->>Lambda: Invoke operation
+    Lambda->>DDB: Execute CRUD operation
+    DDB-->>Lambda: Confirm
+    Lambda-->>EPC_PROXY: Response
+    EPC_PROXY-->>ENRICH: Success/Failure
+    ENRICH->>S3_OUT: Write results report
+    RM->>S3_OUT: Review results
 ```
 
 ---
@@ -499,10 +509,14 @@ All infrastructure is defined in Terraform and deployed via CI/CD pipelines (Git
 
 ### 11.2 CI/CD Pipeline
 
-```
-Code commit → GitHub Actions → Build + Test + Security scan → Package Lambda artifact → Push to S3
-                                                                        │
-Terraform pipeline → Pull artifact from S3 → Deploy to target environment
+```mermaid
+graph LR
+    COMMIT[Code Commit] --> GHA[GitHub Actions]
+    GHA --> BUILD[Build + Test + Security Scan]
+    BUILD --> PACKAGE[Package Lambda Artifact]
+    PACKAGE --> S3_ART[Push to S3]
+    S3_ART --> TF[Terraform Pipeline]
+    TF --> DEPLOY[Deploy to Target Environment]
 ```
 
 Security and quality gates include: SonarQube, automated secret scanning, Dependabot, and Tenable scanning.
