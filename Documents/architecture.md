@@ -68,7 +68,7 @@ graph TD
 
     SENDER -->|POST /$process-message| BARS_API
     BARS_API --> BARS_PROXY
-    BARS_PROXY -->|GET /Endpoint<br/>mTLS internal call| APIGW
+    BARS_PROXY -->|GET /Endpoint<br/>via EPC API| EPC_PROXY
     BARS_PROXY -->|Forward message<br/>mTLS| RECEIVER
 
     RM -->|CSV pipeline / API calls| EPC_PROXY
