@@ -48,6 +48,7 @@ graph TD
     subgraph "Layer 1: API Layer — Apigee"
         BARS_API[BaRS API<br/>API Product]
         BARS_PROXY[BaRS Proxy<br/>Apigee Proxy]
+        EPC_API[EPC API<br/>API Product]
         EPC_PROXY[EPC Proxy<br/>Apigee Proxy]
     end
 
@@ -68,11 +69,12 @@ graph TD
 
     SENDER -->|POST /$process-message| BARS_API
     BARS_API --> BARS_PROXY
-    BARS_PROXY -->|GET /Endpoint<br/>via EPC API| EPC_PROXY
+    BARS_PROXY -->|GET /Endpoint<br/>via EPC API| EPC_API
     BARS_PROXY -->|Forward message<br/>mTLS| RECEIVER
 
-    RM -->|CSV pipeline / API calls| EPC_PROXY
-    SUPPLIER -->|OAuth bearer token| EPC_PROXY
+    RM -->|CSV pipeline / API calls| EPC_API
+    SUPPLIER -->|OAuth bearer token| EPC_API
+    EPC_API --> EPC_PROXY
     EPC_PROXY --> APIGW
 
     APIGW --> LAMBDA_EP
@@ -111,14 +113,20 @@ The BaRS API is the existing messaging product. Sender systems submit referrals 
 | Attribute | Value |
 |-----------|-------|
 | Role | Message routing proxy |
-| Relationship to EPC | **Consumer** — makes GET calls to resolve endpoint addresses |
-| Authentication to EPC | mTLS / API key (internal platform-to-platform call) |
-| Data flow | Receives sender message → queries EPC for endpoint → forwards message to receiver |
+| Relationship to EPC | **Consumer** — makes GET calls to resolve endpoint addresses via the EPC API |
+| Authentication to EPC | App-restricted OAuth (same as any other EPC API consumer) |
+| Data flow | Receives sender message → queries EPC API for endpoint → forwards message to receiver |
 
-The BaRS Proxy is the primary runtime consumer of the Endpoint Catalogue. When a sender submits a message, the Proxy:
+The BaRS Proxy is the primary runtime consumer of the Endpoint Catalogue. It is **loosely coupled** to the EPC — it calls the EPC through the published EPC API like any other consumer, not directly to the backend. This ensures:
+
+- The BaRS Proxy has no direct dependency on the EPC's internal infrastructure
+- Authentication, rate limiting, and policy enforcement are applied consistently
+- The EPC backend can be changed, scaled, or redeployed without affecting the BaRS Proxy's integration point
+
+When a sender submits a message, the Proxy:
 
 1. Extracts the `NHSD-Target-Identifier` header (contains the DoS service ID)
-2. Calls the EPC: `GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}`
+2. Calls the EPC API: `GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}`
 3. Receives the active Endpoint(s) with the resolved receiver address
 4. Forwards the original message to that address via mTLS
 
@@ -126,16 +134,33 @@ The BaRS Proxy has **no involvement** in EPC administrative operations. It does 
 
 **Previous state:** The BaRS Proxy previously read endpoint routing data from a `targets.json` flat file stored in S3. This is being replaced by the live API call to the EPC.
 
-#### 4.1.3 EPC Proxy (Apigee Proxy)
+#### 4.1.3 EPC API (API Product)
 
 | Attribute | Value |
 |-----------|-------|
 | Base path | `/endpoint-catalog/FHIR/R4` (target state) |
 | Authentication | Application-restricted (signed JWT → bearer token) + CIS2 user-restricted (future) |
-| Purpose | Authenticates external consumers; routes to EPC backend |
+| Purpose | The published API that all consumers interact with for catalogue operations |
+| Consumers | BaRS Proxy, R&M team pipeline, Endpoint Suppliers, admin tools |
+
+The EPC API is a **separate API product** on the NHS England API Platform. This is the contract that consumers are developed against. The R&M team, endpoint suppliers, and the BaRS Proxy all interact with this API product — it is the single published interface to the Endpoint Catalogue.
+
+The EPC API provides:
+- Endpoint lookup (GET) — used by the BaRS Proxy at runtime and by the R&M team for queries
+- Template management (POST/PUT/DELETE) — used by the R&M team
+- Endpoint management (POST/PUT/DELETE) — used by the R&M team and suppliers
+- HealthcareService management (POST/PUT/DELETE) — used by the R&M team
+- List management (POST/PUT/DELETE) — used by the R&M team
+
+#### 4.1.4 EPC Proxy (Apigee Proxy)
+
+| Attribute | Value |
+|-----------|-------|
+| Role | Apigee proxy that sits behind the EPC API product |
+| Purpose | Handles authentication, header injection, rate limiting, and routing to AWS backend |
 | Backend | AWS API Gateway |
 
-The EPC Proxy is a **separate Apigee proxy** from the BaRS Proxy. It handles:
+The EPC Proxy is the Apigee proxy implementation that enforces policies for the EPC API product. It handles:
 
 - **Token validation** — verifies OAuth 2.0 bearer tokens issued by the NHS England API Platform
 - **Header injection** — extracts claims from the token and injects trusted headers (`NHSD-Client-Id`, `NHSD-Product-Id`, `NHSD-Scope`, `NHSD-End-User-Organisation-ODS`)
@@ -143,17 +168,17 @@ The EPC Proxy is a **separate Apigee proxy** from the BaRS Proxy. It handles:
 - **ODS spoofing prevention** — cross-checks `NHSD-End-User-Organisation-ODS` header against token claims
 - **Routing** — forwards validated requests to the AWS API Gateway
 
-All external consumers (R&M team pipeline, endpoint suppliers, admin tools) access the EPC through this proxy. The BaRS Proxy's internal consumption of the EPC bypasses this proxy using direct mTLS authentication to the EPC Gateway.
+All consumers interact with the EPC API product. The EPC Proxy is an implementation detail — consumers don't need to know about it. The BaRS Proxy also accesses the EPC through this same API product, maintaining loose coupling between the two services via a well-defined API contract.
 
-#### 4.1.4 Key Distinction
+#### 4.1.5 Key Distinction
 
-| Responsibility | BaRS Proxy | EPC Proxy |
+| Responsibility | BaRS Proxy | EPC API / EPC Proxy |
 |---|---|---|
 | Hosting EPC paths | No | Yes |
-| Authenticating EPC consumers | No | Yes |
+| Authenticating EPC consumers | No | Yes (via EPC Proxy) |
 | Authorising EPC writes | No | Routes to Lambda for enforcement |
 | Storing endpoint data | No | Routes to DynamoDB via Lambda |
-| Resolving endpoints for message routing | Yes (as consumer) | N/A |
+| Resolving endpoints for message routing | Yes (as consumer of EPC API) | N/A |
 
 ---
 
@@ -179,7 +204,7 @@ The EPC Gateway is the bridge between the Apigee layer and the serverless comput
 3. Routes to the appropriate Lambda function based on HTTP method and path
 4. Returns the Lambda response to the caller
 
-Both the BaRS Proxy (internal consumer path) and the EPC Proxy (external consumer path) route their requests to this same API Gateway. The Gateway does not distinguish between callers — authentication is handled upstream by Apigee.
+Both the BaRS Proxy and external consumers (via the EPC Proxy) route their requests through Apigee to this API Gateway. The Gateway receives already-authenticated requests — authentication and policy enforcement happen upstream in the EPC Proxy.
 
 ---
 
@@ -344,18 +369,21 @@ The pipeline authenticates to the PROD EPC API through Apigee using the same OAu
 sequenceDiagram
     participant Sender
     participant BaRS_Proxy as BaRS Proxy (Apigee)
+    participant EPC_API as EPC API / Proxy (Apigee)
     participant EPC_GW as EPC Gateway (AWS API GW)
     participant Lambda
     participant DDB as DynamoDB
     participant Receiver
 
     Sender->>BaRS_Proxy: POST /$process-message<br/>NHSD-Target-Identifier: {system}|{service_id}
-    BaRS_Proxy->>EPC_GW: GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}<br/>(mTLS internal call)
+    BaRS_Proxy->>EPC_API: GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}<br/>(app-restricted OAuth)
+    EPC_API->>EPC_GW: Validated request with trusted headers
     EPC_GW->>Lambda: Invoke Endpoint lookup
     Lambda->>DDB: Query active Endpoints for HealthcareService
     DDB-->>Lambda: Matching Endpoint(s)
     Lambda-->>EPC_GW: FHIR Bundle (active Endpoints, Template fields resolved)
-    EPC_GW-->>BaRS_Proxy: Endpoint address returned
+    EPC_GW-->>EPC_API: Response
+    EPC_API-->>BaRS_Proxy: Endpoint address returned
     BaRS_Proxy->>Receiver: Forward original message (mTLS)
 ```
 
@@ -401,10 +429,10 @@ sequenceDiagram
 
 | Access Path | Method | Token Type |
 |-------------|--------|------------|
-| BaRS Proxy → EPC (internal) | mTLS + API key | Platform-to-platform (no external OAuth flow) |
-| R&M Pipeline → EPC (via Apigee) | App-restricted | Signed JWT → bearer token |
-| Endpoint Suppliers → EPC (via Apigee) | App-restricted | Signed JWT → bearer token |
-| Admin users → EPC (future, via Apigee) | CIS2 user-restricted | NHS CIS2 login → bearer token |
+| BaRS Proxy → EPC (via EPC Proxy) | App-restricted | Signed JWT → bearer token (same as any consumer) |
+| R&M Pipeline → EPC (via EPC Proxy) | App-restricted | Signed JWT → bearer token |
+| Endpoint Suppliers → EPC (via EPC Proxy) | App-restricted | Signed JWT → bearer token |
+| Admin users → EPC (future, via EPC Proxy) | CIS2 user-restricted | NHS CIS2 login → bearer token |
 
 ### 8.2 Authorisation
 
