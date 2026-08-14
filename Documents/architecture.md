@@ -1,19 +1,31 @@
-# BaRS Endpoint Catalogue — Architecture Document
+# BaRS Endpoint Catalogue — Logical Architecture
+
+## Access Model
+
+> **The first drop of the EPC is for internal use only.** External suppliers will not have
+> direct access to the API. All write operations will be performed by the R&M team via
+> the CSV-to-API pipeline or internal tooling.
+>
+> Once CIS2 authentication and Role-Based Access Control (RBAC) are in place, suppliers
+> will be granted direct access to the EPC API to manage their own endpoints and templates
+> under their authorised scope.
+
+---
 
 ## 1 Purpose
 
-This document describes the technical architecture of the BaRS Endpoint Catalogue (EPC), including the deployment topology, component responsibilities, environment strategy, and how the Interim Tactical Solution relates to the production Endpoint Catalogue.
+This document describes the logical architecture of the BaRS Endpoint Catalogue (EPC), including the component responsibilities, environment strategy, data flows, and how the Interim Tactical Solution relates to the production Endpoint Catalogue.
 
 ---
 
 ## 2 System Overview
 
-The Endpoint Catalogue is a serverless, event-driven platform that provides centralised management and lookup of digital endpoints used for routing BaRS (Booking and Referral Standard) messages across NHS services. It replaces the legacy `targets.json` flat-file routing mechanism with a FHIR R4 API-first approach.
+The Endpoint Catalogue is a centralised platform that provides management and lookup of digital endpoints used for routing BaRS (Booking and Referral Standard) messages across NHS services. It replaces the legacy `targets.json` flat-file routing mechanism with a FHIR R4 API-first approach.
 
 The system comprises two logically distinct capabilities:
 
 1. **Endpoint Catalogue (Production)** — the real-time API for querying and managing endpoint data, consumed by the BaRS Proxy at runtime and administered by the R&M team
-2. **EPC Updation Interim Tactical Solution (Integration)** — a batch ingestion pipeline for processing CSV files that enables the R&M team to perform daily operations (supplier switches, onboarding) while RBAC and self-service capabilities are deferred
+2. **EPC Updation Interim Tactical Solution (Integration)** — a batch ingestion pipeline for processing CSV files that enables the R&M team to perform daily operations (supplier switches, onboarding) while self-service capabilities are deferred
 
 ---
 
@@ -21,20 +33,20 @@ The system comprises two logically distinct capabilities:
 
 | Component | Environment | Purpose |
 |-----------|-------------|---------|
-| **Endpoint Catalogue** (API Gateway + Lambda + DynamoDB) | **PROD** (AWS BaRS workload account) | Live endpoint resolution for BaRS Proxy; production data store |
-| **EPC Updation Interim Tactical Solution** (S3 + Lambda pipeline) | **INT** (AWS BaRS workload account) | Batch processing of CSV uploads; calls through to the EPC API in PROD |
+| **Endpoint Catalogue** (API Gateway + Lambda + DynamoDB) | **PROD** (AWS) | Live endpoint resolution and production data store |
+| **EPC Updation Interim Tactical Solution** (S3 + Lambda pipeline) | **INT** (AWS) | Batch processing of CSV uploads; calls through to the EPC API in PROD |
 | **BaRS Proxy** | **PROD** (Apigee) | Runtime message routing — resolves endpoints via EPC API |
-| **EPC API + EPC Proxy** | **PROD** (Apigee) | Published API product + proxy that authenticates consumers and routes to EPC backend |
+| **EPC API + EPC Proxy** | **PROD** (Apigee) | Published API product that authenticates consumers and routes to EPC backend |
 
-The Interim Tactical Solution is hosted in the **Integration (INT)** environment. It processes CSV files uploaded by the R&M team and calls the EPC API (in PROD) via Apigee using app-restricted authentication. This separation ensures that the batch processing workload does not share compute resources with the live endpoint resolution path, and provides an additional layer of isolation for data management operations.
+The Interim Tactical Solution is hosted in the **Integration (INT)** environment. It processes CSV files uploaded by the R&M team and calls the EPC API (in PROD) via Apigee using app-restricted authentication. This separation ensures batch processing workloads do not share compute with live endpoint resolution.
 
-The Endpoint Catalogue itself is deployed across **dev**, **INT**, and **PROD** environments using identical Infrastructure-as-Code (Terraform), ensuring consistency and supporting the standard RAA release process.
+The Endpoint Catalogue itself is deployed across **dev**, **INT**, and **PROD** environments using identical Infrastructure-as-Code (Terraform).
 
 ---
 
 ## 4 Architecture Layers
 
-The architecture is organised into four distinct layers, each with clear responsibilities:
+The architecture is organised into four layers:
 
 ```mermaid
 graph TD
@@ -53,18 +65,15 @@ graph TD
     end
 
     subgraph "Layer 2: Gateway — AWS"
-        APIGW[AWS API Gateway<br/>EPC Gateway]
+        APIGW[AWS API Gateway]
     end
 
     subgraph "Layer 3: Compute — AWS"
-        LAMBDA_EP[Lambda: Endpoint CRUD]
-        LAMBDA_TPL[Lambda: Template CRUD]
-        LAMBDA_HCS[Lambda: HealthcareService CRUD]
-        LAMBDA_LIST[Lambda: List CRUD]
+        LAMBDA[Lambda Functions<br/>Business Logic]
     end
 
     subgraph "Layer 4: Persistence — AWS"
-        DDB[(DynamoDB<br/>Endpoint Data)]
+        DDB[(DynamoDB)]
     end
 
     SENDER -->|POST /$process-message| BARS_API
@@ -77,73 +86,58 @@ graph TD
     EPC_API --> EPC_PROXY
     EPC_PROXY --> APIGW
 
-    APIGW --> LAMBDA_EP
-    APIGW --> LAMBDA_TPL
-    APIGW --> LAMBDA_HCS
-    APIGW --> LAMBDA_LIST
-
-    LAMBDA_EP --> DDB
-    LAMBDA_TPL --> DDB
-    LAMBDA_HCS --> DDB
-    LAMBDA_LIST --> DDB
+    APIGW --> LAMBDA
+    LAMBDA --> DDB
 ```
 
 ---
 
-### 4.1 Layer 1: API Layer (Apigee — NHS England API Platform)
+### 4.1 Layer 1: API Layer (Apigee)
 
-**Host:** Apigee (NHSE API Management platform)
+This layer provides the internet-facing entry point for all consumers. It handles authentication, policy enforcement, and routing.
 
-This layer provides the internet-facing entry point for all consumers. It handles authentication, rate limiting, policy enforcement, and routing.
-
-#### 4.1.1 BaRS API (API Product)
+#### BaRS API (API Product)
 
 | Attribute | Value |
 |-----------|-------|
 | Base path | `/booking-and-referral/FHIR/R4` |
-| Apigee proxy | BaRS Proxy |
-| Authentication | Application-restricted (signed JWT) |
 | Purpose | Runtime messaging — booking and referral operations |
 | Backend | Receiver systems (via mTLS) |
 
-The BaRS API is the existing messaging product. Sender systems submit referrals and bookings via `POST /$process-message`. The BaRS Proxy receives these and needs to resolve the target receiver endpoint address.
+The existing messaging product. Sender systems submit referrals and bookings via `POST /$process-message`.
 
-#### 4.1.2 BaRS Proxy (Apigee Proxy)
+#### BaRS Proxy (Apigee Proxy)
 
 | Attribute | Value |
 |-----------|-------|
 | Role | Message routing proxy |
-| Relationship to EPC | **Consumer** — makes GET calls to resolve endpoint addresses via the EPC API |
+| Relationship to EPC | **Consumer** — calls the EPC API to resolve endpoint addresses |
 | Authentication to EPC | App-restricted OAuth (same as any other EPC API consumer) |
-| Data flow | Receives sender message → queries EPC API for endpoint → forwards message to receiver |
 
-The BaRS Proxy is the primary runtime consumer of the Endpoint Catalogue. It is **loosely coupled** to the EPC — it calls the EPC through the published EPC API like any other consumer, not directly to the backend. This ensures:
+The BaRS Proxy is **loosely coupled** to the EPC — it calls the published EPC API like any other consumer, not directly to the backend. This ensures:
 
-- The BaRS Proxy has no direct dependency on the EPC's internal infrastructure
-- Authentication, rate limiting, and policy enforcement are applied consistently
-- The EPC backend can be changed, scaled, or redeployed without affecting the BaRS Proxy's integration point
+- No direct dependency on the EPC's internal infrastructure
+- The EPC backend can be changed or redeployed without affecting the BaRS Proxy
+- Authentication and policy enforcement are applied consistently
 
 When a sender submits a message, the Proxy:
 
-1. Extracts the `NHSD-Target-Identifier` header (contains the DoS service ID)
+1. Extracts the `NHSD-Target-Identifier` header (DoS service ID)
 2. Calls the EPC API: `GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}`
 3. Receives the active Endpoint(s) with the resolved receiver address
 4. Forwards the original message to that address via mTLS
 
-The BaRS Proxy has **no involvement** in EPC administrative operations. It does not host, authenticate, or authorise EPC write operations. It is purely a consumer of the read path.
+**Previous state:** The BaRS Proxy read endpoint routing data from a `targets.json` flat file in S3. This is being replaced by the live API call to the EPC.
 
-**Previous state:** The BaRS Proxy previously read endpoint routing data from a `targets.json` flat file stored in S3. This is being replaced by the live API call to the EPC.
-
-#### 4.1.3 EPC API (API Product)
+#### EPC API (API Product)
 
 | Attribute | Value |
 |-----------|-------|
-| Base path | `/endpoint-catalog/FHIR/R4` (target state) |
-| Authentication | Application-restricted (signed JWT → bearer token) + CIS2 user-restricted (future) |
+| Base path | `/endpoint-catalog/FHIR/R4` |
 | Purpose | The published API that all consumers interact with for catalogue operations |
-| Consumers | BaRS Proxy, R&M team pipeline, Endpoint Suppliers, admin tools |
+| Consumers | BaRS Proxy, R&M team pipeline, Endpoint Suppliers |
 
-The EPC API is a **separate API product** on the NHS England API Platform. This is the contract that consumers are developed against. The R&M team, endpoint suppliers, and the BaRS Proxy all interact with this API product — it is the single published interface to the Endpoint Catalogue.
+The EPC API is a **separate API product** on the NHS England API Platform. All consumers — BaRS Proxy, R&M team, and endpoint suppliers — interact with this single published interface.
 
 The EPC API provides:
 - Endpoint lookup (GET) — used by the BaRS Proxy at runtime and by the R&M team for queries
@@ -152,124 +146,80 @@ The EPC API provides:
 - HealthcareService management (POST/PUT/DELETE) — used by the R&M team
 - List management (POST/PUT/DELETE) — used by the R&M team
 
-#### 4.1.4 EPC Proxy (Apigee Proxy)
+#### EPC Proxy (Apigee Proxy)
 
 | Attribute | Value |
 |-----------|-------|
-| Role | Apigee proxy that sits behind the EPC API product |
-| Purpose | Handles authentication, header injection, rate limiting, and routing to AWS backend |
-| Backend | AWS API Gateway |
+| Role | Implementation proxy behind the EPC API product |
+| Purpose | Authentication, header injection, and routing to AWS backend |
 
-The EPC Proxy is the Apigee proxy implementation that enforces policies for the EPC API product. It handles:
+The EPC Proxy is an implementation detail behind the EPC API. Consumers target the EPC API — they do not interact with the Proxy directly. It handles token validation, injects trusted headers from token claims, and routes validated requests to the AWS backend.
 
-- **Token validation** — verifies OAuth 2.0 bearer tokens issued by the NHS England API Platform
-- **Header injection** — extracts claims from the token and injects trusted headers (`NHSD-Client-Id`, `NHSD-Product-Id`, `NHSD-Scope`, `NHSD-End-User-Organisation-ODS`)
-- **Rate limiting** — spike arrest and quota policies protect the backend
-- **ODS spoofing prevention** — cross-checks `NHSD-End-User-Organisation-ODS` header against token claims
-- **Routing** — forwards validated requests to the AWS API Gateway
+#### Key Distinction
 
-All consumers interact with the EPC API product. The EPC Proxy is an implementation detail — consumers don't need to know about it. The BaRS Proxy also accesses the EPC through this same API product, maintaining loose coupling between the two services via a well-defined API contract.
-
-#### 4.1.5 Key Distinction
-
-| Responsibility | BaRS Proxy | EPC API / EPC Proxy |
+| Responsibility | BaRS Proxy | EPC API |
 |---|---|---|
 | Hosting EPC paths | No | Yes |
 | Authenticating EPC consumers | No | Yes (via EPC Proxy) |
-| Authorising EPC writes | No | Routes to Lambda for enforcement |
 | Storing endpoint data | No | Routes to DynamoDB via Lambda |
-| Resolving endpoints for message routing | Yes (as consumer of EPC API) | N/A |
+| Resolving endpoints for message routing | Yes (as consumer of EPC API) | Serves the response |
 
 ---
 
 ### 4.2 Layer 2: Gateway (AWS API Gateway)
 
-**Host:** AWS (BaRS workload account — PROD)
-
 | Attribute | Value |
 |-----------|-------|
-| Service | AWS API Gateway (REST API) |
 | Purpose | Receives requests from Apigee; routes to Lambda functions |
-| Authentication | mTLS termination (server certificate in EPC Keystore) |
-| Throttling | 10,000 req/s burst, 5,000 req/s steady (configurable) |
-| Availability | Multi-AZ by default (fully managed, regionally distributed) |
-| Integration timeout | 29 seconds (Lambda proxy integration) |
-| WAF | Optional — can attach AWS WAF for DDoS/injection protection |
-| Caching | Optional — useful for `GET /metadata` and health checks |
+| Connection | mTLS from Apigee |
 
-The EPC Gateway is the bridge between the Apigee layer and the serverless compute layer. It:
-
-1. Terminates the mTLS connection from Apigee
-2. Validates request format and path
-3. Routes to the appropriate Lambda function based on HTTP method and path
-4. Returns the Lambda response to the caller
-
-Both the BaRS Proxy and external consumers (via the EPC Proxy) route their requests through Apigee to this API Gateway. The Gateway receives already-authenticated requests — authentication and policy enforcement happen upstream in the EPC Proxy.
+The API Gateway bridges the Apigee layer and the serverless compute layer. It receives already-authenticated requests from the EPC Proxy and routes them to the appropriate Lambda function based on HTTP method and path.
 
 ---
 
 ### 4.3 Layer 3: Compute (AWS Lambda)
 
-**Host:** AWS (BaRS workload account — PROD)
-
 | Attribute | Value |
 |-----------|-------|
-| Runtime | TypeScript (Node.js) |
-| Execution | Multi-AZ (automatic) |
-| Scaling | Auto-scaling (0 to 1,000+ concurrent executions) |
-| Timeout | 10 seconds |
-| Reserved concurrency | Set per function (e.g. 100 for resource handler) |
-| Provisioned concurrency | Recommended for latency-sensitive paths (eliminates cold starts) |
-| Deployment | Blue/green via Lambda aliases; canary optional |
+| Runtime | TypeScript |
+| Scaling | Serverless auto-scaling |
 
-The Lambda functions contain all business logic for the Endpoint Catalogue:
+The Lambda functions contain all business logic:
 
-| Function | Responsibility |
-|----------|---------------|
-| **Endpoint CRUD** | Create, read, update, soft/hard delete of Endpoint resources |
-| **Template CRUD** | Create, read, update, soft/hard delete of Endpoint Templates |
-| **HealthcareService CRUD** | Create, read, update, associate/disassociate endpoints |
-| **List CRUD** | Create, read, update, delete priority-ordered endpoint lists |
-| **Visibility filtering** | Ensures consumers only see active, valid endpoints based on status and period rules |
-| **Template resolution** | Resolves inherited fields from parent Template when returning Endpoints |
-| **Ownership enforcement** | Validates ODS code from token matches `managingOrganization` on the resource |
-| **Product ID ownership** | Validates token's registered Product ID matches the Template's identifier |
-| **Duplicate detection** | Prevents creation of duplicate resources based on defined uniqueness rules |
-| **Audit recording** | Records before/after snapshots of every successful write operation |
+| Capability | Description |
+|------------|-------------|
+| CRUD operations | Create, read, update, soft/hard delete of Endpoints, Templates, HealthcareServices, and Lists |
+| Visibility filtering | Ensures consumers only see active, valid endpoints based on status and period rules |
+| Template resolution | Resolves inherited fields from parent Template when returning Endpoints |
+| Ownership enforcement | Validates ODS code and Product ID from token match the resource being written |
+| Duplicate detection | Prevents creation of duplicate resources |
+| Audit recording | Records before/after snapshots of every successful write operation |
 
 ---
 
 ### 4.4 Layer 4: Persistence (AWS DynamoDB)
 
-**Host:** AWS (BaRS workload account — PROD)
-
 | Attribute | Value |
 |-----------|-------|
-| Service | AWS DynamoDB |
-| Billing mode | On-demand (PAY_PER_REQUEST) — auto-scales with traffic |
-| Replication | Multi-AZ (3 AZs within region — automatic) |
-| Latency | Single-digit millisecond |
-| Point-in-Time Recovery | Enabled (continuous backups, restore to any second in last 35 days) |
-| Deletion protection | Enabled (prevents accidental table deletion) |
-| Backup | Immutably backed up to AWS Backup account |
+| Scaling | On-demand (auto-scales with traffic) |
+| Availability | Multi-AZ (3 AZs within region) |
+| Recovery | Point-in-Time Recovery enabled; immutable backups to AWS Backup account |
 
-DynamoDB stores all EPC data:
+DynamoDB stores:
 
-| Table/Partition | Content |
-|-----------------|---------|
+| Data | Content |
+|------|---------|
 | Endpoint Templates | Supplier URL patterns, connection types, payload types |
 | Endpoints | Individual endpoint instances (child of Template), status, period, associations |
 | HealthcareServices | Clinical service identity, provider organisation, endpoint associations |
 | Lists | Priority-ordered endpoint lists per HealthcareService |
-| Audit records | Before/after snapshots of all write operations (1-year TTL retention) |
+| Audit records | Before/after snapshots of all write operations (1-year retention) |
 
 ---
 
 ## 5 Interim Tactical Solution (INT Environment)
 
-**Host:** AWS (BaRS workload account — **INT**)
-
-The Interim Tactical Solution is the CSV-to-API pipeline that enables the R&M team to perform bulk operations against the Endpoint Catalogue. It is hosted in the **INT environment** while the Endpoint Catalogue itself runs in **PROD**.
+The Interim Tactical Solution is the CSV-to-API pipeline that enables the R&M team to perform bulk operations against the Endpoint Catalogue. It is hosted in **INT** while the Endpoint Catalogue runs in **PROD**.
 
 ### 5.1 Architecture
 
@@ -278,11 +228,11 @@ graph TD
     subgraph "INT Environment — AWS"
         S3_IN[S3 Input Bucket<br/>CSV uploads]
         S3_OUT[S3 Output Bucket<br/>Results reports]
-        INGEST[File Ingestion Lambda<br/>Format & field validation]
-        SQS[SQS Queue<br/>Message buffering]
-        ENRICH[Data Enrichment Lambda<br/>Per-row enrichment]
-        UPDATE[EPC Updating Lambda<br/>Calls EPC API]
-        EMAIL[SNS / Email<br/>Error notifications]
+        INGEST[File Ingestion Lambda<br/>Validation]
+        SQS[SQS Queue]
+        ENRICH[Data Enrichment Lambda]
+        UPDATE[EPC Updating Lambda]
+        EMAIL[Email Notifications]
     end
 
     subgraph "PROD Environment"
@@ -290,7 +240,7 @@ graph TD
         EPC_PROXY_P[EPC Proxy<br/>Apigee]
         APIGW_P[API Gateway<br/>AWS]
         LAMBDA_P[Lambda<br/>Business Logic]
-        DDB_P[(DynamoDB<br/>PROD)]
+        DDB_P[(DynamoDB)]
     end
 
     RM_TEAM[R&M Team] -->|Upload CSV| S3_IN
@@ -316,25 +266,17 @@ graph TD
 |-----------|---------|-------------|
 | **S3 Input Bucket** | R&M team uploads CSV files here | INT |
 | **File Ingestion Lambda** | Triggered by S3 upload; validates file format and mandatory fields | INT |
-| **SQS Queue** | Buffers messages between validation and processing; provides retry capability | INT |
-| **Data Enrichment Lambda** | Performs data enrichment per CSV row (e.g. lookups for ODS, supplier mapping) | INT |
-| **EPC Updating Lambda** | Calls the EPC API (via Apigee) to execute the required operation | INT |
+| **SQS Queue** | Buffers messages between validation and processing | INT |
+| **Data Enrichment Lambda** | Performs data enrichment per CSV row (lookups, supplier mapping) | INT |
+| **EPC Updating Lambda** | Calls the EPC API (PROD) to execute the required operation | INT |
 | **S3 Output Bucket** | Stores processing results (success/failure per row) | INT |
-| **Email notifications** | Alerts R&M team on errors via Observability | INT |
 
 ### 5.3 Supported Operations
 
-The Interim Tactical Solution supports the following scenarios via CSV upload:
-
 **Onboarding and Management:**
-- Add endpoint template
-- Update endpoint template
-- Delete endpoint template
-- Create endpoint based on a template
-- Create endpoint without a template
-- Update existing endpoint
-- Delete an endpoint
-- Create/update/delete HealthcareService
+- Add / update / delete endpoint template
+- Add/ update / delete endpoint
+- Areate / update / delete HealthcareService
 
 **DUEC DoS Pharmacy Processes:**
 - Switch to a new endpoint (daily supplier switches)
@@ -347,19 +289,16 @@ The Interim Tactical Solution supports the following scenarios via CSV upload:
 4. File Ingestion Lambda validates file format and mandatory fields
 5. Valid rows are placed on the SQS queue
 6. Data Enrichment Lambda processes each message, performing lookups and enrichment
-7. EPC Updating Lambda calls the EPC API (PROD) via Apigee with app-restricted OAuth token
+7. EPC Updating Lambda calls the **EPC API** (PROD) with app-restricted OAuth token
 8. The EPC API validates, authorises, and executes the operation
 9. Results (success/failure per row) are written to the S3 output bucket
-10. Errors trigger email notifications to the R&M team via CloudWatch/SNS
+10. Errors trigger email notifications to the R&M team
 
 ### 5.5 Why INT?
 
-The Interim Tactical Solution is hosted in INT rather than PROD because:
-
 - **Isolation** — batch processing workloads do not share compute with live endpoint resolution
-- **Safety** — the pipeline's processing logic can be updated and tested without risking the production API
-- **Separation of concerns** — the tactical solution is temporary infrastructure that will be superseded by self-service capabilities in future phases
-- **Rate limiting** — bulk operations can be throttled independently of production API traffic
+- **Safety** — pipeline logic can be updated and tested without risking the production API
+- **Separation of concerns** — temporary infrastructure superseded by self-service in future phases
 
 The pipeline authenticates to the PROD EPC API through Apigee using the same OAuth flow as any other consumer, ensuring full audit trail and ownership enforcement.
 
@@ -371,22 +310,22 @@ The pipeline authenticates to the PROD EPC API through Apigee using the same OAu
 sequenceDiagram
     participant Sender
     participant BaRS_Proxy as BaRS Proxy (Apigee)
-    participant EPC_API as EPC API / Proxy (Apigee)
-    participant EPC_GW as EPC Gateway (AWS API GW)
+    participant EPC_API as EPC API (Apigee)
+    participant EPC_GW as API Gateway (AWS)
     participant Lambda
     participant DDB as DynamoDB
     participant Receiver
 
     Sender->>BaRS_Proxy: POST /$process-message<br/>NHSD-Target-Identifier: {system}|{service_id}
-    BaRS_Proxy->>EPC_API: GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{service_id}<br/>(app-restricted OAuth)
-    EPC_API->>EPC_GW: Validated request with trusted headers
+    BaRS_Proxy->>EPC_API: GET /Endpoint (app-restricted OAuth)
+    EPC_API->>EPC_GW: Validated request
     EPC_GW->>Lambda: Invoke Endpoint lookup
-    Lambda->>DDB: Query active Endpoints for HealthcareService
+    Lambda->>DDB: Query active Endpoints
     DDB-->>Lambda: Matching Endpoint(s)
-    Lambda-->>EPC_GW: FHIR Bundle (active Endpoints, Template fields resolved)
+    Lambda-->>EPC_GW: FHIR Bundle
     EPC_GW-->>EPC_API: Response
-    EPC_API-->>BaRS_Proxy: Endpoint address returned
-    BaRS_Proxy->>Receiver: Forward original message (mTLS)
+    EPC_API-->>BaRS_Proxy: Endpoint address
+    BaRS_Proxy->>Receiver: Forward message (mTLS)
 ```
 
 ---
@@ -397,149 +336,95 @@ sequenceDiagram
 sequenceDiagram
     participant RM as R&M Team
     participant S3_IN as S3 Input (INT)
-    participant INGEST as File Ingestion Lambda (INT)
-    participant SQS as SQS Queue (INT)
-    participant ENRICH as Data Enrichment Lambda (INT)
+    participant Pipeline as Processing Pipeline (INT)
     participant EPC_API as EPC API (Apigee - PROD)
-    participant APIGW as API Gateway (AWS - PROD)
-    participant Lambda as Lambda (PROD)
+    participant Backend as API Gateway + Lambda (PROD)
     participant DDB as DynamoDB (PROD)
     participant S3_OUT as S3 Output (INT)
 
     RM->>S3_IN: Upload CSV file
-    S3_IN->>INGEST: S3 event notification
-    INGEST->>INGEST: Validate format & mandatory fields
-    INGEST->>SQS: Place valid rows on queue
-    SQS->>ENRICH: Process each row
-    ENRICH->>ENRICH: Data enrichment (lookups, mapping)
-    ENRICH->>EPC_API: POST/PUT/DELETE (OAuth app-restricted)
-    Note over EPC_API,APIGW: EPC Proxy validates token, injects headers
-    EPC_API->>APIGW: Validated request with trusted headers
-    APIGW->>Lambda: Invoke operation
-    Lambda->>DDB: Execute CRUD operation
-    DDB-->>Lambda: Confirm
-    Lambda-->>APIGW: Response
-    APIGW-->>EPC_API: Response
-    EPC_API-->>ENRICH: Success/Failure
-    ENRICH->>S3_OUT: Write results report
+    S3_IN->>Pipeline: S3 event triggers processing
+    Pipeline->>Pipeline: Validate, enrich each row
+    Pipeline->>EPC_API: POST/PUT/DELETE (OAuth app-restricted)
+    Note over EPC_API,Backend: EPC Proxy validates token, injects headers
+    EPC_API->>Backend: Validated request
+    Backend->>DDB: Execute CRUD operation
+    DDB-->>Backend: Confirm
+    Backend-->>EPC_API: Response
+    EPC_API-->>Pipeline: Success/Failure
+    Pipeline->>S3_OUT: Write results report
     RM->>S3_OUT: Review results
 ```
 
 ---
 
-## 8 Security Architecture
+## 8 Security
 
 ### 8.1 Authentication
 
-| Access Path | Method | Token Type |
-|-------------|--------|------------|
-| BaRS Proxy → EPC API | App-restricted | Signed JWT → bearer token (same as any consumer) |
+| Consumer | Method | Description |
+|----------|--------|-------------|
+| BaRS Proxy → EPC API | App-restricted | Signed JWT → bearer token |
 | R&M Pipeline → EPC API | App-restricted | Signed JWT → bearer token |
 | Endpoint Suppliers → EPC API | App-restricted | Signed JWT → bearer token |
 | Admin users → EPC API (future) | CIS2 user-restricted | NHS CIS2 login → bearer token |
 
 ### 8.2 Authorisation
 
-| Control | Enforcement Point | Description |
-|---------|-------------------|-------------|
-| ODS ownership | Lambda | ODS code from token must match `managingOrganization` on the resource |
-| Product ID ownership | Lambda | Token's registered Product ID must match Template's identifier |
-| ODS spoofing prevention | Apigee / Lambda | `NHSD-End-User-Organisation-ODS` header cross-checked against token claims |
-| RBAC (future) | Lambda | Per-operation role enforcement using CIS2 role claims |
+| Control | Description |
+|---------|-------------|
+| ODS ownership | ODS code from token must match `managingOrganization` on the resource |
+| Product ID ownership | Token's Product ID must match the Template's identifier |
+| ODS spoofing prevention | ODS header cross-checked against token claims |
+| RBAC (future) | Per-operation role enforcement using CIS2 role claims |
 
-### 8.3 Security Patterns
+### 8.3 Key Security Patterns
 
-| Pattern | Implementation |
-|---------|---------------|
-| mTLS | EPC Proxy (Apigee) ↔ EPC Gateway (AWS); BaRS Proxy ↔ Receiver systems |
-| JWT tokens | OAuth 2.0 app-restricted flow via NHS England API Platform |
-| IAM | AWS IAM roles for Lambda execution, DynamoDB access, S3 access |
-| Secrets management | AWS Secrets Manager — centrally managed, accessed at runtime |
-| Encryption at rest | DynamoDB encryption (AWS managed keys); S3 encryption (SSE-S3) |
-| Encryption in transit | TLS 1.2+ on all connections |
+- **mTLS** between Apigee and AWS API Gateway; between BaRS Proxy and receiver systems
+- **OAuth 2.0** app-restricted flow via NHS England API Platform
+- **IAM** roles for Lambda execution and resource access
+- **Secrets Manager** for runtime credential access
+- **Encryption** at rest (DynamoDB, S3) and in transit (TLS 1.2+)
 
 ---
 
 ## 9 Observability
 
-### 9.1 Components
-
-| Component | Purpose |
-|-----------|---------|
-| **CloudTrail** | Tracks AWS API activity for all EPC resources (S3, IAM, Lambda, API Gateway, DynamoDB, SQS, KMS) |
-| **CloudWatch Logs** | Lambda execution logs, API Gateway access logs, structured JSON format |
-| **CloudWatch Metrics** | Custom application metrics, Lambda performance, DynamoDB capacity |
-| **CloudWatch Alarms** | Error rate, latency, throttling, Lambda errors — routes to SNS |
-| **CloudWatch Dashboards** | Five domain-specific dashboards (API Gateway, DynamoDB, Lambda, Health/Business, Aggregate) |
-| **OpenTelemetry (ADOT)** | Distributed tracing via AWS Distro for OpenTelemetry Lambda layer |
-| **AppDynamics / Dynatrace / ODIN** | Application performance monitoring and end-to-end tracing (future) |
-
-### 9.2 Audit Logging
-
-Two distinct audit layers provide complete coverage:
-
-| Layer | Mechanism | Scope | Retention |
-|-------|-----------|-------|-----------|
-| API Gateway audit | Apigee → Splunk | All inbound HTTP requests (success and failure) | 1 year |
-| Application audit | Lambda → DynamoDB (Audit table) | Successful write operations with before/after snapshots | 1 year (TTL) |
-
-Full request/response logging (headers and payloads) is persisted for 180 days. Audit records retaining who made a request, when, and the outcome are persisted indefinitely in the gateway layer.
-
-### 9.3 Alerting
-
-Five priority-level SNS topics (P1–P5) route alarms based on criticality:
-
-| Priority | Meaning | Routing |
-|----------|---------|---------|
-| P1 (Critical) | Infrastructure down, data loss risk | Immediate notification to on-call |
-| P2 (High) | Service degradation | Urgent notification |
-| P3 (Medium) | Functional issues with workarounds | Team channel |
-| P4 (Low) | Non-critical errors | Email |
-| P5 (Info) | Status updates | Background |
+| Capability | Implementation |
+|------------|----------------|
+| Audit (gateway) | Apigee → Splunk — all inbound HTTP requests |
+| Audit (application) | Lambda → DynamoDB — before/after snapshots of write operations |
+| Logging | CloudWatch Logs — structured JSON, 90-day retention |
+| Metrics & alarms | CloudWatch — error rate, latency, Lambda errors |
+| Dashboards | CloudWatch — API Gateway, DynamoDB, Lambda, Health, Aggregate |
+| Distributed tracing | OpenTelemetry (ADOT) Lambda layer |
+| APM (future) | ODIN / Dynatrace / AppDynamics |
 
 ---
 
 ## 10 Resilience and Recovery
 
-### 10.1 Service Level
-
 | Metric | Target |
 |--------|--------|
 | Availability | 99.9% (Gold service classification) |
-| P95 response time | < 150 ms (end-to-end at API Gateway) |
 | DR recovery target | 4 hours |
 | Support | 24x7x365 (NHSE Service Management + Accenture R&M) |
 
-### 10.2 Resilience by Component
-
-| Component | Resilience Mechanism |
-|-----------|---------------------|
-| API Gateway | Multi-AZ (built-in), throttling, WAF (optional) |
-| Lambda | Multi-AZ (built-in), auto-scaling, reserved concurrency, provisioned concurrency |
-| DynamoDB | Multi-AZ (3 AZs, built-in), on-demand scaling, PITR, deletion protection |
-| S3 | 99.999999999% durability, versioning enabled |
-
-### 10.3 Disaster Recovery
-
 | Mechanism | Coverage |
 |-----------|----------|
-| Infrastructure-as-Code (Terraform) | Full environment rebuild capability |
-| DynamoDB Point-in-Time Recovery | Restore to any second in last 35 days |
-| DynamoDB Deletion Protection | Prevents accidental table deletion |
+| Multi-AZ | All components (API Gateway, Lambda, DynamoDB) — built-in |
+| Auto-scaling | Lambda concurrency + DynamoDB on-demand |
+| Point-in-Time Recovery | DynamoDB — restore to any second in last 35 days |
 | Immutable backups | DynamoDB data backed up to separate AWS Backup account |
-| Lambda alias rollback | Revert to previous version in < 5 minutes |
-| API Gateway rollback | Revert stage deployment |
-| BCDR document | EPC added to existing ERS and Wayfinder BCDR documentation |
+| Infrastructure-as-Code | Terraform — full environment rebuild capability |
+| Deployment rollback | Lambda alias rollback (< 5 minutes) |
+| BCDR | EPC added to existing ERS and Wayfinder BCDR documentation |
 
 ---
 
 ## 11 Deployment
 
-### 11.1 Infrastructure as Code
-
-All infrastructure is defined in Terraform and deployed via CI/CD pipelines (GitHub Actions). Terraform state is stored in S3 with state locking.
-
-### 11.2 CI/CD Pipeline
+### CI/CD Pipeline
 
 ```mermaid
 graph LR
@@ -551,15 +436,12 @@ graph LR
     TF --> DEPLOY[Deploy to Target Environment]
 ```
 
-Security and quality gates include: SonarQube, automated secret scanning, Dependabot, and Tenable scanning.
-
-### 11.3 Deployment Strategy
+### Deployment Strategy
 
 | Practice | Description |
 |----------|-------------|
-| Blue/green | Lambda `live` alias switches to new version after validation |
-| Canary (optional) | 10% traffic to new version; promote after 5 min if error-free |
-| Automated rollback | CloudWatch alarms trigger auto-rollback within 5 minutes |
+| Blue/green | Lambda alias switches to new version after validation |
+| Automated rollback | Alarms trigger auto-rollback within 5 minutes |
 | Environment promotion | Sandbox → Integration → Production (identical IaC) |
 
 ---
@@ -571,46 +453,41 @@ The transition from `targets.json` to the live EPC follows a dual-running strate
 | Phase | BaRS Proxy reads from | Duration |
 |-------|----------------------|----------|
 | **Pre-cutover (dual running)** | targets.json (unchanged) | Until confidence criteria met |
-| **Cutover** | EPC | One-off proxy deployment |
-| **Post-cutover monitoring** | EPC | 2–4 weeks |
-| **Retirement** | EPC | targets.json decommissioned |
+| **Cutover** | EPC API | One-off proxy deployment |
+| **Post-cutover monitoring** | EPC API | 2–4 weeks |
+| **Retirement** | EPC API | targets.json decommissioned |
 
 During dual running, daily reconciliation compares the EPC and targets.json to prove 100% consistency before the BaRS Proxy is switched to the EPC.
 
 ---
 
-## 13 Technology Stack Summary
+## 13 Technology Stack
 
-| Layer / Capability | Technology | Usage |
-|-------------------|------------|-------|
-| Cloud Platform | AWS | Primary cloud provider |
-| API Management | Apigee (NHSE API Platform) | Internet-facing API gateway |
-| Source Control | GitHub | Source code management |
-| CI/CD | GitHub Actions | Build, test, deploy pipelines |
-| Infrastructure as Code | Terraform | AWS infrastructure provisioning |
-| Terraform State | Amazon S3 | Centralised state backend with locking |
-| Secrets Management | AWS Secrets Manager | Runtime credential access |
+| Layer | Technology | Usage |
+|-------|------------|-------|
+| API Management | Apigee | Internet-facing API platform |
+| Cloud Platform | AWS | Backend infrastructure |
 | Compute | AWS Lambda (TypeScript) | Serverless business logic |
-| API Gateway | AWS API Gateway | Request routing and mTLS termination |
-| Database | AWS DynamoDB | Endpoint data store (on-demand, multi-AZ) |
-| Message Queue | AWS SQS | Batch processing pipeline (INT) |
-| Object Storage | AWS S3 | CSV uploads, Lambda artifacts, backups |
-| Monitoring & Logging | Amazon CloudWatch | Metrics, logs, alarms, dashboards |
-| Distributed Tracing | AWS X-Ray / OpenTelemetry (ADOT) | Request tracing across components |
-| Audit (gateway) | Apigee → Splunk | HTTP request logging |
-| Static Code Analysis | SonarQube | Code quality and security |
-| Load Testing | JMeter / k6 | Performance testing |
+| API Gateway | AWS API Gateway | Request routing |
+| Database | AWS DynamoDB | Endpoint data store |
+| Message Queue | AWS SQS | Batch pipeline (INT) |
+| Object Storage | AWS S3 | CSV uploads, artifacts, backups |
+| Monitoring | Amazon CloudWatch | Logs, metrics, alarms, dashboards |
+| Tracing | OpenTelemetry (ADOT) | Distributed tracing |
+| IaC | Terraform | Infrastructure provisioning |
+| CI/CD | GitHub Actions | Build and deployment pipelines |
+| Source Control | GitHub | Code management |
 | Interoperability | FHIR R4 | Healthcare data exchange standard |
 
 ---
 
 ## 14 Out of Scope
 
-- Building a new BaRS Proxy (existing proxy is modified to call EPC)
-- Building a user interface for onboarding or management of endpoints (deferred to future phase)
-- RBAC / CIS2 user-restricted authentication (deferred — ODS + Product ID ownership sufficient for MVP)
-- Multi-region deployment (deferred — single-region with PITR provides adequate resilience for Gold service)
-- ODIN observability platform integration (deferred — CloudWatch provides adequate MVP observability)
+- Building a new BaRS Proxy (existing proxy is modified to call EPC API)
+- Building a user interface for onboarding or management of endpoints
+- RBAC / CIS2 user-restricted authentication (deferred)
+- Multi-region deployment (deferred)
+- ODIN observability platform (deferred)
 
 ---
 
