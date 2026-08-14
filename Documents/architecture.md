@@ -262,14 +262,14 @@ graph TD
 
 ### 5.2 Components
 
-| Component | Purpose | Environment |
-|-----------|---------|-------------|
-| **S3 Input Bucket** | R&M team uploads CSV files here | INT |
-| **File Ingestion Lambda** | Triggered by S3 upload; validates file format and mandatory fields | INT |
-| **SQS Queue** | Buffers messages between validation and processing | INT |
-| **Data Enrichment Lambda** | Performs data enrichment per CSV row (lookups, supplier mapping) | INT |
-| **EPC Updating Lambda** | Calls the EPC API (PROD) to execute the required operation | INT |
-| **S3 Output Bucket** | Stores processing results (success/failure per row) | INT |
+| Component                  | Purpose                                                            | Environment |
+| ----------------------------| --------------------------------------------------------------------| -------------|
+| **S3 Input Bucket**        | R&M team uploads CSV files here                                    | INT         |
+| **File Ingestion Lambda**  | Triggered by S3 upload; validates file format and mandatory fields | INT         |
+| **SQS Queue**              | Buffers messages between validation and processing                 | INT         |
+| **Data Enrichment Lambda** | Performs data enrichment per CSV row (lookups, supplier mapping)   | INT         |
+| **EPC Updating Lambda**    | Calls the EPC API (PROD) to execute the required operation         | INT         |
+| **S3 Output Bucket**       | Stores processing results (success/failure per row)                | INT         |
 
 ### 5.3 Supported Operations
 
@@ -362,11 +362,11 @@ sequenceDiagram
 
 ### 8.1 Authentication
 
-| Consumer | Method | Description |
-|----------|--------|-------------|
-| BaRS Proxy → EPC API | App-restricted | Signed JWT → bearer token |
-| R&M Pipeline → EPC API | App-restricted | Signed JWT → bearer token |
-| Endpoint Suppliers → EPC API | App-restricted | Signed JWT → bearer token |
+| Consumer                       | Method               | Description                   |
+| --------------------------------| ----------------------| -------------------------------|
+| BaRS Proxy → EPC API           | App-restricted       | Signed JWT → bearer token     |
+| R&M Pipeline → EPC API         | App-restricted       | Signed JWT → bearer token     |
+| Endpoint Suppliers → EPC API   | App-restricted       | Signed JWT → bearer token     |
 | Admin users → EPC API (future) | CIS2 user-restricted | NHS CIS2 login → bearer token |
 
 ### 8.2 Authorisation
