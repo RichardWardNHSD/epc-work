@@ -18,15 +18,15 @@
   "servers": [
     {
       "url": "https://sandbox.api.service.nhs.uk/endpoint-catalog/FHIR/R4",
-      "description": "Sandbox (standalone path \u2014 target state)"
+      "description": "Sandbox (standalone path — target state)"
     },
     {
       "url": "https://int.api.service.nhs.uk/endpoint-catalog/FHIR/R4",
-      "description": "Integration (standalone path \u2014 target state)"
+      "description": "Integration (standalone path — target state)"
     },
     {
       "url": "https://api.service.nhs.uk/endpoint-catalog/FHIR/R4",
-      "description": "Production (standalone path \u2014 target state)"
+      "description": "Production (standalone path — target state)"
     }
   ],
   "security": [
@@ -155,7 +155,7 @@
                               "type": "token"
                             },
                             {
-                              "name": "_has:HealthcareService:endpoint:_id",
+                              "name": "_has:HealthcareService:endpoint:identifier",
                               "type": "token"
                             },
                             {
@@ -188,10 +188,6 @@
                             }
                           ],
                           "searchParam": [
-                            {
-                              "name": "_id",
-                              "type": "token"
-                            },
                             {
                               "name": "identifier",
                               "type": "token"
@@ -285,12 +281,9 @@
           "HealthcareService"
         ],
         "summary": "Get the HealthcareService for an identifier",
-        "description": "Get the HealthcareService for an identifier.\n\n**Note:** `_include=HealthcareService:endpoint` is not supported on this endpoint. The `GET /Endpoint` search provides visibility filtering (status, period, HealthcareService.active) and supports filtering by `connectionType` and `payloadType`, which cannot be applied through `_include`.\n\nTo retrieve Endpoints for a HealthcareService, use:\n```\nGET /Endpoint?_has:HealthcareService:endpoint:_id={id}\n```",
+        "description": "Get the HealthcareService for an identifier.\n\n**Note:** `_include=HealthcareService:endpoint` is not supported on this endpoint. The `GET /Endpoint` search provides visibility filtering (status, period, HealthcareService.active) and supports filtering by `connectionType` and `payloadType`, which cannot be applied through `_include`.\n\nTo retrieve Endpoints for a HealthcareService, use:\n```\nGET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{value}\n```",
         "operationId": "findHealthcareServiceByOrg",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ServiceId_QParam"
-          },
           {
             "$ref": "#/components/parameters/HCProvidedBy_QParam"
           },
@@ -435,8 +428,8 @@
         "tags": [
           "Endpoint"
         ],
-        "summary": "Search for Endpoints by organisation, HealthcareService, connection type and payload type",
-        "description": "Search for Endpoint resources. Results can be filtered by organisation, HealthcareService association, connection type, and payload type.\n\nThe Endpoint.address will be omitted from results where Endpoint.header is set to private, unless the requestor is the owner of that Endpoint.\n\n### Query parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| _has | string | Filter by associated HealthcareService. Use _has:HealthcareService.Identifier=<system>\\|<value> or _has:HealthcareService.Id=<uuid> |\n| identifier | string | Filter by the Endpoint's own identifier (not the resource id). URL-encode the value. |\n| connection-type | string | Filter by technical protocol, e.g. hl7-fhir-rest. Matches against Endpoint.connectionType.coding.code. |\n| payload-type | string | Filter by message standard, e.g. bars. Matches against Endpoint.payloadType.coding.code. |",
+        "summary": "Search for Endpoints by HealthcareService, connection type and payload type",
+        "description": "Search for Endpoint resources. Results can be filtered by organisation, HealthcareService association, connection type, and payload type.\n\nThe Endpoint.address will be omitted from results where Endpoint.header is set to private, unless the requestor is the owner of that Endpoint.\n\n### Query parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| _has | string | Filter by associated HealthcareService. Use _has:HealthcareService:endpoint:identifier=<system>\\|<value> |\n| identifier | string | Filter by the Endpoint's own identifier (not the resource id). URL-encode the value. |\n| connection-type | string | Filter by technical protocol, e.g. hl7-fhir-rest. Matches against Endpoint.connectionType.coding.code. |\n| payload-type | string | Filter by message standard, e.g. bars. Matches against Endpoint.payloadType.coding.code. |",
         "operationId": "findEndpointByOrg",
         "parameters": [
           {
@@ -721,7 +714,7 @@
           "List"
         ],
         "summary": "Create a priority-ordered Endpoint list for a HealthcareService",
-        "description": "Create a FHIR R4 [List](https://www.hl7.org/fhir/list.html) resource representing the priority-ordered set of Endpoints for a HealthcareService.\n\nNeither `Endpoint` nor `HealthcareService` carry a preferred order \u2014 the `List` resource is the mechanism for expressing communication preference.\n\n- `List.subject` must reference a `HealthcareService` resource\n- Each `List.entry[].item` must reference an `Endpoint` resource\n- Priority is determined by array position \u2014 index 0 is the highest priority\n- `List.orderedBy` must be set to `priority`\n- Only one `current` list should exist per HealthcareService\n",
+        "description": "Create a FHIR R4 [List](https://www.hl7.org/fhir/list.html) resource representing the priority-ordered set of Endpoints for a HealthcareService.\n\nNeither `Endpoint` nor `HealthcareService` carry a preferred order — the `List` resource is the mechanism for expressing communication preference.\n\n- `List.subject` must reference a `HealthcareService` resource\n- Each `List.entry[].item` must reference an `Endpoint` resource\n- Priority is determined by array position — index 0 is the highest priority\n- `List.orderedBy` must be set to `priority`\n- Only one `current` list should exist per HealthcareService\n",
         "operationId": "createList",
         "requestBody": {
           "$ref": "#/components/requestBodies/FhirList"
@@ -744,7 +737,7 @@
           "List"
         ],
         "summary": "Search for endpoint priority lists",
-        "description": "Search for `List` resources. Use `subject` to find the priority-ordered Endpoint list for a specific HealthcareService.\n\nUse `_include=List:item` to return the referenced `Endpoint` resources inline in the same Bundle, avoiding a second request.\n\n### Important: No connectionType or payloadType filtering on this endpoint\n\n`GET /List` does **not** support filtering by `connectionType` or `payloadType`. This is because:\n\n1. The `List` resource is a pure ordering mechanism \u2014 it holds references to Endpoints by ID, with no knowledge of what type each Endpoint is.\n2. `connectionType` and `payloadType` are properties of the Endpoint (resolved from its parent Template at read time). They are not properties of the List or its entries.\n3. FHIR `_include` has no filter mechanism \u2014 when `_include=List:item` is used, all referenced Endpoints are returned regardless of their type.\n\nIf you need **both** priority ordering **and** type filtering, use the two-step pattern:\n\n1. `GET /List?subject=HealthcareService/{id}&status=current` \u2014 retrieve the priority order\n2. `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}&ConnectionType={type}&PayloadType={type}` \u2014 retrieve type-filtered Endpoints\n3. Client-side: apply the List order to the filtered results (iterate `List.entry[]`, skip entries not in the Step 2 response, preserve relative order of the rest)\n\n### No visibility filtering applied\n\nNo visibility filtering (status, period, or HealthcareService.active) is applied to Endpoints returned via `_include` on this endpoint. `/List` is intended for Endpoint administration and priority management, not consumer routing \u2014 administrators need to see all Endpoints regardless of their operational state.\n\n### Query parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `subject` | string | Filter by HealthcareService reference, e.g. `HealthcareService/{id}` |\n| `status` | string | Filter by list status: `current`, `retired`, `entered-in-error` |\n| `_include` | string | Include referenced Endpoint resources. Use `List:item` |\n",
+        "description": "Search for `List` resources. Use `subject` to find the priority-ordered Endpoint list for a specific HealthcareService.\n\nUse `_include=List:item` to return the referenced `Endpoint` resources inline in the same Bundle, avoiding a second request.\n\n### Important: No connectionType or payloadType filtering on this endpoint\n\n`GET /List` does **not** support filtering by `connectionType` or `payloadType`. This is because:\n\n1. The `List` resource is a pure ordering mechanism — it holds references to Endpoints by ID, with no knowledge of what type each Endpoint is.\n2. `connectionType` and `payloadType` are properties of the Endpoint (resolved from its parent Template at read time). They are not properties of the List or its entries.\n3. FHIR `_include` has no filter mechanism — when `_include=List:item` is used, all referenced Endpoints are returned regardless of their type.\n\nIf you need **both** priority ordering **and** type filtering, use the two-step pattern:\n\n1. `GET /List?subject=HealthcareService/{id}&status=current` — retrieve the priority order\n2. `GET /Endpoint?_has:HealthcareService:endpoint:identifier={system}|{value}&ConnectionType={type}&PayloadType={type}` — retrieve type-filtered Endpoints\n3. Client-side: apply the List order to the filtered results (iterate `List.entry[]`, skip entries not in the Step 2 response, preserve relative order of the rest)\n\n### No visibility filtering applied\n\nNo visibility filtering (status, period, or HealthcareService.active) is applied to Endpoints returned via `_include` on this endpoint. `/List` is intended for Endpoint administration and priority management, not consumer routing — administrators need to see all Endpoints regardless of their operational state.\n\n### Query parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `subject` | string | Filter by HealthcareService reference, e.g. `HealthcareService/{id}` |\n| `status` | string | Filter by list status: `current`, `retired`, `entered-in-error` |\n| `_include` | string | Include referenced Endpoint resources. Use `List:item` |\n",
         "operationId": "findList",
         "parameters": [
           {
@@ -776,7 +769,7 @@
             "name": "_include",
             "in": "query",
             "required": false,
-            "description": "Include referenced Endpoint resources in the response Bundle. Note: No connectionType, payloadType, or visibility filtering is applied to the included Endpoints. The List resource holds Endpoint references by ID only \u2014 it has no knowledge of Endpoint types. All referenced Endpoints are returned regardless of their connectionType, payloadType, status, or period. This is intentional: /List is an administration resource for managing priority ordering, not a consumer routing endpoint. Consumers needing type-filtered, ordered Endpoints should use the two-step pattern described in the operation description above.",
+            "description": "Include referenced Endpoint resources in the response Bundle. Note: No connectionType, payloadType, or visibility filtering is applied to the included Endpoints. The List resource holds Endpoint references by ID only — it has no knowledge of Endpoint types. All referenced Endpoints are returned regardless of their connectionType, payloadType, status, or period. This is intentional: /List is an administration resource for managing priority ordering, not a consumer routing endpoint. Consumers needing type-filtered, ordered Endpoints should use the two-step pattern described in the operation description above.",
             "schema": {
               "type": "string",
               "enum": [
@@ -937,7 +930,7 @@
                     {
                       "coding": [
                         {
-                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                           "code": "bars",
                           "display": "BaRS"
                         }
@@ -954,9 +947,9 @@
                   ],
                   "address": "https://myService.nhs.uk/Base/Address",
                   "header": "public",
-                  "Period": {
-                    "Start": "2021-10-11T15:23:30+00:00",
-                    "End": "2021-10-11T15:23:30+00:00"
+                  "period": {
+                    "start": "2021-10-11T15:23:30+00:00",
+                    "end": "2021-10-11T15:23:30+00:00"
                   }
                 }
               }
@@ -1002,7 +995,7 @@
                     {
                       "coding": [
                         {
-                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                           "code": "bars",
                           "display": "BaRS"
                         }
@@ -1045,11 +1038,11 @@
                   },
                   "identifier": [
                     {
-                      "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                      "system": "https://fhir.nhs.uk/Id/dos-service-id",
                       "value": "111111111"
                     },
                     {
-                      "system": "http://fhir.nhs.uk/Id/product-id",
+                      "system": "https://fhir.nhs.uk/Id/product-id",
                       "value": "AAA000"
                     }
                   ],
@@ -1095,7 +1088,7 @@
                   },
                   "status": "current",
                   "mode": "working",
-                  "title": "Anytown UTC \u2014 Endpoint Priority Order",
+                  "title": "Anytown UTC — Endpoint Priority Order",
                   "code": {
                     "coding": [
                       {
@@ -1154,23 +1147,27 @@
         "required": true,
         "schema": {
           "type": "string",
-          "example": "application/fhir+json;"
+          "example": "application/fhir+json"
         }
       },
       "ConnectionType_QParam": {
         "name": "ConnectionType",
-        "description": "The technical protocol (e.g., hl7-fhir-rest).\n\n**Example object before encoding** \n```json\n\"connectionType\": {\n  \"coding\": [\n    {\n      \"system\": \"http://terminology.hl7.org/CodeSystem/endpoint-connection-type\",\n      \"code\": \"hl7-fhir-rest\",\n      \"display\": \"HL7 FHIR\"\n    }\n  ]\n}\n",
+        "description": "Filter by the technical protocol supported by the Endpoint. Matches against Endpoint.connectionType.coding.\n\nPass as a token in `system|value` form and URL-encode it as it is part of the query string.\n\n**Example (before encoding):**\n`http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest`\n",
         "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
         "schema": {
-          "$ref": "#/components/schemas/ConnectionType"
+          "$ref": "#/components/schemas/ConnectionTypeToken"
         }
       },
       "PayloadType_QParam": {
         "name": "PayloadType",
-        "description": "Filter by the message standard or payload type supported by the Endpoint. Matches against Endpoint.payloadType.coding.code.\n\n**Example object before encoding** \n```json\n\"payloadType\": [\n  {\n    \"coding\": [\n      {\n      \"system\": \"http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc\",\n      \"code\": \"bars\",\n      \"display\": \"BaRS\"\n      }\n    ]\n  }\n]\n```\n",
+        "description": "Filter by the message standard or payload type supported by the Endpoint. Matches against Endpoint.payloadType.coding.\n\nPass as a token in `system|value` form and URL-encode it as it is part of the query string.\n\n**Example (before encoding):**\n`http://terminology.hl7.org/CodeSystem/endpoint-payload-type|bars`\n",
         "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
         "schema": {
-          "$ref": "#/components/schemas/PayloadType"
+          "$ref": "#/components/schemas/PayloadTypeToken"
         }
       },
       "HealthcareServiceIdentifier_QParam": {
@@ -1214,15 +1211,13 @@
         }
       },
       "EndpointHas_Qparam": {
-        "name": "_has:HealthcareService:endpoint:_id",
-        "description": "Reverse chained search \u2014 return Endpoints that are referenced by a HealthcareService with the given resource id.\n\nFollows the FHIR R4 _has reverse chaining syntax (see [FHIR R4 \u00a73.1.1.4.16](https://hl7.org/fhir/R4/search.html#has)):\n\n``\nGET [base]/Endpoint?_has:HealthcareService:endpoint:_id={serviceId}\n`\n\n| Segment | Meaning |\n|---------|----------|\n| HealthcareService | The resource type that refers back to Endpoint |\n| endpoint | The search parameter on HealthcareService that holds the Endpoint reference |\n| _id | Filter the HealthcareService by its resource id |\n| {serviceId} | UUID of the HealthcareService whose referenced Endpoints you want |\n\n**Example:**\n`\nGET /Endpoint?_has:HealthcareService:endpoint:_id=9f2c6f12-1a6d-4d9c-a111-123456789abc\n``",
+        "name": "_has:HealthcareService:endpoint:identifier",
+        "description": "Reverse chained search — return Endpoints that are referenced by a HealthcareService with the given identifier.\n\nFollows the FHIR R4 _has reverse chaining syntax (see [FHIR R4 §3.1.1.4.16](https://hl7.org/fhir/R4/search.html#has)):\n\n``\nGET [base]/Endpoint?_has:HealthcareService:endpoint:identifier={system}|{value}\n`\n\n| Segment | Meaning |\n|---------|----------|\n| HealthcareService | The resource type that refers back to Endpoint |\n| endpoint | The search parameter on HealthcareService that holds the Endpoint reference |\n| identifier | Filter the HealthcareService by its business identifier |\n| {system}|{value} | The identifier system and value of the HealthcareService whose referenced Endpoints you want |\n\n**Example:**\n`\nGET /Endpoint?_has:HealthcareService:endpoint:identifier=https://fhir.nhs.uk/Id/dos-service-id|111111111\n``",
         "in": "query",
         "required": false,
-        "allowEmptyValue": false,
         "schema": {
           "type": "string",
-          "format": "uuid",
-          "example": "9f2c6f12-1a6d-4d9c-a111-123456789abc"
+          "example": "https://fhir.nhs.uk/Id/dos-service-id|111111111"
         }
       },
       "EndpointIdentifier_PParam": {
@@ -1233,17 +1228,6 @@
         "allowEmptyValue": false,
         "schema": {
           "$ref": "#/components/schemas/GUID"
-        }
-      },
-      "ServiceId_QParam": {
-        "name": "_id",
-        "in": "query",
-        "required": false,
-        "description": "Filter by the HealthcareService resource id (UUID).\n\nReturns the specific HealthcareService matching the given id.\n\nTo retrieve the Endpoints associated with a HealthcareService, use GET /Endpoint with the _has:HealthcareService:endpoint:_id parameter.\n\nExample:\nGET /HealthcareService?_id=9f2c6f12-1a6d-4d9c-a111-123456789abc",
-        "schema": {
-          "type": "string",
-          "format": "uuid",
-          "example": "9f2c6f12-1a6d-4d9c-a111-123456789abc"
         }
       },
       "NHSD-End-User-Organisation-ODS": {
@@ -1372,7 +1356,7 @@
                 {
                   "coding": [
                     {
-                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                       "code": "bars",
                       "display": "BaRS"
                     }
@@ -1389,9 +1373,9 @@
               ],
               "address": "https://myService.nhs.uk/Base/Address",
               "header": "public",
-              "Period": {
-                "Start": "2021-10-11T15:23:30+00:00",
-                "End": "2021-10-11T15:23:30+00:00"
+              "period": {
+                "start": "2021-10-11T15:23:30+00:00",
+                "end": "2021-10-11T15:23:30+00:00"
               }
             }
           }
@@ -1457,7 +1441,7 @@
                 {
                   "coding": [
                     {
-                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                       "code": "bars",
                       "display": "BaRS"
                     }
@@ -1474,9 +1458,9 @@
               ],
               "address": "https://myService.nhs.uk/Base/Address",
               "header": "public",
-              "Period": {
-                "Start": "2021-10-11T15:23:30+00:00",
-                "End": "2021-10-11T15:23:30+00:00"
+              "period": {
+                "start": "2021-10-11T15:23:30+00:00",
+                "end": "2021-10-11T15:23:30+00:00"
               }
             }
           }
@@ -1537,7 +1521,7 @@
                 {
                   "coding": [
                     {
-                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                       "code": "bars",
                       "display": "BaRS"
                     }
@@ -1613,7 +1597,7 @@
                 {
                   "coding": [
                     {
-                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                       "code": "bars",
                       "display": "BaRS"
                     }
@@ -1671,11 +1655,11 @@
               },
               "identifier": [
                 {
-                  "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                  "system": "https://fhir.nhs.uk/Id/dos-service-id",
                   "value": "111111111"
                 },
                 {
-                  "system": "http://fhir.nhs.uk/Id/product-id",
+                  "system": "https://fhir.nhs.uk/Id/product-id",
                   "value": "AAA000"
                 }
               ],
@@ -1735,11 +1719,11 @@
               },
               "identifier": [
                 {
-                  "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                  "system": "https://fhir.nhs.uk/Id/dos-service-id",
                   "value": "111111111"
                 },
                 {
-                  "system": "http://fhir.nhs.uk/Id/product-id",
+                  "system": "https://fhir.nhs.uk/Id/product-id",
                   "value": "AAA000"
                 }
               ],
@@ -1837,7 +1821,7 @@
                       {
                         "coding": [
                           {
-                            "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                            "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                             "code": "bars",
                             "display": "BaRS"
                           }
@@ -1854,9 +1838,9 @@
                     ],
                     "address": "https://myService.nhs.uk/Base/Address",
                     "header": "public",
-                    "Period": {
-                      "Start": "2021-10-11T15:23:30+00:00",
-                      "End": "2021-10-11T15:23:30+00:00"
+                    "period": {
+                      "start": "2021-10-11T15:23:30+00:00",
+                      "end": "2021-10-11T15:23:30+00:00"
                     }
                   }
                 },
@@ -1897,7 +1881,7 @@
                       {
                         "coding": [
                           {
-                            "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                            "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type",
                             "code": "bars",
                             "display": "BaRS"
                           }
@@ -1914,9 +1898,9 @@
                     ],
                     "address": "https://myService.nhs.uk/Base/Address",
                     "header": "public",
-                    "Period": {
-                      "Start": "2021-10-11T15:23:30+00:00",
-                      "End": "2021-10-11T15:23:30+00:00"
+                    "period": {
+                      "start": "2021-10-11T15:23:30+00:00",
+                      "end": "2021-10-11T15:23:30+00:00"
                     }
                   }
                 }
@@ -1977,11 +1961,11 @@
                     },
                     "identifier": [
                       {
-                        "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                        "system": "https://fhir.nhs.uk/Id/dos-service-id",
                         "value": "111111111"
                       },
                       {
-                        "system": "http://fhir.nhs.uk/Id/product-id",
+                        "system": "https://fhir.nhs.uk/Id/product-id",
                         "value": "AAA000"
                       }
                     ],
@@ -2016,11 +2000,11 @@
                     },
                     "identifier": [
                       {
-                        "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                        "system": "https://fhir.nhs.uk/Id/dos-service-id",
                         "value": "111111111"
                       },
                       {
-                        "system": "http://fhir.nhs.uk/Id/product-id",
+                        "system": "https://fhir.nhs.uk/Id/product-id",
                         "value": "AAA000"
                       }
                     ],
@@ -2082,7 +2066,7 @@
               },
               "status": "current",
               "mode": "working",
-              "title": "Anytown UTC \u2014 Endpoint Priority Order",
+              "title": "Anytown UTC — Endpoint Priority Order",
               "code": {
                 "coding": [
                   {
@@ -2166,7 +2150,7 @@
               },
               "status": "current",
               "mode": "working",
-              "title": "Anytown UTC \u2014 Endpoint Priority Order",
+              "title": "Anytown UTC — Endpoint Priority Order",
               "code": {
                 "coding": [
                   {
@@ -2264,7 +2248,7 @@
                     },
                     "status": "current",
                     "mode": "working",
-                    "title": "Anytown UTC \u2014 Endpoint Priority Order",
+                    "title": "Anytown UTC — Endpoint Priority Order",
                     "code": {
                       "coding": [
                         {
@@ -2535,7 +2519,7 @@
             "properties": {
               "description": {
                 "type": "string",
-                "example": "Endpoint Catalogue API \u2014 FHIR R4 service discovery"
+                "example": "Endpoint Catalogue API — FHIR R4 service discovery"
               },
               "url": {
                 "type": "string",
@@ -2553,7 +2537,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "example": "xml"
+              "example": "json"
             }
           },
           "rest": {
@@ -2812,7 +2796,7 @@
                     "system": {
                       "type": "string",
                       "format": "url",
-                      "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                      "example": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type"
                     },
                     "code": {
                       "type": "string",
@@ -2887,15 +2871,15 @@
             "type": "string",
             "example": "public"
           },
-          "Period": {
+          "period": {
             "type": "object",
             "properties": {
-              "Start": {
+              "start": {
                 "type": "string",
                 "example": "2021-10-11T15:01:30+00:00",
                 "format": "date-time"
               },
-              "End": {
+              "end": {
                 "type": "string",
                 "example": "2021-10-12T15:01:30+00:00",
                 "format": "date-time"
@@ -2978,7 +2962,7 @@
                     "system": {
                       "type": "string",
                       "format": "url",
-                      "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                      "example": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type"
                     },
                     "code": {
                       "type": "string",
@@ -3238,69 +3222,15 @@
           }
         }
       },
-      "ConnectionType": {
-        "type": "object",
-        "properties": {
-          "connectionType": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "coding": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "system": {
-                        "type": "string",
-                        "format": "url"
-                      },
-                      "code": {
-                        "type": "string"
-                      },
-                      "display": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          }
-        }
+      "ConnectionTypeToken": {
+        "type": "string",
+        "description": "A connection-type filter expressed as a FHIR token in `system|value` form. Matches against Endpoint.connectionType.coding.",
+        "example": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest"
       },
-      "PayloadType": {
-        "type": "object",
-        "properties": {
-          "payloadType": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "coding": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "system": {
-                        "type": "string",
-                        "format": "url"
-                      },
-                      "code": {
-                        "type": "string"
-                      },
-                      "display": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          }
-        }
+      "PayloadTypeToken": {
+        "type": "string",
+        "description": "A payload-type filter expressed as a FHIR token in `system|value` form. Matches against Endpoint.payloadType.coding.",
+        "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type|bars"
       },
       "ODS": {
         "type": "string",
@@ -3419,7 +3349,7 @@
                               "system": {
                                 "type": "string",
                                 "format": "url",
-                                "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                                "example": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type"
                               },
                               "code": {
                                 "type": "string",
@@ -3494,15 +3424,15 @@
                       "type": "string",
                       "example": "public"
                     },
-                    "Period": {
+                    "period": {
                       "type": "object",
                       "properties": {
-                        "Start": {
+                        "start": {
                           "type": "string",
                           "example": "2021-10-11T15:01:30+00:00",
                           "format": "date-time"
                         },
-                        "End": {
+                        "end": {
                           "type": "string",
                           "example": "2021-10-12T15:01:30+00:00",
                           "format": "date-time"
@@ -3678,7 +3608,7 @@
       },
       "FhirList": {
         "type": "object",
-        "description": "A FHIR R4 List resource representing a priority-ordered collection of Endpoint resources for a specific HealthcareService. The `subject` references the owning HealthcareService. Each `entry[].item` references an Endpoint resource. Priority is determined by array position \u2014 index 0 is the highest priority. `orderedBy` must be set to `priority`.",
+        "description": "A FHIR R4 List resource representing a priority-ordered collection of Endpoint resources for a specific HealthcareService. The `subject` references the owning HealthcareService. Each `entry[].item` references an Endpoint resource. Priority is determined by array position — index 0 is the highest priority. `orderedBy` must be set to `priority`.",
         "required": [
           "resourceType",
           "status",
@@ -3740,7 +3670,7 @@
           "title": {
             "type": "string",
             "description": "A human-readable label for the list.",
-            "example": "Anytown UTC \u2014 Endpoint Priority Order"
+            "example": "Anytown UTC — Endpoint Priority Order"
           },
           "code": {
             "type": "object",
@@ -3823,7 +3753,7 @@
           },
           "entry": {
             "type": "array",
-            "description": "The ordered list of Endpoint references. Array position determines priority \u2014 index 0 is the highest priority Endpoint. Consumers MUST use array position as the authoritative order.",
+            "description": "The ordered list of Endpoint references. Array position determines priority — index 0 is the highest priority Endpoint. Consumers MUST use array position as the authoritative order.",
             "minItems": 1,
             "items": {
               "type": "object",
