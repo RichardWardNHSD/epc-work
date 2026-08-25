@@ -916,8 +916,7 @@
                   "identifier": [
                     {
                       "value": "1000099999",
-                      "system": "https://fhir.nhs.uk/Id/dos-service-id",
-                      "display": "Directory of Services (DOS)"
+                      "system": "https://fhir.nhs.uk/Id/dos-service-id"
                     },
                     {
                       "system": "https://fhir.nhs.uk/Id/product-id",
@@ -1048,14 +1047,12 @@
                     }
                   ],
                   "active": true,
-                  "providedBy": [
-                    {
-                      "identifier": {
-                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                        "value": "R778"
-                      }
+                  "providedBy": {
+                    "identifier": {
+                      "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                      "value": "R778"
                     }
-                  ],
+                  },
                   "name": "Example Healthcare Service",
                   "endpoint": [
                     {
@@ -1334,8 +1331,7 @@
               "identifier": [
                 {
                   "value": "1000099999",
-                  "system": "https://fhir.nhs.uk/Id/dos-service-id",
-                  "display": "Directory of Services (DOS)"
+                  "system": "https://fhir.nhs.uk/Id/dos-service-id"
                 },
                 {
                   "system": "https://fhir.nhs.uk/Id/product-id",
@@ -1415,8 +1411,7 @@
               "identifier": [
                 {
                   "value": "1000099999",
-                  "system": "https://fhir.nhs.uk/Id/dos-service-id",
-                  "display": "Directory of Services (DOS)"
+                  "system": "https://fhir.nhs.uk/Id/dos-service-id"
                 },
                 {
                   "system": "https://fhir.nhs.uk/Id/product-id",
@@ -1649,14 +1644,12 @@
                 }
               ],
               "active": true,
-              "providedBy": [
-                {
-                  "identifier": {
-                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                    "value": "R778"
-                  }
+              "providedBy": {
+                "identifier": {
+                  "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                  "value": "R778"
                 }
-              ],
+              },
               "name": "Example Healthcare Service",
               "endpoint": [
                 {
@@ -1713,14 +1706,12 @@
                 }
               ],
               "active": true,
-              "providedBy": [
-                {
-                  "identifier": {
-                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                    "value": "R778"
-                  }
+              "providedBy": {
+                "identifier": {
+                  "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                  "value": "R778"
                 }
-              ],
+              },
               "name": "Example Healthcare Service",
               "endpoint": [
                 {
@@ -1783,8 +1774,7 @@
                     "identifier": [
                       {
                         "value": "1000099999",
-                        "system": "https://fhir.nhs.uk/Id/dos-service-id",
-                        "display": "Directory of Services (DOS)"
+                        "system": "https://fhir.nhs.uk/Id/dos-service-id"
                       },
                       {
                         "system": "https://fhir.nhs.uk/Id/product-id",
@@ -1839,8 +1829,7 @@
                     "identifier": [
                       {
                         "value": "1000099999",
-                        "system": "https://fhir.nhs.uk/Id/dos-service-id",
-                        "display": "Directory of Services (DOS)"
+                        "system": "https://fhir.nhs.uk/Id/dos-service-id"
                       },
                       {
                         "system": "https://fhir.nhs.uk/Id/product-id",
@@ -1947,14 +1936,12 @@
                       }
                     ],
                     "active": true,
-                    "providedBy": [
-                      {
-                        "identifier": {
-                          "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                          "value": "R778"
-                        }
+                    "providedBy": {
+                      "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "R778"
                       }
-                    ],
+                    },
                     "name": "Example Healthcare Service",
                     "endpoint": [
                       {
@@ -1986,14 +1973,12 @@
                       }
                     ],
                     "active": true,
-                    "providedBy": [
-                      {
-                        "identifier": {
-                          "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                          "value": "R778"
-                        }
+                    "providedBy": {
+                      "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "R778"
                       }
-                    ],
+                    },
                     "name": "Example Healthcare Service",
                     "endpoint": [
                       {
@@ -2746,10 +2731,6 @@
                 "value": {
                   "type": "string",
                   "example": "1000099999"
-                },
-                "display": {
-                  "type": "string",
-                  "example": "Directory of Services (DOS)"
                 }
               }
             }
@@ -2914,10 +2895,6 @@
                 "value": {
                   "type": "string",
                   "example": "1000099999"
-                },
-                "display": {
-                  "type": "string",
-                  "example": "Directory of Services (DOS)"
                 }
               }
             }
@@ -3063,10 +3040,6 @@
                 "value": {
                   "type": "string",
                   "example": "1000099999"
-                },
-                "display": {
-                  "type": "string",
-                  "example": "Directory of Services (DOS)"
                 }
               }
             }
@@ -3080,26 +3053,19 @@
             "example": "Example Healthcare Service"
           },
           "providedBy": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "identifier": {
-                  "type": "object",
-                  "properties": {
-                    "system": {
-                      "type": "string",
-                      "format": "url",
-                      "example": "https://fhir.nhs.uk/Id/dos-service-id"
-                    },
-                    "value": {
-                      "type": "string",
-                      "example": "1000099999"
-                    },
-                    "display": {
-                      "type": "string",
-                      "example": "Directory of Services (DOS)"
-                    }
+            "type": "object",
+            "properties": {
+              "identifier": {
+                "type": "object",
+                "properties": {
+                  "system": {
+                    "type": "string",
+                    "format": "url",
+                    "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                  },
+                  "value": {
+                    "type": "string",
+                    "example": "1000099999"
                   }
                 }
               }
@@ -3303,10 +3269,6 @@
                           "value": {
                             "type": "string",
                             "example": "1000099999"
-                          },
-                          "display": {
-                            "type": "string",
-                            "example": "Directory of Services (DOS)"
                           }
                         }
                       }
@@ -3515,10 +3477,6 @@
                           "value": {
                             "type": "string",
                             "example": "1000099999"
-                          },
-                          "display": {
-                            "type": "string",
-                            "example": "Directory of Services (DOS)"
                           }
                         }
                       }
@@ -3532,26 +3490,19 @@
                       "example": "Example Healthcare Service"
                     },
                     "providedBy": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "identifier": {
-                            "type": "object",
-                            "properties": {
-                              "system": {
-                                "type": "string",
-                                "format": "url",
-                                "example": "https://fhir.nhs.uk/Id/dos-service-id"
-                              },
-                              "value": {
-                                "type": "string",
-                                "example": "1000099999"
-                              },
-                              "display": {
-                                "type": "string",
-                                "example": "Directory of Services (DOS)"
-                              }
+                      "type": "object",
+                      "properties": {
+                        "identifier": {
+                          "type": "object",
+                          "properties": {
+                            "system": {
+                              "type": "string",
+                              "format": "url",
+                              "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                            },
+                            "value": {
+                              "type": "string",
+                              "example": "1000099999"
                             }
                           }
                         }

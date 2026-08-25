@@ -28,10 +28,10 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 16 | Request body media type carried BaRS version parameter | Fixed |
 | 17 | PUT operations for HealthcareService, Endpoint, and EndpointTemplate missing `requestBody` | Fixed |
 | 18 | `HealthcareService.type` absent despite being UK Core MustSupport | Pending |
-| 19 | `HealthcareService.providedBy` modelled as array, FHIR/UK Core say `0..1` | Pending |
+| 19 | `HealthcareService.providedBy` modelled as array, FHIR/UK Core say `0..1` | Fixed |
 | 20 | Create interactions return `200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified` | Pending |
 | 21 | `$template` routes do not follow FHIR operation invocation rules | Pending |
-| 22 | `Identifier.display` used, which is not a valid FHIR Identifier element | Pending |
+| 22 | `Identifier.display` used, which is not a valid FHIR Identifier element | Fixed |
 | 23 | Resource schemas require server-assigned `id` but not the mandatory R4 elements; `resourceType` not enum-locked | Pending |
 | 24 | CapabilityStatement does not advertise supported profiles, `updateCreate`, or `$template` operations | Pending |
 | 25 | `EPC-EndpointList` List profile conformance cannot be verified (profile not supplied) | Pending |
@@ -619,13 +619,13 @@ UK Core marks `HealthcareService.type` as MustSupport, meaning a conformant impl
 
 ---
 
-### #19 — `HealthcareService.providedBy` modelled as array (Pending)
+### #19 — `HealthcareService.providedBy` modelled as array (Fixed)
 
 **Problem**
 
-FHIR R4 and the `UKCore-HealthcareService` profile define `providedBy` as `Reference(Organization) [0..1]` — a single optional reference. The spec models it as an array. This is the same class of error as #13 (`managingOrganization`), but on a different element and against a specific UK Core profile that also marks `providedBy` as MustSupport.
+FHIR R4 and the `UKCore-HealthcareService` profile define `providedBy` as `Reference(Organization) [0..1]` — a single optional reference. The spec modelled it as an array. This is the same class of error as #13 (`managingOrganization`), but on a different element and against a specific UK Core profile that also marks `providedBy` as MustSupport.
 
-**Before**
+**Before — schema**
 ```json
 "providedBy": {
   "type": "array",
@@ -636,7 +636,14 @@ FHIR R4 and the `UKCore-HealthcareService` profile define `providedBy` as `Refer
 }
 ```
 
-**Recommended after**
+**Before — examples**
+```json
+"providedBy": [
+  { "identifier": { "system": "https://fhir.nhs.uk/Id/ods-organization-code", "value": "R778" } }
+]
+```
+
+**After — schema**
 ```json
 "providedBy": {
   "type": "object",
@@ -644,7 +651,18 @@ FHIR R4 and the `UKCore-HealthcareService` profile define `providedBy` as `Refer
 }
 ```
 
-**Recommended fix:** Model `providedBy` as a single Reference object in the schema and all examples. Document that the target should conform to `UKCore-Organization`. Applies to the `HealthcareService` schema, the `HealthcareServiceBundle` nested resource, and the examples.
+**After — examples**
+```json
+"providedBy": {
+  "identifier": { "system": "https://fhir.nhs.uk/Id/ods-organization-code", "value": "R778" }
+}
+```
+
+**Scope:** 2 schema definitions (`HealthcareService`, `HealthcareServiceBundle` nested resource) + 5 example blocks.
+
+**Related items:**
+- The non-FHIR `display` inside `providedBy`'s identifier has since been removed under #22 (now Fixed).
+- Documenting that the target Organization should conform to `UKCore-Organization` — a CapabilityStatement/profile item (see #24), still pending.
 
 ---
 
@@ -695,11 +713,11 @@ A `$`-prefixed path under a FHIR base URL is a FHIR *operation*. FHIR R4 operati
 
 ---
 
-### #22 — `Identifier.display` is not a valid FHIR element (Pending)
+### #22 — `Identifier.display` is not a valid FHIR element (Fixed)
 
 **Problem**
 
-FHIR R4 `Identifier` has no `display` element — its fields are `use`, `type`, `system`, `value`, `period`, and `assigner`. The spec's Endpoint and HealthcareService identifiers include a `display` property.
+FHIR R4 `Identifier` has no `display` element — its fields are `use`, `type`, `system`, `value`, `period`, and `assigner`. The spec's Endpoint and HealthcareService identifiers included a `display` property.
 
 **Before**
 ```json
@@ -712,18 +730,21 @@ FHIR R4 `Identifier` has no `display` element — its fields are `use`, `type`, 
 ]
 ```
 
-**Recommended after (option depends on intent)**
+**After**
 ```json
 "identifier": [
   {
     "value": "1000099999",
-    "system": "https://fhir.nhs.uk/Id/dos-service-id",
-    "type": { "text": "Directory of Services (DOS)" }
+    "system": "https://fhir.nhs.uk/Id/dos-service-id"
   }
 ]
 ```
 
-**Recommended fix:** Remove `identifier.display`. Depending on the intended meaning, use `Identifier.type.text`, `Identifier.assigner.display`, or a published extension. Applies to schemas and examples.
+The `display` key was removed from every `Identifier` — 12 occurrences (5 example instances + 7 schema `properties` blocks, including the one nested inside `providedBy`).
+
+**Care taken:** Removal was scoped to Identifiers only — objects with `value` + `display` and no `code`/`reference`. The valid `Coding.display` fields (connectionType, payloadType, List codes, orderedBy, entry displays — 35 in total) and `Reference.display` fields (18) were left untouched.
+
+**If human-readable text is needed** for an identifier in future, use `Identifier.type.text`, `Identifier.assigner.display`, or a published extension — not a bare `display`.
 
 ---
 
