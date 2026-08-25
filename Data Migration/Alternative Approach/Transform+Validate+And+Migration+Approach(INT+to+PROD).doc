@@ -1,0 +1,925 @@
+Date: Wed, 19 Aug 2026 18:00:15 +0100 (BST)
+Message-ID: <68872804.117.1787158815669@vlconappl02.corp.internal>
+Subject: Exported From Confluence
+MIME-Version: 1.0
+Content-Type: multipart/related; 
+	boundary="----=_Part_116_395526746.1787158815668"
+
+------=_Part_116_395526746.1787158815668
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///C:/exported.html
+
+<html xmlns:o=3D'urn:schemas-microsoft-com:office:office'
+      xmlns:w=3D'urn:schemas-microsoft-com:office:word'
+      xmlns:v=3D'urn:schemas-microsoft-com:vml'
+      xmlns=3D'urn:w3-org-ns:HTML'>
+<head>
+    <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8=
+">
+    <title>Transform Validate And Migration Approach(INT to PROD)</title>
+    <!--[if gte mso 9]>
+    <xml>
+        <o:OfficeDocumentSettings>
+            <o:TargetScreenSize>1024x640</o:TargetScreenSize>
+            <o:PixelsPerInch>72</o:PixelsPerInch>
+            <o:AllowPNG/>
+        </o:OfficeDocumentSettings>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>90</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+                <!--
+        @page Section1 {
+            size: 8.5in 11.0in;
+            margin: 1.0in;
+            mso-header-margin: .5in;
+            mso-footer-margin: .5in;
+            mso-paper-source: 0;
+        }
+
+        table {
+            border: solid 1px;
+            border-collapse: collapse;
+        }
+
+        table td, table th {
+            border: solid 1px;
+            padding: 5px;
+        }
+
+        td {
+            page-break-inside: avoid;
+        }
+
+        tr {
+            page-break-after: avoid;
+        }
+
+        div.Section1 {
+            page: Section1;
+        }
+
+        /* Confluence print stylesheet. Common to all themes for print medi=
+a */
+/* Full of !important until we improve batching for print CSS */
+
+@media print {
+    #main {
+        padding-bottom: 1em !important; /* The default padding of 6em is to=
+o much for printouts */
+    }
+
+    body {
+        font-family: Arial, Helvetica, FreeSans, sans-serif;
+        font-size: 10pt;
+        line-height: 1.2;
+    }
+
+    body, #full-height-container, #main, #page, #content, .has-personal-sid=
+ebar #content {
+        background: var(--ds-surface, #fff) !important;
+        color: var(--ds-text, #000) !important;
+        border: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+    }
+
+    a, a:link, a:visited, a:focus, a:hover, a:active {
+        color: var(--ds-link-pressed, #000);
+    }
+
+    #content h1,
+    #content h2,
+    #content h3,
+    #content h4,
+    #content h5,
+    #content h6 {
+        font-family: Arial, Helvetica, FreeSans, sans-serif;
+        page-break-after: avoid;
+    }
+
+    pre {
+        font-family: Monaco, "Courier New", monospace;
+    }
+
+    #header,
+    .aui-header-inner,
+    #navigation,
+    #sidebar,
+    .sidebar,
+    #personal-info-sidebar,
+    .ia-fixed-sidebar,
+    .page-actions,
+    .navmenu,
+    .ajs-menu-bar,
+    .noprint,
+    .inline-control-link,
+    .inline-control-link a,
+    a.show-labels-editor,
+    .global-comment-actions,
+    .comment-actions,
+    .quick-comment-container,
+    #addcomment {
+        display: none !important;
+    }
+
+    /* CONF-28544 cannot print multiple pages in IE */
+    #splitter-content {
+        position: relative !important;
+    }
+
+    .comment .date::before {
+        content: none !important; /* remove middot for print view */
+    }
+
+    h1.pagetitle img {
+        height: auto;
+        width: auto;
+    }
+
+    .print-only {
+        display: block;
+    }
+
+    #footer {
+        position: relative !important; /* CONF-17506 Place the footer at en=
+d of the content */
+        margin: 0;
+        padding: 0;
+        background: none;
+        clear: both;
+    }
+
+    #poweredby {
+        border-top: none;
+        background: none;
+    }
+
+    #poweredby li.print-only {
+        display: list-item;
+        font-style: italic;
+    }
+
+    #poweredby li.noprint {
+        display: none;
+    }
+
+    /* no width controls in print */
+    .wiki-content .table-wrap,
+    .wiki-content p,
+    .panel .codeContent,
+    .panel .codeContent pre,
+    .image-wrap {
+        overflow: visible !important;
+    }
+
+    /* TODO - should this work? */
+    #children-section,
+    #comments-section .comment,
+    #comments-section .comment .comment-body,
+    #comments-section .comment .comment-content,
+    #comments-section .comment p {
+        page-break-inside: avoid;
+    }
+
+    #page-children a {
+        text-decoration: none;
+    }
+
+    /**
+     hide twixies
+
+     the specificity here is a hack because print styles
+     are getting loaded before the base styles. */
+    #comments-section.pageSection .section-header,
+    #comments-section.pageSection .section-title,
+    #children-section.pageSection .section-header,
+    #children-section.pageSection .section-title,
+    .children-show-hide {
+        padding-left: 0;
+        margin-left: 0;
+    }
+
+    .children-show-hide.icon {
+        display: none;
+    }
+
+    /* personal sidebar */
+    .has-personal-sidebar #content {
+        margin-right: 0;
+    }
+
+    .has-personal-sidebar #content .pageSection {
+        margin-right: 0;
+    }
+
+    .no-print, .no-print * {
+        display: none !important;
+    }
+}
+-->
+    </style>
+</head>
+<body>
+    <h1>Transform Validate And Migration Approach(INT to PROD)</h1>
+    <div class=3D"Section1">
+        <p><br></p>
+<p><br></p>
+<h2 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-MigrationStrateg=
+y"><strong><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Migration</span> <sp=
+an class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Strategy</span></strong></h2>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">The</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">proposed</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">migration</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">ap=
+proach</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">treats</span> <sp=
+an class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">existing</span> <span class=3D"___1cs5bdp f1w7gpdv f5p=
+0z4x">INT</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">environment</s=
+pan> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">as</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">primary</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">migratio=
+n</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">validation</span> <span class=3D"___1cs5bd=
+p f1w7gpdv f5p0z4x">environment.</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">Rather</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">than</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">using</span> <code><span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">targets.json</span></code> as the sourc=
+e of migration data, the migration will leverage the existing curated opera=
+tional data stored within the legacy INT data structures. This data already=
+ contains the <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">business</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">information</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">required</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">to</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">con=
+struct</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Catalogue</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">resources,</span> <span class=3D"___1cs5bdp f1=
+w7gpdv f5p0z4x">including</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">Service</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Identifiers,</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Provider</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">Organisations,</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp f1w7gpd=
+v f5p0z4x">relationships,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">Product</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Identifiers,</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">routing</span> <span class=3D"___1cs5bdp f1w7=
+gpdv f5p0z4x">information.</span></p>
+<p>The objective of the migration is to transform the legacy data model int=
+o the new Endpoint Catalogue FHIR R4 compliant structure and validate the r=
+esulting resources before any data is promoted to the PROD environment. By =
+performing all transformation and validation activities within INT, the mig=
+ration process reduces production risk and ensures only high-quality, valid=
+ated data is deployed. <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">This</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">approach</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">separates</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">data</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">=
+transformation</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">from</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">production</span> <span clas=
+s=3D"___1cs5bdp f1w7gpdv f5p0z4x">deployment,</span> <span class=3D"___1cs5=
+bdp f1w7gpdv f5p0z4x">allowing</span> <span class=3D"___1cs5bdp f1w7gpdv f5=
+p0z4x">defects,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">data</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">quality</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">issues,</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">map=
+ping</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">discrepancies</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">identified</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">resolved</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">before</span> <span class=3D"___1cs5bdp f1=
+w7gpdv f5p0z4x">a</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">produc=
+tion</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">release</span> <spa=
+n class=3D"___1cs5bdp f1w7gpdv f5p0z4x">is</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">considered.</span></p>
+<p>Once the transformed resources <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">have</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">successfully</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">passed</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">all</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">validation</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">=
+checks,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">validated</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">dataset</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">becomes</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">approved</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">migration</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">artefact.</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">That</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">approved</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">dataset</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">is</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">then</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">promoted</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">PROD</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">using</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">a</span>=
+ <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">controlled</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">deployment</span> <span class=3D"___1cs5bd=
+p f1w7gpdv f5p0z4x">process</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">without</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">requiring</s=
+pan> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">any</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">further</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">data</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">transf=
+ormation</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">activities.</sp=
+an></p>
+<hr>
+<h2 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-FHIRR4Transforma=
+tionProcess"><strong><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">FHIR</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">R4</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">Transformation</span> <span class=3D"___1cs5bdp f1=
+w7gpdv f5p0z4x">Process</span></strong></h2>
+<p>The migration process begins by <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">extracting</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">data</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">from</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">legacy</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">INT</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">data</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">sources,</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">including</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">He=
+althcare</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Services,</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoints,</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">Templates,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Organisations.<=
+/span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">These</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">datasets</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">are</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">us=
+ed</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">construct</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">e=
+quivalent</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">FHIR</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">R4</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">resources</span> <span class=3D"___1cs5bdp f1w7gpdv f5=
+p0z4x">required</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">by</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp f1w7gpd=
+v f5p0z4x">Catalogue.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">During</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">transformation,</span> <span class=3D"___1cs5=
+bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">migration</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">process</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">converts</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">legacy</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">reco=
+rds</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">into</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">three</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">key</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">re=
+source</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">types:</span></p>
+<ul>
+ <li data-uuid=3D"442a5d6d-003c-45a9-8935-29cb934914c4"><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">Templates</span></li>
+ <li data-uuid=3D"fab8ed8e-671f-4fdb-8e94-a5d302296a92"><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">Endpoints</span></li>
+ <li data-uuid=3D"9826a96a-d457-4357-ae64-63bd4a5fa5ba"><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">HealthcareServices</span></li>
+</ul>
+<p>Each resource is populated using information obtained from the existing =
+INT data store and mapped to the FHIR R4 structure expected <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">by</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoint</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Catalogue.</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">This</span> <span class=3D"___1cs5bdp f1=
+w7gpdv f5p0z4x">includes</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x"=
+>generating</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">necessary</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">identifiers,</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">organisation</span> <span class=3D"___1cs5bdp f1w7gpdv f5=
+p0z4x">references,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">endpo=
+int</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">relationships,</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">provider</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">associations,</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">metadata</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">required</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">for</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">successful</span> <span class=3D"___1cs5bdp f1w=
+7gpdv f5p0z4x">operation</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x"=
+>within</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">catalogue.</span></p>
+<p>The transformation process will not automatically migrate every record t=
+hat exists in the legacy system. Instead, every resource is evaluated again=
+st the EPC data model to ensure all mandatory attributes are present and va=
+lid. This prevents <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">incomplete</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">or</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">invalid</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">data</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">from</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">entering</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w=
+7gpdv f5p0z4x">new</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">platf=
+orm</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">establishes</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">a</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x"=
+>clean,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">supportable</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">baseline</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">for</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoin=
+t</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Catalogue.</span></p>
+<div class=3D"table-wrap">
+ <table class=3D"wrapped confluenceTable">
+  <thead class=3D"">
+   <tr class=3D"">
+    <th class=3D"confluenceTh">Metric</th>
+    <th class=3D"confluenceTh">Count</th>
+   </tr>
+  </thead>
+  <tbody class=3D"">
+   <tr class=3D"">
+    <td class=3D"confluenceTd">Source Endpoint Templates</td>
+    <td class=3D"confluenceTd">13</td>
+   </tr>
+   <tr class=3D"">
+    <td class=3D"confluenceTd">FHIR Endpoint Templates Created</td>
+    <td class=3D"confluenceTd">13</td>
+   </tr>
+   <tr class=3D"">
+    <td class=3D"confluenceTd">Source Endpoints</td>
+    <td class=3D"confluenceTd">13</td>
+   </tr>
+   <tr class=3D"">
+    <td class=3D"confluenceTd">FHIR Endpoints Created</td>
+    <td class=3D"confluenceTd">13</td>
+   </tr>
+   <tr class=3D"">
+    <td class=3D"confluenceTd">Source HealthcareServices</td>
+    <td class=3D"confluenceTd">10,284</td>
+   </tr>
+   <tr class=3D"">
+    <td class=3D"confluenceTd">FHIR HealthcareServices Created</td>
+    <td class=3D"confluenceTd">10,280</td>
+   </tr>
+   <tr class=3D"">
+    <td class=3D"confluenceTd">Transformation Failures</td>
+    <td class=3D"confluenceTd">4</td>
+   </tr>
+   <tr class=3D"">
+    <td class=3D"confluenceTd">Transformation Status</td>
+    <td class=3D"confluenceTd">PASS</td>
+   </tr>
+  </tbody>
+ </table>
+</div>
+<h3 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-TransformationFa=
+ilureReporting">Transformation Failure Reporting</h3>
+<p>Any records that cannot be successfully transformed into Endpoint Catalo=
+gue FHIR R4 resources due to missing mandatory attributes or invalid source=
+ data will be excluded from the transformed dataset and recorded in a trans=
+formation failure report.</p>
+<p>The transformation failure report will capture:</p>
+<ul>
+ <li data-uuid=3D"2eef07e1-0d9c-4bba-acc5-41e58f09262e">Resource Type</li>
+ <li data-uuid=3D"19ea0a05-46b1-488c-993c-399b6f573ac6">Resource Identifier=
+</li>
+ <li data-uuid=3D"c98e7f1b-1fc9-48dc-bc3a-daeb8110d34b">Failure Reason</li>
+</ul>
+<p>This report provides traceability for excluded records and supports reme=
+diation activities without affecting the approved migration dataset. The re=
+port will be retained alongside the transformation manifest above.</p>
+<h3 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-AuditArtefacts">=
+Audit Artefacts</h3>
+<p>The following artefacts will be generated during transformation:<br>
+  transformation-manifest.json<br>
+  transformation-failures.json</p>
+<hr>
+<h2 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-ValidationAgains=
+ttargets.json"><strong><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Validati=
+on</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Against</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">targets.json</span></strong></h2>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Following</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">transformation,</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">migrated</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">dataset</s=
+pan> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">validated</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">again=
+st</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span clas=
+s=3D"___1cs5bdp f1w7gpdv f5p0z4x">existing</span> <code><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">targets.json</span></code> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">file.</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">The</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">purpose</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">of</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">this</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">validation</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">is</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">not</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">to</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">generate</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">migrated</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">data</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">but</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">confirm</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">that</span> <span class=3D"___1cs5bdp f1w7gpdv f5=
+p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">migrated</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">routing</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">configuration</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">accurately</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">reproduces</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">routing</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">behaviour</span> <span class=3D"___1cs5=
+bdp f1w7gpdv f5p0z4x">currently</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">used</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">in</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">production.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">The</span> <code><span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">targets.json</span></code> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">file</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">represents</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">authoritative</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">source</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">of</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">service-to-endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">=
+routing.</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Each</span> <sp=
+an class=3D"___1cs5bdp f1w7gpdv f5p0z4x">service</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">identifier</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">contained</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">wi=
+thin</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">file</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">is</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">asso=
+ciated</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">with</span> <span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">an</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">URL</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">that</span> <span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">represents</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p=
+0z4x">expected</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">routing</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">destination.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">For</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">every</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">service</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">identif=
+ier</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">present</span> <span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">within</span> <code><span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">targets.json</span></code>, the validation proc=
+ess will locate the corresponding HealthcareService <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">within</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">transformed</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">FHIR</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">dataset.</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">The</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">process=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">then</span> <span class=3D"___1cs5bdp f1w7=
+gpdv f5p0z4x">follow</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">HealthcareService</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">relationship</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <span class=3D"___1cs5bdp f1w7=
+gpdv f5p0z4x">its</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoi=
+nt</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span clas=
+s=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">Template</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">in</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">order</span> <spa=
+n class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">resolve</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">endpoint</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">address</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">associated</span> <span class=3D"___1cs5bdp f1w7=
+gpdv f5p0z4x">with</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">that<=
+/span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">service.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">The</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">resolved</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">add=
+ress</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">from</span> <span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">transformed</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">dataset</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span>=
+ <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1c=
+s5bdp f1w7gpdv f5p0z4x">compared</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">against</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">expected</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">URL</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">defined</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">in<=
+/span> <code><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">targets.json</span=
+></code><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">.</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">Comparison</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">logic</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">w=
+ill</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span clas=
+s=3D"___1cs5bdp f1w7gpdv f5p0z4x">tolerant</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">of</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">di=
+fferences</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">in</span> <spa=
+n class=3D"___1cs5bdp f1w7gpdv f5p0z4x">casing</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">trailing</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">slashes</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">avoid</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">false</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">validation=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">failures</span> <span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">caused</span> <span class=3D"___1cs5bd=
+p f1w7gpdv f5p0z4x">by</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">f=
+ormatting</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">inconsistencie=
+s.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">The</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">validation</span> <span class=3D"___1cs5bdp f1w7=
+gpdv f5p0z4x">process</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">pr=
+ovides</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">assurance</span> =
+<span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">that</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">migrated</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoint</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Catalogue</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">accurately</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">reproduces</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">routing</s=
+pan> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">behaviour</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">currently</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">defined</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">in</span> <code><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">targets.js=
+on</span></code><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">.</span></p>
+<hr>
+<h2 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-ValidationOutcom=
+es"><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Validation</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">Outcomes</span></h2>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Following</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">validation,</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">each</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">service</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">classified</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">into</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">one</span> =
+<span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">of</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">three</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">categories.</span></p>
+<h3 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-Matched"><span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">Matched</span></h3>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">A</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">service</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">is</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">classified</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">as</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">matched</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">when:</span></p>
+<ul>
+ <li data-uuid=3D"4f31dd07-b04f-4b3a-856c-e4b5822aa5a5"><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">A</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">HealthcareService</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">exi=
+sts.</span></li>
+ <li data-uuid=3D"bb3b9a0c-8ecf-4dd8-a983-2d31b0954a61"><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">The</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">HealthcareService</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">r=
+eferences</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">a</span> <span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">valid</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">Endpoint.</span></li>
+ <li data-uuid=3D"300d97cb-815c-41ce-8630-269cc3a59778"><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">The</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">Endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">references=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">a</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">valid</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Tem=
+plate.</span></li>
+ <li data-uuid=3D"4493de5b-f521-4626-afae-ba658d696dc7"><span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">The</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">resolved</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">endpoint</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">URL</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">matches</span> <span class=3D"___1cs5bdp f1w7=
+gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">URL</s=
+pan> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">defined</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">within</span> <code><span class=3D"___1cs5=
+bdp f1w7gpdv f5p0z4x">targets.json</span></code><span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">.</span></li>
+</ul>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Matched</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">services</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">represent</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">fully</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">compliant</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">validated</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">routing</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">rec=
+ords.</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">These</span> <span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">services</span> <span class=3D"___1c=
+s5bdp f1w7gpdv f5p0z4x">form</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">approved</span>=
+ <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">migration</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">dataset</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">are=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">eligible</span> <span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">for</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">promotion</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">to</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">PROD</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">environment.</span></p>
+<h3 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-Missing"><span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">Missing</span></h3>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">A</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">service</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">is</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">classified</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">as</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">missing</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">when</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">one</s=
+pan> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">or</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">more</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">required</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">resour=
+ces</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">cannot</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">located.</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">Examples</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">include</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">missing</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">HealthcareServices,</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">missing</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">Endpoints,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">or<=
+/span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">missing</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bd=
+p f1w7gpdv f5p0z4x">Templates.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">These</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">records</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">cannot</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">validated</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1=
+w7gpdv f5p0z4x">therefore</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">will</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">not</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">included</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">in</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">approved</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">migration</span> <span class=3D"___1cs5bdp f1w7gpdv f5=
+p0z4x">dataset</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">until</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">missing</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">information</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">=
+has</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">been</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">resolved.</span></p>
+<h3 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-Mismatched"><spa=
+n class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Mismatched</span></h3>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">A</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">service</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">is</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">classified</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">as</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">mismatched</span> <span class=3D"___1cs5bdp f1=
+w7gpdv f5p0z4x">when</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">all=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">required</span> <span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">resources</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">exist,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p=
+0z4x">but</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <sp=
+an class=3D"___1cs5bdp f1w7gpdv f5p0z4x">resolved</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">endpoint</span> <span class=3D"___1cs5bdp f1w7gpd=
+v f5p0z4x">URL</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">does</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">not</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">match</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">URL</span> =
+<span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">defined</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">in</span> <code><span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">targets.json</span></code><span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">These</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">records</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">indicate</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">a<=
+/span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">routing</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">discrepancy</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">between</span> <span class=3D"___1cs5bdp f1w7gpdv f5=
+p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">migrated</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">dataset</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">current=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">operational</span> <spa=
+n class=3D"___1cs5bdp f1w7gpdv f5p0z4x">routing</span> <span class=3D"___1c=
+s5bdp f1w7gpdv f5p0z4x">configuration.</span> <span class=3D"___1cs5bdp f1w=
+7gpdv f5p0z4x">Such</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">reco=
+rds</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">must</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5bdp f1w=
+7gpdv f5p0z4x">investigated</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">corrected</span>=
+ <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">before</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">they</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">can</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">considered</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">for</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">migration</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">PROD.</span></p>
+<hr>
+<h2 id=3D"TransformValidateAndMigrationApproach(INTtoPROD)-ProductionMigrat=
+ionApproach"><strong><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Production=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Migration</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Approach</span></strong></h2>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Once</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">transformation</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">v=
+alidation</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">activities</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">have</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">successfully</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">completed</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">within</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">INT,</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">resulting</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">dataset</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">becomes=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">approved</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">migration</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">package</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">for</span> <=
+span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">production</span> <span class=3D=
+"___1cs5bdp f1w7gpdv f5p0z4x">deployment.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Only</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">resources</span> <span class=3D"___1cs5bdp f1w7=
+gpdv f5p0z4x">with</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">a</sp=
+an> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">validation</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">status</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">of</span> <strong><span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">Matched</span></strong> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">wi=
+ll</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">included</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">in</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">migration</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">package.</span> <span class=3D"___1cs=
+5bdp f1w7gpdv f5p0z4x">Resources</span> <span class=3D"___1cs5bdp f1w7gpdv =
+f5p0z4x">that</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">are</span>=
+ <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">classified</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">as</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">Missing</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">or</=
+span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Mismatched</span> <span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">exc=
+luded</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">from</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">deployment</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">tracked</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">separately<=
+/span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">for</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">remediation.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">The</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">approved</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">migration</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">da=
+taset</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">contain</span> <span class=3D"___1cs5=
+bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x=
+">complete</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">set</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">of</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">validated</span> <span class=3D"___1cs5bdp f1w7gpdv f5=
+p0z4x">FHIR</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">R4</span> <s=
+pan class=3D"___1cs5bdp f1w7gpdv f5p0z4x">resources,</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">including</span> <span class=3D"___1cs5bdp f1w=
+7gpdv f5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">=
+Templates,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoints,</s=
+pan> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"=
+___1cs5bdp f1w7gpdv f5p0z4x">HealthcareServices.</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">This</span> <span class=3D"___1cs5bdp f1w7gpdv f5p=
+0z4x">dataset</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">be</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">promoted</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">to</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">PROD</span>=
+ <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">using</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">a</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">controlled</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">migratio=
+n</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">process</span> <span c=
+lass=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">loaded</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">=
+directly</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">into</span> <sp=
+an class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">production</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">Endpoint</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Catalog=
+ue</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">data</span> <span cla=
+ss=3D"___1cs5bdp f1w7gpdv f5p0z4x">store.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Following</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">deployment,</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">a</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">l=
+ightweight</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">verification<=
+/span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">exercise</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">will</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">be</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">perf=
+ormed</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">to</span> <span cl=
+ass=3D"___1cs5bdp f1w7gpdv f5p0z4x">confirm</span> <span class=3D"___1cs5bd=
+p f1w7gpdv f5p0z4x">record</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">counts,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">resource</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">relationships,</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp =
+f1w7gpdv f5p0z4x">successful</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0=
+z4x">data</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">loading.</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">This</span> <span class=3D"__=
+_1cs5bdp f1w7gpdv f5p0z4x">ensures</span> <span class=3D"___1cs5bdp f1w7gpd=
+v f5p0z4x">the</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">validated=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">INT</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">dataset</span> <span class=3D"___1cs5bdp f=
+1w7gpdv f5p0z4x">has</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">bee=
+n</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">accurately</span> <spa=
+n class=3D"___1cs5bdp f1w7gpdv f5p0z4x">promoted</span> <span class=3D"___1=
+cs5bdp f1w7gpdv f5p0z4x">to</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">PROD</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">without</span> =
+<span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">modification.</span></p>
+<p><span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">This</span> <span class=3D"_=
+__1cs5bdp f1w7gpdv f5p0z4x">approach</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">provides</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">a<=
+/span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">clear</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">separation</span> <span class=3D"___1cs5bd=
+p f1w7gpdv f5p0z4x">between</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z=
+4x">migration,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">validatio=
+n,</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span clas=
+s=3D"___1cs5bdp f1w7gpdv f5p0z4x">deployment</span> <span class=3D"___1cs5b=
+dp f1w7gpdv f5p0z4x">activities</span> <span class=3D"___1cs5bdp f1w7gpdv f=
+5p0z4x">while</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">minimising=
+</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">risk</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">and</span> <span class=3D"___1cs5bdp f1w7g=
+pdv f5p0z4x">ensuring</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">th=
+e</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Endpoint</span> <span =
+class=3D"___1cs5bdp f1w7gpdv f5p0z4x">Catalogue</span> <span class=3D"___1c=
+s5bdp f1w7gpdv f5p0z4x">is</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4=
+x">populated</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">only</span>=
+ <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">with</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">validated</span> <span class=3D"___1cs5bdp f1w7gp=
+dv f5p0z4x">FHIR</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">R4</spa=
+n> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">compliant</span> <span class=
+=3D"___1cs5bdp f1w7gpdv f5p0z4x">resources</span> <span class=3D"___1cs5bdp=
+ f1w7gpdv f5p0z4x">that</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">=
+accurately</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">reflect</span=
+> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">the</span> <span class=3D"___=
+1cs5bdp f1w7gpdv f5p0z4x">routing</span> <span class=3D"___1cs5bdp f1w7gpdv=
+ f5p0z4x">behaviour</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">defi=
+ned</span> <span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">within</span> <code>=
+<span class=3D"___1cs5bdp f1w7gpdv f5p0z4x">targets.json</span></code><span=
+ class=3D"___1cs5bdp f1w7gpdv f5p0z4x">.</span></p>
+    </div>
+</body>
+</html>
+------=_Part_116_395526746.1787158815668--
