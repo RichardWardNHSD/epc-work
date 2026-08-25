@@ -1,59 +1,64 @@
 # Endpoint Catalog API — OAS Review: Findings and Changes
 
-This document is both a record of the changes made to `endpoint-catalog-api.json` during review and a register of all outstanding findings against FHIR R4, UK Core R4 STU2, and general consistency. Each item explains the problem in plain language, shows before/after where a change was applied, and states whether it was fixed or is still pending.
+This document is both a record of the changes made to `endpoint-catalog-api.json` during review and a register of all outstanding findings against FHIR R4, UK Core R4 STU2, and general consistency. Each item explains the problem in plain language, shows before/after where a change was applied, and states its status.
 
 **Standards baseline:** HL7 FHIR R4 (4.0.1) and UK Core R4 STU2.
+
+**Status key:**
+- **Fixed** — change applied to the OAS.
+- **Pending** — identified, not yet actioned.
+- **Pending (team)** — needs a decision before it can be actioned.
 
 ---
 
 ## Summary
 
-| # | Issue | Status |
-|---|-------|--------|
-| 1 | `Period`/`Start`/`End` capitalisation wrong | Fixed |
-| 2 | `connectionType`/`payloadType` search params modelled as objects, not tokens; wrong system URL in connectionType schema | Fixed |
-| 3 | Custom `endpoint-payload-type-epc` system used instead of standard | Fixed |
-| 4 | Schema named `OperationalOutcome` instead of `OperationOutcome` | Pending (team) |
-| 5 | HealthcareService identifier systems use `http://` instead of `https://` | Fixed |
-| 6 | `product-id` system uses lowercase `/id/` instead of `/Id/` | Fixed |
-| 7 | Search param names disagree (`ConnectionType` vs `connection-type`) | Fixed |
-| 8 | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names | Pending |
-| 9 | `providedBy` param vs CapabilityStatement's `organization` | Fixed (with follow-up correction: `organization` restored to `reference`) |
-| 10 | `Accept` header example has trailing semicolon | Fixed |
-| 11 | Stale version numbers and publisher in Capability schema | Fixed |
-| 12 | Capability schema `format` example says `xml`, API serves `json` | Fixed |
-| 13 | `managingOrganization` modelled as array, FHIR says `0..1` single reference | Fixed |
-| 14 | `Endpoint.header` misused as visibility flag | Fixed (schema/examples aligned to FHIR; visibility moved out of descriptions) |
-| 15 | `connectionType` modelled as CodeableConcept, FHIR says it's a Coding | Fixed |
-| 16 | Request body media type carried BaRS version parameter | Fixed |
-| 17 | PUT operations for HealthcareService, Endpoint, and EndpointTemplate missing `requestBody` | Fixed |
-| 18 | `HealthcareService.type` absent despite being UK Core MustSupport | Pending |
-| 19 | `HealthcareService.providedBy` modelled as array, FHIR/UK Core say `0..1` | Fixed |
-| 20 | Create interactions return `200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified` | Pending |
-| 21 | `$template` routes do not follow FHIR operation invocation rules | Pending |
-| 22 | `Identifier.display` used, which is not a valid FHIR Identifier element | Fixed |
-| 23 | Resource schemas require server-assigned `id` but not the mandatory R4 elements; `resourceType` not enum-locked | Pending |
-| 24 | CapabilityStatement does not advertise supported profiles, `updateCreate`, or `$template` operations | Pending |
-| 25 | `EPC-EndpointList` List profile conformance cannot be verified (profile not supplied) | Pending |
-| 26 | `OperationOutcome` schema does not enforce base/profile constraints (beyond the naming issue in #4) | Pending |
-| 27 | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed | Pending |
-| 28 | Create examples include server-managed fields (`id`, `meta.lastUpdated`) | Pending |
-| 29 | `CapabilityStatement.updateCreate` not declared despite update-as-create behaviour | Pending |
-| 30 | `Accept` header marked required; FHIR treats it as optional | Pending |
-| 31 | Logical ids / path params constrained to UUID only; FHIR `id` is broader | Pending |
-| 32 | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations) | Pending |
+| #   | Issue                                                                                                                   | Status                                                                        |
+| -----| -------------------------------------------------------------------------------------------------------------------------| -------------------------------------------------------------------------------|
+| 1   | `Period`/`Start`/`End` capitalisation wrong                                                                             | Fixed                                                                         |
+| 2   | `connectionType`/`payloadType` search params modelled as objects, not tokens; wrong system URL in connectionType schema | Fixed                                                                         |
+| 3   | Custom `endpoint-payload-type-epc` system used instead of standard                                                      | Fixed                                                                         |
+| 4   | Schema named `OperationalOutcome` instead of `OperationOutcome`                                                         | Pending (team)                                                                |
+| 5   | HealthcareService identifier systems use `http://` instead of `https://`                                                | Fixed                                                                         |
+| 6   | `product-id` system uses lowercase `/id/` instead of `/Id/`                                                             | Fixed                                                                         |
+| 7   | Search param names disagree (`ConnectionType` vs `connection-type`)                                                     | Fixed                                                                         |
+| 8   | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names                     | Pending                                                                       |
+| 9   | `providedBy` param vs CapabilityStatement's `organization`                                                              | Fixed (with follow-up correction: `organization` restored to `reference`)     |
+| 10  | `Accept` header example has trailing semicolon                                                                          | Fixed                                                                         |
+| 11  | Stale version numbers and publisher in Capability schema                                                                | Fixed                                                                         |
+| 12  | Capability schema `format` example says `xml`, API serves `json`                                                        | Fixed                                                                         |
+| 13  | `managingOrganization` modelled as array, FHIR says `0..1` single reference                                             | Fixed                                                                         |
+| 14  | `Endpoint.header` misused as visibility flag                                                                            | Fixed (schema/examples aligned to FHIR; visibility moved out of descriptions) |
+| 15  | `connectionType` modelled as CodeableConcept, FHIR says it's a Coding                                                   | Fixed                                                                         |
+| 16  | Request body media type carried BaRS version parameter                                                                  | Fixed                                                                         |
+| 17  | PUT operations for HealthcareService, Endpoint, and EndpointTemplate missing `requestBody`                              | Fixed                                                                         |
+| 18  | `HealthcareService.type` absent despite being UK Core MustSupport                                                       | Pending (team)                                                                |
+| 19  | `HealthcareService.providedBy` modelled as array, FHIR/UK Core say `0..1`                                               | Fixed                                                                         |
+| 20  | Create interactions return `200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified`                   | Pending                                                                       |
+| 21  | `$template` routes do not follow FHIR operation invocation rules                                                        | Pending (team)                                                                |
+| 22  | `Identifier.display` used, which is not a valid FHIR Identifier element                                                 | Fixed                                                                         |
+| 23  | Resource schemas require server-assigned `id` but not the mandatory R4 elements; `resourceType` not enum-locked         | Pending                                                                       |
+| 24  | CapabilityStatement does not advertise supported profiles, `updateCreate`, or `$template` operations                    | Pending                                                                       |
+| 25  | `EPC-EndpointList` List profile conformance cannot be verified (profile not supplied)                                   | Pending                                                                       |
+| 26  | `OperationOutcome` schema does not enforce base/profile constraints (beyond the naming issue in #4)                     | Pending                                                                       |
+| 27  | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Pending (team)                                                                |
+| 28  | Create examples include server-managed fields (`id`, `meta.lastUpdated`)                                                | Pending                                                                       |
+| 29  | `CapabilityStatement.updateCreate` not declared despite update-as-create behaviour                                      | Pending                                                                       |
+| 30  | `Accept` header marked required; FHIR treats it as optional                                                             | Pending                                                                       |
+| 31  | Logical ids / path params constrained to UUID only; FHIR `id` is broader                                                | Pending                                                                       |
+| 32  | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Pending                                                                       |
 
-> **Note:** Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments. All were identified but not actioned during the change session.
-
-> **Correction on #9 (now applied):** A follow-up review comment identified that the original #9 fix set the CapabilityStatement `organization` search parameter to `type: token`, which is incorrect — in FHIR R4 `organization` is a `reference` parameter over `HealthcareService.providedBy`. Chaining `organization.identifier={system}|{value}` uses a token value for the final part of the chain, but does not change the base parameter's type. **This has now been corrected in the OAS: `organization` is set back to `reference`.** The query parameter `organization.identifier` is retained as documented reference chaining. See the correction note under #9 for detail.
+> **Provenance:** Items #1–#18 arose during the interactive review session. Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments.
 
 ---
 
-## Fixed Issues — Detail
+## Findings — Detail (numeric order)
 
 ---
 
 ### #1 — `Period`/`Start`/`End` capitalisation
+
+**Status: Fixed**
 
 **Problem**
 
@@ -80,6 +85,8 @@ FHIR is case-sensitive. The element is `period` with sub-fields `start` and `end
 ---
 
 ### #2 — connectionType/payloadType search params and wrong system URL
+
+**Status: Fixed**
 
 **Problem (two parts)**
 
@@ -133,9 +140,13 @@ Part B: Inside the Endpoint/EndpointTemplate/EndpointBundle schema definitions, 
 
 **Scope:** 2 parameter definitions restructured, 2 token schemas added, 2 orphaned object schemas removed, 3 schema system examples corrected.
 
+> Note: the param `name` values (`ConnectionType`/`PayloadType`) were later renamed to kebab-case under #7.
+
 ---
 
 ### #3 — Custom `-epc` payload type system removed
+
+**Status: Fixed**
 
 **Problem**
 
@@ -155,7 +166,29 @@ Examples used `http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc` 
 
 ---
 
+### #4 — Schema named `OperationalOutcome`
+
+**Status: Pending (team)**
+
+**Problem**
+
+The schema component is named `OperationalOutcome`. The FHIR resource is `OperationOutcome`. The `resourceType` value inside is correctly `"OperationOutcome"` — it's just the schema key that's off. This may be a typo or a deliberate NHS convention.
+
+**Finding from NHS e-RS API:**
+
+The NHSDigital e-Referral Service API (the closest comparable NHS FHIR API) names its R4 OperationOutcome schema `NHSDigital-OperationOutcome` — prefixed, but still uses `OperationOutcome` not `OperationalOutcome`. Neither the FHIR standard nor the NHS pattern uses `OperationalOutcome`.
+
+**Options:**
+- `OperationOutcome` — plain FHIR name, simplest.
+- `NHSDigital-OperationOutcome` — aligns with e-RS naming convention.
+
+**Decision needed:** Team to confirm which naming convention to follow.
+
+---
+
 ### #5 — HealthcareService identifier systems: `http://` vs `https://`
+
+**Status: Fixed**
 
 **Problem**
 
@@ -177,6 +210,8 @@ FHIR treats the `system` URI as an opaque string. `http://fhir.nhs.uk/Id/dos-ser
 
 ### #6 — `product-id` system uses lowercase `/id/`
 
+**Status: Fixed**
+
 **Problem**
 
 The NHS canonical form for identifier systems is `https://fhir.nhs.uk/Id/...` (capital `Id`). The `product-id` entries uniquely used lowercase `/id/`. Since URIs are opaque strings, `/id/product-id` and `/Id/product-id` are different systems — causing silent search failures.
@@ -195,7 +230,55 @@ The NHS canonical form for identifier systems is `https://fhir.nhs.uk/Id/...` (c
 
 ---
 
+### #7 — Search param names disagree
+
+**Status: Fixed**
+
+**Problem**
+
+The same search parameters were named differently depending on where you looked in the spec:
+
+| Source | Name used (before) |
+|--------|--------------------|
+| Query parameter definition (`name` field) | `ConnectionType`, `PayloadType` |
+| CapabilityStatement `searchParam` | `connection-type`, `payload-type` |
+| `GET /Endpoint` description table | `connection-type`, `payload-type` |
+
+FHIR search parameters use lowercase kebab-case (`connection-type`, `payload-type`). A client reading the CapabilityStatement sends `?connection-type=...`, but a client generated from the OpenAPI parameter would send `?ConnectionType=...`. On a case-sensitive server, one of them silently fails.
+
+**Before**
+```json
+"ConnectionType_QParam": { "name": "ConnectionType", ... }
+"PayloadType_QParam":    { "name": "PayloadType", ... }
+```
+
+**After**
+```json
+"ConnectionType_QParam": { "name": "connection-type", ... }
+"PayloadType_QParam":    { "name": "payload-type", ... }
+```
+
+The two query-parameter `name` fields now match the CapabilityStatement and the `GET /Endpoint` description table. The internal component keys (`ConnectionType_QParam`, `PayloadType_QParam`) and their `$ref`s are unchanged — they never appear on the wire.
+
+**Note:** The `identifier` parameter naming (#8) is a separate, still-pending item.
+
+---
+
+### #8 — Identifier param names use element paths
+
+**Status: Pending**
+
+**Problem**
+
+The `identifier` query parameters are named `Endpoint.identifier` and `HealthcareService.identifier` (element paths), but the CapabilityStatement advertises them as plain `identifier`. FHIR's search parameter for a resource's own business identifier is `identifier` — the dotted form is element-path syntax, not a search-parameter name, and won't match on the wire.
+
+**Recommended fix:** Change both to `"name": "identifier"`.
+
+---
+
 ### #9 — `providedBy` param vs CapabilityStatement's `organization`
+
+**Status: Fixed** (with follow-up correction: `organization` restored to `reference`)
 
 **Problem**
 
@@ -216,37 +299,31 @@ The query parameter for filtering HealthcareServices by managing organisation wa
 { "name": "organization", "type": "reference" }
 ```
 
-**After**
+**After (initial fix — later corrected)**
 ```json
 "HCProvidedBy_QParam": {
   "name": "organization.identifier",
   "description": "Filter by the ODS code of the managing organisation (maps to HealthcareService.providedBy). Pass as a token in system|value form..."
 }
 ```
+
+**Correction (from later review — now applied):** Changing the CapabilityStatement `organization` parameter to `type: token` was **incorrect**. In FHIR R4, `organization` is a **`reference`** search parameter over `HealthcareService.providedBy`. A chained query `organization.identifier={system}|{value}` uses a token value only for the final `identifier` segment of the chain — this does not change the underlying `organization` parameter type.
+
+**Final applied state:**
 ```json
 // CapabilityStatement
-{ "name": "organization", "type": "token" }
+{ "name": "organization", "type": "reference" }
 ```
-
-> **Correction (from later review — now applied):** Changing the CapabilityStatement `organization` parameter to `type: token` was **incorrect**. In FHIR R4, `organization` is a **`reference`** search parameter over `HealthcareService.providedBy`. A chained query `organization.identifier={system}|{value}` uses a token value only for the final `identifier` segment of the chain — this does not change the underlying `organization` parameter type. The CapabilityStatement has been restored to:
-> ```json
-> { "name": "organization", "type": "reference" }
-> ```
-> The query parameter `organization.identifier` is retained as documented reference chaining.
->
-> **Final applied state:**
-> ```json
-> // CapabilityStatement
-> { "name": "organization", "type": "reference" }
-> ```
-> ```json
-> // Query parameter (reference chaining by ODS code)
-> "HCProvidedBy_QParam": { "name": "organization.identifier", "schema": { "$ref": "#/components/schemas/ODS" } }
-> ```
+```json
+// Query parameter (reference chaining by ODS code)
+"HCProvidedBy_QParam": { "name": "organization.identifier", "schema": { "$ref": "#/components/schemas/ODS" } }
+```
 
 ---
 
 ### #10 — `Accept` header example trailing semicolon
+
+**Status: Fixed**
 
 **Problem**
 
@@ -262,9 +339,13 @@ The `AcceptEPC_HParam` example was `application/fhir+json;` with a dangling semi
 "example": "application/fhir+json"
 ```
 
+> Related: the `Accept` header is also incorrectly marked `required` — see #30.
+
 ---
 
 ### #11 — Stale version numbers and publisher in `Capability` schema
+
+**Status: Fixed**
 
 **Problem**
 
@@ -292,6 +373,8 @@ All version fields across the spec (`info.version`, `/metadata` example, `Capabi
 
 ### #12 — Capability schema `format` example
 
+**Status: Fixed**
+
 **Problem**
 
 The `Capability` schema's `format` array example was `"xml"`, but the API only serves JSON and the `/metadata` example advertises `["json"]`.
@@ -309,6 +392,8 @@ The `Capability` schema's `format` array example was `"xml"`, but the API only s
 ---
 
 ### #13 — `managingOrganization` modelled as array
+
+**Status: Fixed**
 
 **Problem**
 
@@ -360,6 +445,8 @@ FHIR R4 defines `Endpoint.managingOrganization` as `Reference(Organization) [0..
 
 ### #14 — `Endpoint.header` misused as visibility flag
 
+**Status: Fixed** (schema/examples aligned to FHIR; visibility moved out of descriptions)
+
 **Problem**
 
 The spec used `Endpoint.header` as a `public`/`private` flag controlling whether the `address` field is visible to non-owners. This is not what `header` means in FHIR R4.
@@ -402,13 +489,15 @@ Setting `header: "public"` would mean a client should send `public` as a request
 **After — descriptions**
 > "The Endpoint.address is omitted for non-owning organisations. Ownership is determined by matching NHSD-End-User-Organisation-ODS against managingOrganization."
 
-The address-visibility mechanism itself is being handled separately — the descriptions now state the behaviour without attributing it to a specific resource field.
+The address-visibility mechanism itself is being handled separately (see #27) — the descriptions now state the behaviour without attributing it to a specific resource field.
 
 A detailed note was also added to `endpoint-header.md` explaining the misuse and FHIR's true intent.
 
 ---
 
 ### #15 — `connectionType` modelled as CodeableConcept instead of Coding
+
+**Status: Fixed**
 
 **Problem**
 
@@ -478,6 +567,8 @@ In FHIR R4, `Endpoint.connectionType` is a `Coding (1..1)` — a flat object wit
 
 ### #16 — Request body media type carried BaRS version parameter
 
+**Status: Fixed**
+
 **Problem**
 
 The request body `content` keys used `application/fhir+json;version=1.4.0` — a version parameter carried over from the BaRS API. This API is new (`1.0.0-alpha`) and doesn't version its media types. Response content types already used plain `application/fhir+json`. The inconsistency between request and response media types would confuse implementers and could trip up code generators.
@@ -501,6 +592,8 @@ The request body `content` keys used `application/fhir+json;version=1.4.0` — a
 ---
 
 ### #17 — PUT operations missing `requestBody`
+
+**Status: Fixed**
 
 **Problem**
 
@@ -541,71 +634,9 @@ The corresponding POST operations all had their request bodies correctly referen
 
 ---
 
-## Pending Issues — Detail
+### #18 — `HealthcareService.type` absent
 
----
-
-### #4 — Schema named `OperationalOutcome` (Pending — team decision)
-
-**Problem**
-
-The schema component is named `OperationalOutcome`. The FHIR resource is `OperationOutcome`. The `resourceType` value inside is correctly `"OperationOutcome"` — it's just the schema key that's off. This may be a typo or a deliberate NHS convention.
-
-**Finding from NHS e-RS API:**
-
-The NHSDigital e-Referral Service API (the closest comparable NHS FHIR API) names its R4 OperationOutcome schema `NHSDigital-OperationOutcome` — prefixed, but still uses `OperationOutcome` not `OperationalOutcome`. Neither the FHIR standard nor the NHS pattern uses `OperationalOutcome`.
-
-**Options:**
-- `OperationOutcome` — plain FHIR name, simplest.
-- `NHSDigital-OperationOutcome` — aligns with e-RS naming convention.
-
-**Decision needed:** Team to confirm which naming convention to follow.
-
----
-
-### #7 — Search param names disagree (Fixed)
-
-**Problem**
-
-The same search parameters were named differently depending on where you looked in the spec:
-
-| Source | Name used (before) |
-|--------|--------------------|
-| Query parameter definition (`name` field) | `ConnectionType`, `PayloadType` |
-| CapabilityStatement `searchParam` | `connection-type`, `payload-type` |
-| `GET /Endpoint` description table | `connection-type`, `payload-type` |
-
-FHIR search parameters use lowercase kebab-case (`connection-type`, `payload-type`). A client reading the CapabilityStatement sends `?connection-type=...`, but a client generated from the OpenAPI parameter would send `?ConnectionType=...`. On a case-sensitive server, one of them silently fails.
-
-**Before**
-```json
-"ConnectionType_QParam": { "name": "ConnectionType", ... }
-"PayloadType_QParam":    { "name": "PayloadType", ... }
-```
-
-**After**
-```json
-"ConnectionType_QParam": { "name": "connection-type", ... }
-"PayloadType_QParam":    { "name": "payload-type", ... }
-```
-
-The two query-parameter `name` fields now match the CapabilityStatement and the `GET /Endpoint` description table. The internal component keys (`ConnectionType_QParam`, `PayloadType_QParam`) and their `$ref`s are unchanged — they never appear on the wire.
-
-**Note:** The `identifier` parameter naming (#8) is a separate, still-pending item.
-
----
-
-### #8 — Identifier param names use element paths (Pending)
-
-**Problem**
-
-The `identifier` query parameters are named `Endpoint.identifier` and `HealthcareService.identifier` (element paths), but the CapabilityStatement advertises them as plain `identifier`. FHIR's search parameter for a resource's own business identifier is `identifier` — the dotted form is element-path syntax, not a search-parameter name, and won't match on the wire.
-
-**Recommended fix:** Change both to `"name": "identifier"`.
-
----
-
-### #18 — `HealthcareService.type` absent (Pending)
+**Status: Pending (team)**
 
 **Problem**
 
@@ -619,7 +650,9 @@ UK Core marks `HealthcareService.type` as MustSupport, meaning a conformant impl
 
 ---
 
-### #19 — `HealthcareService.providedBy` modelled as array (Fixed)
+### #19 — `HealthcareService.providedBy` modelled as array
+
+**Status: Fixed**
 
 **Problem**
 
@@ -661,12 +694,14 @@ FHIR R4 and the `UKCore-HealthcareService` profile define `providedBy` as `Refer
 **Scope:** 2 schema definitions (`HealthcareService`, `HealthcareServiceBundle` nested resource) + 5 example blocks.
 
 **Related items:**
-- The non-FHIR `display` inside `providedBy`'s identifier has since been removed under #22 (now Fixed).
+- The non-FHIR `display` inside `providedBy`'s identifier has since been removed under #22 (Fixed).
 - Documenting that the target Organization should conform to `UKCore-Organization` — a CapabilityStatement/profile item (see #24), still pending.
 
 ---
 
-### #20 — Create interactions return `200` instead of `201 Created` (Pending)
+### #20 — Create interactions return `200` instead of `201 Created`
+
+**Status: Pending**
 
 **Problem**
 
@@ -695,11 +730,13 @@ A successful FHIR create must return `201 Created`, along with a `Location` head
 ```
 …where the `201` response also declares a `Location` header (and `ETag` / `Last-Modified` when versioning is supported).
 
-**Recommended fix:** Change create success responses to `201`, add the `Location` header to every create response, and keep body behaviour consistent with the FHIR `Prefer` header rules.
+**Recommended fix:** Change create success responses to `201`, add the `Location` header to every create response, and keep body behaviour consistent with the FHIR `Prefer` header rules. Response-header detail is tracked in #18 of the original comments (see also the header note under #27/#29).
 
 ---
 
-### #21 — `$template` routes do not follow FHIR operation rules (Pending)
+### #21 — `$template` routes do not follow FHIR operation rules
+
+**Status: Pending (team)**
 
 **Problem**
 
@@ -713,7 +750,9 @@ A `$`-prefixed path under a FHIR base URL is a FHIR *operation*. FHIR R4 operati
 
 ---
 
-### #22 — `Identifier.display` is not a valid FHIR element (Fixed)
+### #22 — `Identifier.display` is not a valid FHIR element
+
+**Status: Fixed**
 
 **Problem**
 
@@ -748,7 +787,9 @@ The `display` key was removed from every `Identifier` — 12 occurrences (5 exam
 
 ---
 
-### #23 — Resource schemas conflict with FHIR required fields and create semantics (Pending)
+### #23 — Resource schemas conflict with FHIR required fields and create semantics
+
+**Status: Pending**
 
 **Problem**
 
@@ -762,7 +803,9 @@ The reusable `Endpoint` schema requires `id`, but a FHIR create request may omit
 
 ---
 
-### #24 — CapabilityStatement does not advertise supported profiles (Pending)
+### #24 — CapabilityStatement does not advertise supported profiles
+
+**Status: Pending**
 
 **Problem**
 
@@ -770,13 +813,15 @@ The embedded `/metadata` CapabilityStatement lists resource types, interactions,
 
 **Recommended fix:**
 - Declare `profile` / `supportedProfile` canonical URLs per resource (e.g. `UKCore-HealthcareService`, the EPC List profile).
-- Set `updateCreate: true` wherever PUT may create a missing resource.
-- Advertise each custom operation with its `OperationDefinition` canonical.
-- Keep the CapabilityStatement synchronised with the OAS and the deployed implementation.
+- Set `updateCreate: true` wherever PUT may create a missing resource (see #29).
+- Advertise each custom operation with its `OperationDefinition` canonical (see #21).
+- Keep the CapabilityStatement synchronised with the OAS and the deployed implementation (see #32).
 
 ---
 
-### #25 — `EPC-EndpointList` List profile conformance unverifiable (Pending)
+### #25 — `EPC-EndpointList` List profile conformance unverifiable
+
+**Status: Pending**
 
 **Problem**
 
@@ -786,7 +831,9 @@ The List examples claim conformance to `https://fhir.nhs.uk/StructureDefinition/
 
 ---
 
-### #26 — `OperationOutcome` schema does not enforce constraints (Pending)
+### #26 — `OperationOutcome` schema does not enforce constraints
+
+**Status: Pending**
 
 **Problem**
 
@@ -796,7 +843,9 @@ Separate from the naming issue in #4, the `OperationOutcome` schema does not enf
 
 ---
 
-### #27 — `Endpoint.address` redaction produces an incomplete FHIR resource (Pending)
+### #27 — `Endpoint.address` redaction produces an incomplete FHIR resource
+
+**Status: Pending (team)**
 
 **Problem**
 
@@ -812,7 +861,9 @@ There is also a possible **business-rule regression**: the current wording hides
 
 ---
 
-### #28 — Create examples include server-managed fields (Pending)
+### #28 — Create examples include server-managed fields
+
+**Status: Pending**
 
 **Problem**
 
@@ -822,7 +873,9 @@ Endpoint and HealthcareService create examples include fields the server manages
 
 ---
 
-### #29 — `CapabilityStatement.updateCreate` not declared (Pending)
+### #29 — `CapabilityStatement.updateCreate` not declared
+
+**Status: Pending**
 
 **Problem**
 
@@ -834,7 +887,9 @@ The PUT operation descriptions state that an update may create an initial resour
 
 ---
 
-### #30 — `Accept` header marked required (Pending)
+### #30 — `Accept` header marked required
+
+**Status: Pending**
 
 **Problem**
 
@@ -864,7 +919,9 @@ The reusable `Accept` header parameter is marked `required: true`. In FHIR, `Acc
 
 ---
 
-### #31 — Logical ids constrained to UUID only (Pending)
+### #31 — Logical ids constrained to UUID only
+
+**Status: Pending**
 
 **Problem**
 
@@ -876,7 +933,9 @@ The OAS constrains resource logical ids and path parameters with `format: uuid`.
 
 ---
 
-### #32 — CapabilityStatement and OAS not kept in sync (Pending)
+### #32 — CapabilityStatement and OAS not kept in sync
+
+**Status: Pending**
 
 **Problem**
 
@@ -893,7 +952,7 @@ For the larger conformance effort (beyond the fixes already applied), the sugges
 1. Select and pin the exact FHIR and UK Core package versions.
 2. Publish or supply all EPC profiles, extensions, search parameters, operations, and terminology dependencies.
 3. Replace hand-written resource schemas with schemas derived from profile snapshots, or maintain profile-aligned create/update/response schemas.
-4. Correct remaining cardinalities (`providedBy`) and remove non-FHIR properties (`Identifier.display`).
+4. Correct remaining cardinalities and remove non-FHIR properties (both now done for `managingOrganization`, `providedBy`, and `Identifier.display`).
 5. Correct create/update HTTP interactions and response headers (`201`, `Location`).
 6. Normalise all search parameter names and synchronise them with the CapabilityStatement.
 7. Redesign or relocate the `$template` operations.
@@ -925,6 +984,6 @@ java -jar validator_cli.jar example.json \
 
 ## Process Notes
 
-- After multiple targeted text edits, a full JSON reformat (2-space indent) was applied to eliminate indentation inconsistencies introduced by structural changes (de-arraying `managingOrganization`, converting `connectionType` to Coding). The file is semantically identical but the diff from the original is whole-file.
+- After multiple targeted text edits, a full JSON reformat (2-space indent) was applied to eliminate indentation inconsistencies introduced by structural changes (de-arraying `managingOrganization` and `providedBy`, converting `connectionType` to Coding). The file is semantically identical but the diff from the original is whole-file.
 - A detailed note about the `Endpoint.header` misuse was separately added to `epc-work/Documents/endpoint-header.md`.
 - The `info.version` and all version references were standardised to `1.0.0-alpha` reflecting this is the first release of the API, in pre-release state.
