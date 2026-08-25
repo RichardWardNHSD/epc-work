@@ -194,7 +194,7 @@
                             },
                             {
                               "name": "organization",
-                              "type": "token"
+                              "type": "reference"
                             }
                           ]
                         },
@@ -1152,7 +1152,7 @@
         }
       },
       "ConnectionType_QParam": {
-        "name": "ConnectionType",
+        "name": "connection-type",
         "description": "Filter by the technical protocol supported by the Endpoint. Matches against Endpoint.connectionType.code (a Coding in FHIR R4).\n\nPass as a token in `system|value` form and URL-encode it as it is part of the query string.\n\n**Example (before encoding):**\n`http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest`\n",
         "in": "query",
         "required": false,
@@ -1162,7 +1162,7 @@
         }
       },
       "PayloadType_QParam": {
-        "name": "PayloadType",
+        "name": "payload-type",
         "description": "Filter by the message standard or payload type supported by the Endpoint. Matches against Endpoint.payloadType.coding.\n\nPass as a token in `system|value` form and URL-encode it as it is part of the query string.\n\n**Example (before encoding):**\n`http://terminology.hl7.org/CodeSystem/endpoint-payload-type|bars`\n",
         "in": "query",
         "required": false,
