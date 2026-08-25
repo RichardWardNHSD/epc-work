@@ -22,7 +22,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 5   | HealthcareService identifier systems use `http://` instead of `https://`                                                | Fixed                                                                         |
 | 6   | `product-id` system uses lowercase `/id/` instead of `/Id/`                                                             | Fixed                                                                         |
 | 7   | Search param names disagree (`ConnectionType` vs `connection-type`)                                                     | Fixed                                                                         |
-| 8   | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names                     | Pending                                                                       |
+| 8   | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names                     | Fixed                                                                         |
 | 9   | `providedBy` param vs CapabilityStatement's `organization`                                                              | Fixed (with follow-up correction: `organization` restored to `reference`)     |
 | 10  | `Accept` header example has trailing semicolon                                                                          | Fixed                                                                         |
 | 11  | Stale version numbers and publisher in Capability schema                                                                | Fixed                                                                         |
@@ -266,13 +266,27 @@ The two query-parameter `name` fields now match the CapabilityStatement and the 
 
 ### #8 — Identifier param names use element paths
 
-**Status: Pending**
+**Status: Fixed**
 
 **Problem**
 
-The `identifier` query parameters are named `Endpoint.identifier` and `HealthcareService.identifier` (element paths), but the CapabilityStatement advertises them as plain `identifier`. FHIR's search parameter for a resource's own business identifier is `identifier` — the dotted form is element-path syntax, not a search-parameter name, and won't match on the wire.
+The `identifier` query parameters were named `Endpoint.identifier` and `HealthcareService.identifier` (element paths), but the CapabilityStatement advertises them as plain `identifier`. FHIR's search parameter for a resource's own business identifier is `identifier` — the dotted form is element-path syntax, not a search-parameter name, and would not match on the wire.
 
-**Recommended fix:** Change both to `"name": "identifier"`.
+**Before**
+```json
+"HealthcareServiceIdentifier_QParam": { "name": "HealthcareService.identifier", ... }
+"EndpointIdentifier_QParam":          { "name": "Endpoint.identifier", ... }
+```
+
+**After**
+```json
+"HealthcareServiceIdentifier_QParam": { "name": "identifier", ... }
+"EndpointIdentifier_QParam":          { "name": "identifier", ... }
+```
+
+Both query parameters now use the plain FHIR search-parameter name `identifier`, matching the CapabilityStatement. The component keys and `$ref`s are unchanged (off-wire), as are the descriptions and `schema` refs (`Service` / `EndpointIdentifier`). `GET /HealthcareService` and `GET /Endpoint` each expose `?identifier=...` — no collision, as they are separate operations with their own schemas.
+
+**Effect on #32:** This closes the `identifier` half of the search-parameter drift between the OAS and the CapabilityStatement. The CapabilityStatement side already had the correct names, so no CapabilityStatement edit was needed.
 
 ---
 

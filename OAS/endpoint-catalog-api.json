@@ -1169,7 +1169,7 @@
         }
       },
       "HealthcareServiceIdentifier_QParam": {
-        "name": "HealthcareService.identifier",
+        "name": "identifier",
         "description": "The identifier of the HealthcareService.\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
         "in": "query",
         "required": false,
@@ -1199,7 +1199,7 @@
         }
       },
       "EndpointIdentifier_QParam": {
-        "name": "Endpoint.identifier",
+        "name": "identifier",
         "description": "The identifier of the *type* of Endpoint, usually the identifier set by the organisation/supplier that created the Endpoint. \nIt is important to note that this is **not** the same as **Endpoint.id**, which is the unique identifier for the Endpoint resource. The Endpoint.identifier can be shared across multiple Endpoint resources.\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
         "in": "query",
         "required": false,
