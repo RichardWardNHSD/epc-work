@@ -1,5 +1,52 @@
 # Endpoint Header Attribute
 
+> ## ⚠️ Important: `header` has been misused by the requirements
+>
+> The requirements described in this document repurpose `Endpoint.header` as an
+> address-visibility control that takes the values `public` or `private`. **This is not
+> what `header` means in FHIR R4, and this usage is non-conformant.**
+>
+> **True FHIR R4 meaning of `Endpoint.header`**
+> ([FHIR R4 Endpoint](https://hl7.org/fhir/R4/endpoint.html)):
+>
+> | Aspect | FHIR R4 definition | How this document uses it |
+> |--------|--------------------|---------------------------|
+> | Type | `string` | `string` |
+> | Cardinality | `0..*` (a **list** of strings) | Single value |
+> | Purpose | Connection headers a client must send when contacting the endpoint's `address` (e.g. HTTP headers like `Authorization` or `Content-Type`) | A privacy/visibility flag for the `address` field |
+> | Valid values | Any header string, e.g. `"Authorization: Bearer <token>"`, `"Content-Type: application/fhir+json"` | `"public"` / `"private"` |
+>
+> In FHIR, `header` carries the *additional headers to include as part of the request* when
+> a system connects to the endpoint. It is a transport/connection detail, **not** an access
+> or visibility control. A conformant example looks like:
+>
+> ```json
+> "header": [
+>   "Content-Type: application/fhir+json",
+>   "Authorization: Bearer <token>"
+> ]
+> ```
+>
+> **Implications of the misuse**
+>
+> - Instances that set `header: "public"` / `"private"` still *validate* (any string is legal),
+>   but they carry a meaning no FHIR consumer will understand. A standard client reads `header`
+>   as headers to send on the wire — it would attempt to send `public` / `private` as a request
+>   header, which is meaningless.
+> - The value is single, but FHIR `header` is `0..*`; tooling generated from the FHIR
+>   `StructureDefinition` will type it as a list/array, not a scalar.
+> - Address visibility is an authorisation concern. It should be enforced by the API layer
+>   (owner check via `NHSD-End-User-Organisation-ODS` vs `managingOrganization`) and, if it
+>   must be modelled on the resource, expressed through a **FHIR extension** or a profiled
+>   element — not by overloading a core element with a non-standard meaning.
+>
+> **Recommendation:** rename this concept to something that reflects its purpose (e.g. an
+> `address-visibility` extension or a dedicated field), and reserve `header` for its FHIR
+> R4 meaning. The behaviour described below reflects the *current (non-conformant)*
+> requirements and is retained for reference until that decision is made.
+
+---
+
 ## Overview
 
 The `header` field on an `Endpoint` or `Template` controls the visibility of the `address`
