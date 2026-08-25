@@ -18,7 +18,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 6 | `product-id` system uses lowercase `/id/` instead of `/Id/` | Fixed |
 | 7 | Search param names disagree (`ConnectionType` vs `connection-type`) | Pending |
 | 8 | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names | Pending |
-| 9 | `providedBy` param vs CapabilityStatement's `organization` | Fixed — but see correction below (the `token` type applied is disputed) |
+| 9 | `providedBy` param vs CapabilityStatement's `organization` | Fixed (with follow-up correction: `organization` restored to `reference`) |
 | 10 | `Accept` header example has trailing semicolon | Fixed |
 | 11 | Stale version numbers and publisher in Capability schema | Fixed |
 | 12 | Capability schema `format` example says `xml`, API serves `json` | Fixed |
@@ -45,7 +45,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 
 > **Note:** Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments. All were identified but not actioned during the change session.
 
-> **Correction on #9:** A follow-up review comment disputes the fix applied for #9. Setting the CapabilityStatement `organization` search parameter to `type: token` is incorrect — in FHIR R4 `organization` is a `reference` parameter over `HealthcareService.providedBy`. Chaining `organization.identifier={system}|{value}` uses a token value for the final part of the chain, but does not change the base parameter's type. The OAS currently still has `token` (left unchanged per instruction). See the correction note under #9 for the recommended state.
+> **Correction on #9 (now applied):** A follow-up review comment identified that the original #9 fix set the CapabilityStatement `organization` search parameter to `type: token`, which is incorrect — in FHIR R4 `organization` is a `reference` parameter over `HealthcareService.providedBy`. Chaining `organization.identifier={system}|{value}` uses a token value for the final part of the chain, but does not change the base parameter's type. **This has now been corrected in the OAS: `organization` is set back to `reference`.** The query parameter `organization.identifier` is retained as documented reference chaining. See the correction note under #9 for detail.
 
 ---
 
@@ -228,11 +228,21 @@ The query parameter for filtering HealthcareServices by managing organisation wa
 { "name": "organization", "type": "token" }
 ```
 
-> **Correction (from later review):** Changing the CapabilityStatement `organization` parameter to `type: token` was **incorrect**. In FHIR R4, `organization` is a **`reference`** search parameter over `HealthcareService.providedBy`. A chained query `organization.identifier={system}|{value}` uses a token value only for the final `identifier` segment of the chain — this does not change the underlying `organization` parameter type. The CapabilityStatement should be restored to:
+> **Correction (from later review — now applied):** Changing the CapabilityStatement `organization` parameter to `type: token` was **incorrect**. In FHIR R4, `organization` is a **`reference`** search parameter over `HealthcareService.providedBy`. A chained query `organization.identifier={system}|{value}` uses a token value only for the final `identifier` segment of the chain — this does not change the underlying `organization` parameter type. The CapabilityStatement has been restored to:
 > ```json
 > { "name": "organization", "type": "reference" }
 > ```
-> Support for `organization.identifier` can then be documented as reference chaining. The renamed query parameter (`organization.identifier`) can remain, provided the CapabilityStatement advertises `organization` as a reference. **This has not been changed in the OAS — the spec still shows `token`.**
+> The query parameter `organization.identifier` is retained as documented reference chaining.
+>
+> **Final applied state:**
+> ```json
+> // CapabilityStatement
+> { "name": "organization", "type": "reference" }
+> ```
+> ```json
+> // Query parameter (reference chaining by ODS code)
+> "HCProvidedBy_QParam": { "name": "organization.identifier", "schema": { "$ref": "#/components/schemas/ODS" } }
+> ```
 
 ---
 
