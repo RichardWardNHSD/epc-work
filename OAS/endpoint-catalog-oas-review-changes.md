@@ -16,7 +16,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 4 | Schema named `OperationalOutcome` instead of `OperationOutcome` | Pending (team) |
 | 5 | HealthcareService identifier systems use `http://` instead of `https://` | Fixed |
 | 6 | `product-id` system uses lowercase `/id/` instead of `/Id/` | Fixed |
-| 7 | Search param names disagree (`ConnectionType` vs `connection-type`) | Pending |
+| 7 | Search param names disagree (`ConnectionType` vs `connection-type`) | Fixed |
 | 8 | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names | Pending |
 | 9 | `providedBy` param vs CapabilityStatement's `organization` | Fixed (with follow-up correction: `organization` restored to `reference`) |
 | 10 | `Accept` header example has trailing semicolon | Fixed |
@@ -563,21 +563,35 @@ The NHSDigital e-Referral Service API (the closest comparable NHS FHIR API) name
 
 ---
 
-### #7 — Search param names disagree (Pending)
+### #7 — Search param names disagree (Fixed)
 
 **Problem**
 
-The same search parameters are named differently depending on where you look in the spec:
+The same search parameters were named differently depending on where you looked in the spec:
 
-| Source | Name used |
-|--------|-----------|
+| Source | Name used (before) |
+|--------|--------------------|
 | Query parameter definition (`name` field) | `ConnectionType`, `PayloadType` |
 | CapabilityStatement `searchParam` | `connection-type`, `payload-type` |
 | `GET /Endpoint` description table | `connection-type`, `payload-type` |
 
-FHIR search parameters use lowercase kebab-case (`connection-type`, `payload-type`). A client reading the CapabilityStatement sends `?connection-type=...`, but a client generated from the OpenAPI parameter sends `?ConnectionType=...`. On a case-sensitive server, one of them silently fails.
+FHIR search parameters use lowercase kebab-case (`connection-type`, `payload-type`). A client reading the CapabilityStatement sends `?connection-type=...`, but a client generated from the OpenAPI parameter would send `?ConnectionType=...`. On a case-sensitive server, one of them silently fails.
 
-**Recommended fix:** Change the two parameter `name` fields to `connection-type` and `payload-type`.
+**Before**
+```json
+"ConnectionType_QParam": { "name": "ConnectionType", ... }
+"PayloadType_QParam":    { "name": "PayloadType", ... }
+```
+
+**After**
+```json
+"ConnectionType_QParam": { "name": "connection-type", ... }
+"PayloadType_QParam":    { "name": "payload-type", ... }
+```
+
+The two query-parameter `name` fields now match the CapabilityStatement and the `GET /Endpoint` description table. The internal component keys (`ConnectionType_QParam`, `PayloadType_QParam`) and their `$ref`s are unchanged — they never appear on the wire.
+
+**Note:** The `identifier` parameter naming (#8) is a separate, still-pending item.
 
 ---
 
