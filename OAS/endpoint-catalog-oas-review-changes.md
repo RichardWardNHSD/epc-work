@@ -650,17 +650,52 @@ The corresponding POST operations all had their request bodies correctly referen
 
 ### #18 — `HealthcareService.type` absent
 
-**Status: Pending (team)**
+**Status: Pending (team)** — awaiting confirmation of the value-set / system binding before applying.
 
 **Problem**
 
-UK Core marks `HealthcareService.type` as MustSupport, meaning a conformant implementation is expected to populate and process it. The current schema omits it entirely. Implementers reading the OAS won't know the API supports this field.
+In the **HL7 FHIR UK Core Implementation Guide**, `HealthcareService.type` is configured with a **MustSupport (S)** flag. This means that while the element has a `0..*` cardinality (technically optional in structural syntax), downstream conformant applications **must be capable of capturing, storing, processing, and transmitting** this service-type data when it is available.
 
-`type` is a `CodeableConcept [0..*]` bound to the UK Core Care Setting Type value set. It carries a SNOMED-based classification of the service type.
+The current `HealthcareService` schema omits `type` entirely. Because it is absent from the OAS, generated clients have no typed representation of the element, so they cannot reliably support it as UK Core requires — even though the underlying JSON would not reject an unknown property.
 
-**Recommended fix:** Add `type` to the `HealthcareService` schema, the `HealthcareServiceBundle` nested resource, and optionally the examples. Do not add to `required` — MustSupport does not mean mandatory.
+`type` is a `CodeableConcept [0..*]` carrying a coded classification of the service (UK Core binds this to a SNOMED-based value set).
 
-**Decision needed:** Confirm the value set / system URL and a representative example code.
+**Changes required**
+
+1. **`HealthcareService` schema** — add a `type` property after `active` (matching FHIR element ordering), as an array of `CodeableConcept`:
+
+```json
+"type": {
+  "type": "array",
+  "description": "UK Core MustSupport. A coded classification of the service. FHIR HealthcareService.type (CodeableConcept 0..*).",
+  "items": {
+    "type": "object",
+    "properties": {
+      "coding": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "system":  { "type": "string", "format": "url", "example": "<value-set system — TBC>" },
+            "code":    { "type": "string", "example": "<code — TBC>" },
+            "display": { "type": "string", "example": "<display — TBC>" }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+2. **`HealthcareServiceBundle` nested resource schema** — add the same `type` block in the same position (deeper indentation).
+
+3. **Examples (optional but recommended)** — add a populated `type` to the HealthcareService examples (request body, `200`/`201` atomic, bundle) so implementers see a worked instance. Optional because `type` is `0..*` and a valid instance may omit it.
+
+4. **Do NOT add `type` to `required`.** MustSupport does not make it mandatory — its minimum cardinality remains 0.
+
+**Decision needed before applying:** Confirm the value-set / system URL and a representative example `code`/`display`. Candidates: the UK Core Care Setting Type value set (SNOMED-backed), or a programme-specific service-type binding. The structure above is unaffected by the choice — only the `system`/`code`/`display` example values change.
+
+**Reference:** [UKCore-HealthcareService](https://simplifier.net/guide/UK-Core-Implementation-Guide-STU2/Home/ProfilesandExtensions/Profile-UKCore-HealthcareService?version=current)
 
 ---
 
