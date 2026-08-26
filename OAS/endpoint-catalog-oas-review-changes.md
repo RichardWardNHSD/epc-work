@@ -43,7 +43,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 26  | `OperationOutcome` schema does not enforce base/profile constraints (beyond the naming issue in #4)                     | Pending                                                                       |
 | 27  | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Pending (team)                                                                |
 | 28  | Create examples include server-managed fields (`id`, `meta.lastUpdated`)                                                | Pending                                                                       |
-| 29  | `CapabilityStatement.updateCreate` not declared despite update-as-create behaviour                                      | Pending                                                                       |
+| 29  | Update-as-create not supported: removed `201` from PUTs and upsert wording (`updateCreate` left absent)                 | Fixed                                                                         |
 | 30  | `Accept` header marked required; FHIR treats it as optional                                                             | Pending                                                                       |
 | 31  | Logical ids / path params constrained to UUID only; FHIR `id` is broader                                                | Pending                                                                       |
 | 32  | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Pending                                                                       |
@@ -922,17 +922,54 @@ Endpoint and HealthcareService create examples include fields the server manages
 
 ---
 
-### #29 — `CapabilityStatement.updateCreate` not declared
+### #29 — Update-as-create not supported (`updateCreate`)
 
-**Status: Pending**
+**Status: Fixed**
 
 **Problem**
 
-The PUT operation descriptions state that an update may create an initial resource when the logical id does not already exist — this is FHIR update-as-create behaviour, and the operations declare a `201` response for it. FHIR advertises this capability via `CapabilityStatement.rest.resource.updateCreate`, which is not set.
+The PUT operation descriptions stated that an update may create an initial resource when the logical id does not already exist — FHIR update-as-create behaviour — and the operations declared a `201 Created` response for it. FHIR advertises this capability via `CapabilityStatement.rest.resource.updateCreate`, which was not set, so the behaviour was also unadvertised.
 
-**Recommended fix:**
-- If update-as-create is supported, add `"updateCreate": true` to the relevant Endpoint, HealthcareService, and List resource declarations in the CapabilityStatement.
-- If it is not supported, remove the `201` update responses and the update-as-create wording.
+**Decision:** The team confirmed the API will **not** support update-as-create. The fix therefore removes the update-as-create claims (rather than adding `updateCreate: true`).
+
+**Change 1 — Removed the `201` response from all 4 PUT operations.**
+
+Before (each PUT):
+```json
+"responses": {
+  "200": { "$ref": ".../200-Atomic..." },
+  "201": { "$ref": ".../201-Atomic..." },
+  "4XX": { ... },
+  "5XX": { ... }
+}
+```
+After:
+```json
+"responses": {
+  "200": { "$ref": ".../200-Atomic..." },
+  "4XX": { ... },
+  "5XX": { ... }
+}
+```
+Applied to `PUT /HealthcareService/{id}`, `PUT /Endpoint/{id}`, `PUT /Endpoint/{id}/$template`, `PUT /List/{id}`.
+
+**Change 2 — Removed the upsert wording from all 4 PUT descriptions.**
+
+Before (representative):
+> "Creates a new current version for an existing resource [(update)] **or creates an initial version if no resource already exists for the given id [(new)](…#upsert)**. …"
+
+After (representative):
+> "Updates an existing resource, creating a new current version [(update)]. **The resource must already exist; a request for an id that does not exist returns `404 Not Found` (update-as-create is not supported).** …"
+
+**Change 3 — `CapabilityStatement.updateCreate`:** left absent. FHIR's default for `updateCreate` is `false`, so an absent flag correctly signals that update-as-create is not supported. (Per instruction, not set explicitly.)
+
+**Observation — orphaned `201` response components:**
+Removing the `201` from the PUTs leaves three response components with no remaining references:
+- `201-AtomicHealthcareService`
+- `201-AtomicEndpoint`
+- `201-EndpointTemplate`
+
+These were **intentionally left in place** (not deleted). They are expected to be reused when #20 switches the **POST** create operations from `200` to `201`. (`201-AtomicList` is still referenced by `POST /List`.) If #20 is closed a different way, these three components should be revisited for removal.
 
 ---
 

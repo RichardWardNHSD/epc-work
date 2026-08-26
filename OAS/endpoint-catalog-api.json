@@ -370,14 +370,11 @@
           "HealthcareService"
         ],
         "summary": "Update a Specific HealthcareService",
-        "description": "Creates a new current version for an existing resource [(update)](https://www.hl7.org/fhir/http.html#update) or creates an initial version if no resource already exists for the given id [(new)](https://www.hl7.org/fhir/http.html#upsert).\n\nThe API validates all `endpoint[]` references in the request body before writing the resource. If any referenced Endpoint does not exist, the request is rejected with a `422 Unprocessable Entity` response and the HealthcareService is not updated.\n\nThis validation is performed server-side — callers do not need to pre-validate Endpoint references before submitting the request.",
+        "description": "Updates an existing HealthcareService, creating a new current version [(update)](https://www.hl7.org/fhir/http.html#update). The resource must already exist; a request for an id that does not exist returns `404 Not Found` (update-as-create is not supported).\n\nThe API validates all `endpoint[]` references in the request body before writing the resource. If any referenced Endpoint does not exist, the request is rejected with a `422 Unprocessable Entity` response and the HealthcareService is not updated.\n\nThis validation is performed server-side — callers do not need to pre-validate Endpoint references before submitting the request.",
         "operationId": "replaceHealthcareService",
         "responses": {
           "200": {
             "$ref": "#/components/responses/200-AtomicHealthcareService"
-          },
-          "201": {
-            "$ref": "#/components/responses/201-AtomicHealthcareService"
           },
           "4XX": {
             "$ref": "#/components/responses/4XX"
@@ -596,14 +593,11 @@
           "Endpoint"
         ],
         "summary": "Update a Specific Endpoint",
-        "description": "Creates a new current version for an existing resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).\n\nOnly the owner of an Endpoint can modify it. \n",
+        "description": "Updates an existing Endpoint, creating a new current version ([update](https://www.hl7.org/fhir/http.html#update)). The resource must already exist; a request for an id that does not exist returns `404 Not Found` (update-as-create is not supported).\n\nOnly the owner of an Endpoint can modify it. \n",
         "operationId": "replaceEndpoint",
         "responses": {
           "200": {
             "$ref": "#/components/responses/200-AtomicEndpoint"
-          },
-          "201": {
-            "$ref": "#/components/responses/201-AtomicEndpoint"
           },
           "4XX": {
             "$ref": "#/components/responses/4XX"
@@ -661,14 +655,11 @@
           "Endpoint"
         ],
         "summary": "Update a Specific Endpoint template",
-        "description": "Creates a new current version for an existing resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).\n\nOnly the owner of an Endpoint can modify its template. \n",
+        "description": "Updates an existing Endpoint template, creating a new current version ([update](https://www.hl7.org/fhir/http.html#update)). The template must already exist; a request for an id that does not exist returns `404 Not Found` (update-as-create is not supported).\n\nOnly the owner of an Endpoint can modify its template. \n",
         "operationId": "replaceEndpointTemplate",
         "responses": {
           "200": {
             "$ref": "#/components/responses/200-EndpointTemplate"
-          },
-          "201": {
-            "$ref": "#/components/responses/201-EndpointTemplate"
           },
           "4XX": {
             "$ref": "#/components/responses/4XX"
@@ -851,7 +842,7 @@
           "List"
         ],
         "summary": "Update a specific List resource",
-        "description": "Creates a new current version for an existing List resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).",
+        "description": "Updates an existing List resource, creating a new current version ([update](https://www.hl7.org/fhir/http.html#update)). The resource must already exist; a request for an id that does not exist returns `404 Not Found` (update-as-create is not supported).",
         "operationId": "replaceList",
         "requestBody": {
           "$ref": "#/components/requestBodies/FhirList"
@@ -859,9 +850,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/200-AtomicList"
-          },
-          "201": {
-            "$ref": "#/components/responses/201-AtomicList"
           },
           "4XX": {
             "$ref": "#/components/responses/4XX"
