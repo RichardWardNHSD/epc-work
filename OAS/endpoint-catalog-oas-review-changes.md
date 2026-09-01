@@ -38,7 +38,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 17 | PUT operations for HealthcareService, Endpoint, and EndpointTemplate missing`requestBody`                               | Fixed                                                                         | RW - 26/08/26 |
 | 18 | `HealthcareService.type` absent despite being UK Core MustSupport                                                       | Pending (team)                                                                |               |
 | 19 | `HealthcareService.providedBy` modelled as array, FHIR/UK Core say `0..1`                                               | Fixed                                                                         | RW - 26/08/26 |
-| 20 | Create interactions return`200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified`                    | Pending                                                                       |               |
+| 20 | Create interactions return`200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified`                    | Ignoring                                                                      | RW - 01/09/26 |
 | 21 | `$template` routes do not follow FHIR operation invocation rules                                                        | Pending (team)                                                                |               |
 | 22 | `Identifier.display` used, which is not a valid FHIR Identifier element                                                 | Fixed                                                                         | RW - 26/08/26 |
 | 23 | Resource schemas require server-assigned`id` but not the mandatory R4 elements; `resourceType` not enum-locked          | Pending                                                                       |               |
@@ -810,39 +810,18 @@ FHIR R4 and the `UKCore-HealthcareService` profile define `providedBy` as `Refer
 
 ### #20 — Create interactions return `200` instead of `201 Created`
 
-**Status: Pending**
+**Status: Won't fix (by design)**
 
-**Problem**
+**Problem (as raised)**
 
-A successful FHIR create must return `201 Created`, along with a `Location` header identifying the newly created resource (and, where versioning is supported, `ETag` and `Last-Modified`). Both `POST /HealthcareService` and `POST /Endpoint` declare only `200` and omit these headers. (`POST /List` correctly uses `201`, but its shared response should also document the FHIR headers.)
+In strict FHIR, a successful create returns `201 Created` with a `Location` header identifying the new resource (and, where versioning is supported, `ETag` / `Last-Modified`). `POST /HealthcareService` and `POST /Endpoint` declare only `200` and omit those headers. (`POST /List` uses `201`.)
 
-**Before**
+**Decision:** The team has decided **not** to implement the `Location` header, and to keep create responses on `200`. This is a deliberate, documented deviation from strict FHIR REST, chosen to **align with how the BaRS API handles resource creation**. It is accepted as a known, intentional non-conformance rather than a defect to fix.
 
-```json
-"post": {
-  "operationId": "createHealthcareService",
-  "responses": {
-    "200": { "$ref": "#/components/responses/200-AtomicHealthcareService" },
-    ...
-  }
-}
-```
+**Consequence — the three orphaned `201` response components are now genuinely dead:**
+Under #29 the `201` responses were removed from the PUT operations, leaving `201-AtomicHealthcareService`, `201-AtomicEndpoint`, and `201-EndpointTemplate` unreferenced. At the time they were retained on the assumption that #20 would switch the POST creates to `201` and reuse them. **With #20 now decided as "won't fix," that reuse will not happen** — those three components can be removed as genuine dead definitions. (`201-AtomicList` remains in use by `POST /List`.) Tracked as a small cleanup; see the observation under #29.
 
-**Recommended after**
-
-```json
-"post": {
-  "operationId": "createHealthcareService",
-  "responses": {
-    "201": { "$ref": "#/components/responses/201-AtomicHealthcareService" },
-    ...
-  }
-}
-```
-
-…where the `201` response also declares a `Location` header (and `ETag` / `Last-Modified` when versioning is supported).
-
-**Recommended fix:** Change create success responses to `201`, add the `Location` header to every create response, and keep body behaviour consistent with the FHIR `Prefer` header rules. Response-header detail is tracked in #18 of the original comments (see also the header note under #27/#29).
+**Note:** `POST /List` still returns `201` while the other creates return `200`. If full internal consistency is wanted, `POST /List` could be aligned to `200` as well — but that is a cosmetic follow-up, not required by the decision above.
 
 ---
 
