@@ -46,8 +46,8 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 21 | `$template` routes do not follow FHIR operation invocation rules                                                        | Pending (team)                                                                |               |
 | 22 | `Identifier.display` used, which is not a valid FHIR Identifier element                                                 | Fixed                                                                         | RW - 26/08/26 |
 | 23 | Resource schemas require server-assigned`id` but not the mandatory R4 elements; `resourceType` not enum-locked          | Pending                                                                       |               |
-| 24 | CapabilityStatement does not advertise supported profiles,`updateCreate`, or `$template` operations                     | Deferred (alpha) —`/metadata` parked                                         |               |
-| 25 | `EPC-EndpointList` List profile conformance cannot be verified (profile not supplied)                                   | Pending                                                                       |               |
+| 24 | CapabilityStatement does not advertise supported profiles,`updateCreate`, or `$template` operations                     | Deferred (alpha) —`/metadata` parked                                         | RW - 01/09/26 |
+| 25 | Custom `EPC-EndpointList` profile / `EPC-list-code` removed — List now uses base FHIR `List`                            | Fixed                                                                         |               |
 | 26 | `OperationOutcome` schema does not enforce base/profile constraints (beyond the naming issue in #4)                     | Pending                                                                       |               |
 | 27 | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Deferred (alpha) — requirements under review                                 | RW - 01/09/26 |
 | 28 | Create examples include server-managed fields (`id`, `meta.lastUpdated`)                                                | Pending                                                                       |               |
@@ -952,15 +952,42 @@ The embedded `/metadata` CapabilityStatement lists resource types, interactions,
 
 ---
 
-### #25 — `EPC-EndpointList` List profile conformance unverifiable
+### #25 — Custom `EPC-EndpointList` List profile removed (use base FHIR List)
 
-**Status: Pending**
+**Status: Fixed**
 
 **Problem**
 
-The List examples claim conformance to `https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList`, but that profile (and its dependencies) was not supplied. It is therefore impossible to verify whether it derives correctly from `UKCore-List` or properly constrains `subject`, `orderedBy`, `entry`, terminology, and extensions.
+The List examples and the `FhirList` schema claimed conformance to a custom profile `https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList` and used a custom code system `https://fhir.nhs.uk/CodeSystem/EPC-list-code` in `List.code`. Neither the profile nor the code system was supplied, so conformance could not be verified — and it introduced bespoke terminology dependencies that had to be published and maintained.
 
-**Recommended fix:** Publish and supply the EPC profile and its dependencies, state its `baseDefinition` and package version, and advertise it in the CapabilityStatement. This is primarily an informational / dependency item rather than an OAS edit.
+**Decision:** There is no reason for anything custom on List — it should reference **base FHIR `List`**. The custom profile and custom code system were therefore removed rather than published.
+
+**Change 1 — `meta.profile` now references base FHIR List.**
+
+Before:
+```json
+"meta": { "profile": ["https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"] }
+```
+After:
+```json
+"meta": { "profile": ["http://hl7.org/fhir/StructureDefinition/List"] }
+```
+
+**Change 2 — Removed the custom `List.code` block.**
+
+Before:
+```json
+"code": {
+  "coding": [
+    { "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code", "code": "endpoint-priority", "display": "Endpoint Priority Order" }
+  ]
+}
+```
+After: `code` removed entirely. It is optional (`0..1`), and the priority semantics are already carried by `orderedBy` (`http://terminology.hl7.org/CodeSystem/list-order`, code `priority`), which is unchanged. This avoids inventing a custom code with no standard equivalent.
+
+**Scope:** 4 List examples + the `FhirList` schema. All `EPC-EndpointList` / `EPC-list-code` references removed (verified zero remaining); `orderedBy = priority` retained.
+
+**Effect:** The unverifiable-profile concern is dissolved — base FHIR List needs no supplied profile artefact. This also removes the List portion of the profile work noted under #24.
 
 ---
 

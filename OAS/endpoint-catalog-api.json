@@ -1069,21 +1069,12 @@
                   "meta": {
                     "lastUpdated": "2026-05-06T10:00:01+00:00",
                     "profile": [
-                      "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                      "http://hl7.org/fhir/StructureDefinition/List"
                     ]
                   },
                   "status": "current",
                   "mode": "working",
                   "title": "Anytown UTC — Endpoint Priority Order",
-                  "code": {
-                    "coding": [
-                      {
-                        "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
-                        "code": "endpoint-priority",
-                        "display": "Endpoint Priority Order"
-                      }
-                    ]
-                  },
                   "subject": {
                     "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
                     "display": "Anytown UTC"
@@ -2011,21 +2002,12 @@
               "meta": {
                 "lastUpdated": "2026-05-06T10:00:01+00:00",
                 "profile": [
-                  "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                  "http://hl7.org/fhir/StructureDefinition/List"
                 ]
               },
               "status": "current",
               "mode": "working",
               "title": "Anytown UTC — Endpoint Priority Order",
-              "code": {
-                "coding": [
-                  {
-                    "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
-                    "code": "endpoint-priority",
-                    "display": "Endpoint Priority Order"
-                  }
-                ]
-              },
               "subject": {
                 "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
                 "display": "Anytown UTC"
@@ -2095,21 +2077,12 @@
               "meta": {
                 "lastUpdated": "2026-05-06T10:00:01+00:00",
                 "profile": [
-                  "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                  "http://hl7.org/fhir/StructureDefinition/List"
                 ]
               },
               "status": "current",
               "mode": "working",
               "title": "Anytown UTC — Endpoint Priority Order",
-              "code": {
-                "coding": [
-                  {
-                    "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
-                    "code": "endpoint-priority",
-                    "display": "Endpoint Priority Order"
-                  }
-                ]
-              },
               "subject": {
                 "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
                 "display": "Anytown UTC"
@@ -2193,21 +2166,12 @@
                     "meta": {
                       "lastUpdated": "2026-05-06T10:00:01+00:00",
                       "profile": [
-                        "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                        "http://hl7.org/fhir/StructureDefinition/List"
                       ]
                     },
                     "status": "current",
                     "mode": "working",
                     "title": "Anytown UTC — Endpoint Priority Order",
-                    "code": {
-                      "coding": [
-                        {
-                          "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
-                          "code": "endpoint-priority",
-                          "display": "Endpoint Priority Order"
-                        }
-                      ]
-                    },
                     "subject": {
                       "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
                       "display": "Anytown UTC"
@@ -3564,7 +3528,7 @@
                 "items": {
                   "type": "string",
                   "format": "url",
-                  "example": "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                  "example": "http://hl7.org/fhir/StructureDefinition/List"
                 }
               }
             }
@@ -3593,33 +3557,6 @@
             "type": "string",
             "description": "A human-readable label for the list.",
             "example": "Anytown UTC — Endpoint Priority Order"
-          },
-          "code": {
-            "type": "object",
-            "description": "Classifies the purpose of the list.",
-            "properties": {
-              "coding": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "system": {
-                      "type": "string",
-                      "format": "url",
-                      "example": "https://fhir.nhs.uk/CodeSystem/EPC-list-code"
-                    },
-                    "code": {
-                      "type": "string",
-                      "example": "endpoint-priority"
-                    },
-                    "display": {
-                      "type": "string",
-                      "example": "Endpoint Priority Order"
-                    }
-                  }
-                }
-              }
-            }
           },
           "subject": {
             "type": "object",
