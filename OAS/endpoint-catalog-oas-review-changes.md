@@ -24,13 +24,13 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | #  | Issue                                                                                                                   | Status                                                                        | Verified      |
 | ---- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | :-------------- |
 | 1  | `Period`/`Start`/`End` capitalisation wrong                                                                             | Fixed                                                                         | RW - 26/08/26 |
-| 2  | `connectionType`/`payloadType` search params modelled as objects, not tokens; wrong system URL in connectionType schema | Fixed                                                                         |               |
+| 2  | `connectionType`/`payloadType` search params modelled as objects, not tokens; wrong system URL in connectionType schema | Fixed                                                                         | RW - 01/09/26 |
 | 3  | Custom`endpoint-payload-type-epc` system used instead of standard                                                       | Fixed                                                                         | RW - 26/08/26 |
 | 4  | Schema named`OperationalOutcome` instead of `OperationOutcome`                                                          | Pending (team)                                                                |               |
 | 5  | HealthcareService identifier systems use`http://` instead of `https://`                                                 | Fixed                                                                         | RW - 26/08/26 |
 | 6  | `product-id` system uses lowercase `/id/` instead of `/Id/`                                                             | Fixed                                                                         | RW - 26/08/26 |
-| 7  | Search param names disagree (`ConnectionType` vs `connection-type`)                                                     | Fixed                                                                         |               |
-| 8  | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names                     | Fixed                                                                         |               |
+| 7  | Search param names disagree (`ConnectionType` vs `connection-type`)                                                     | Fixed                                                                         | RW - 01/09/26 |
+| 8  | Identifier param names use element paths (`Endpoint.identifier`) instead of FHIR search param names                     | Fixed                                                                         | RW - 01/09/26 |
 | 9  | `providedBy` param vs CapabilityStatement's `organization`                                                              | Fixed                                                                         | RW - 26/08/26 |
 | 10 | `Accept` header example has trailing semicolon                                                                          | Fixed                                                                         | RW - 26/08/26 |
 | 11 | Stale version numbers and publisher in Capability schema                                                                | Fixed                                                                         | RW - 26/08/26 |
@@ -45,9 +45,9 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 20 | Create interactions return`200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified`                    | Won't fix (by design)                                                         | RW - 01/09/26 |
 | 21 | `$template` routes do not follow FHIR operation invocation rules                                                        | Pending (team)                                                                |               |
 | 22 | `Identifier.display` used, which is not a valid FHIR Identifier element                                                 | Fixed                                                                         | RW - 26/08/26 |
-| 23 | Resource schemas require server-assigned`id` but not the mandatory R4 elements; `resourceType` not enum-locked          | Pending                                                                       |               |
+| 23 | Resource schemas require server-assigned`id` but not the mandatory R4 elements; `resourceType` not enum-locked          | Part A Fixed (`resourceType` enum-locked); B & C Pending (schema split)       |               |
 | 24 | CapabilityStatement does not advertise supported profiles,`updateCreate`, or `$template` operations                     | Deferred (alpha) —`/metadata` parked                                         | RW - 01/09/26 |
-| 25 | Custom `EPC-EndpointList` profile / `EPC-list-code` removed — List now uses base FHIR `List`                            | Fixed                                                                         |               |
+| 25 | Custom`EPC-EndpointList` profile / `EPC-list-code` removed — List now uses base FHIR `List`                            | Fixed                                                                         | RW - 01/09/26 |
 | 26 | `OperationOutcome` schema does not enforce base/profile constraints (beyond the naming issue in #4)                     | Pending                                                                       |               |
 | 27 | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Deferred (alpha) — requirements under review                                 | RW - 01/09/26 |
 | 28 | Create examples include server-managed fields (`id`, `meta.lastUpdated`)                                                | Pending                                                                       |               |
@@ -916,18 +916,36 @@ The `display` key was removed from every `Identifier` — 12 occurrences (5 exam
 
 ### #23 — Resource schemas conflict with FHIR required fields and create semantics
 
-**Status: Pending**
+**Status: Part A Fixed; Parts B & C Pending**
 
-**Problem**
+This finding has three parts. Part A is done; Parts B and C are deferred to a schema-split effort (see below).
 
-The reusable `Endpoint` schema requires `id`, but a FHIR create request may omit `id` because the server assigns it. At the same time, the schema does not require the base R4 mandatory Endpoint elements (`status`, `connectionType`, `payloadType`, `address`). The `resourceType` fields are examples rather than fixed values, so a schema could accept a resource of the wrong type.
+**Part A — `resourceType` not enum-locked → Fixed**
 
-**Recommended fix:**
+The `resourceType` fields were plain strings with an `example`, so a schema could accept a resource of the wrong type. They are now locked with a single-value `enum`.
 
-- Prefer schemas generated from the applicable FHIR `StructureDefinition` snapshots, or maintain separate create / update / response schemas.
-- Lock `resourceType` with a single-value `enum`.
-- Enforce base and profile cardinalities (the mandatory Endpoint elements).
-- Do not require server-assigned `id` or `meta.lastUpdated` in create requests.
+Before:
+```json
+"resourceType": { "type": "string", "example": "Endpoint" }
+```
+After:
+```json
+"resourceType": { "type": "string", "enum": ["Endpoint"] }
+```
+
+Applied to the top-level `Endpoint`, `EndpointTemplate`, and `HealthcareService` schemas (`FhirList` was already enum-locked).
+
+*Remaining under Part A:* the two **Bundle-nested** resource schemas (`EndpointBundle` and `HealthcareServiceBundle` → `entry.items.resource.resourceType`) still use `example` rather than `enum`. Minor; can be locked in a follow-up.
+
+**Part B — `required` wrongly includes `id` → Pending**
+
+`Endpoint` and `HealthcareService` require `["resourceType", "id"]`. On a create (POST) the client omits `id` (the server assigns it), so requiring `id` is wrong for the create case.
+
+**Part C — `required` omits the mandatory R4 elements → Pending**
+
+Base FHIR `Endpoint` mandates `status`, `connectionType`, `payloadType`, `address`; none are in `required`. So the schema simultaneously over-requires (`id`) and under-requires (the real mandatory fields).
+
+**Why B & C are deferred:** they conflict within a single schema because one schema serves three jobs (create request, update request, response), which need different `required` lists. The correct fix is to **split into create / update / response schemas** (create: no `id`, but mandatory elements present; response: `id` + `meta` + mandatory elements) and repoint all `$ref`s. That is a sizeable refactor and overlaps with **#28** (create examples must not carry `id`/`meta.lastUpdated`). Recommended to tackle B, C, and #28 together as one "create vs response schema" task, likely post-alpha.
 
 ---
 
@@ -965,10 +983,13 @@ The List examples and the `FhirList` schema claimed conformance to a custom prof
 **Change 1 — `meta.profile` now references base FHIR List.**
 
 Before:
+
 ```json
 "meta": { "profile": ["https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"] }
 ```
+
 After:
+
 ```json
 "meta": { "profile": ["http://hl7.org/fhir/StructureDefinition/List"] }
 ```
@@ -976,6 +997,7 @@ After:
 **Change 2 — Removed the custom `List.code` block.**
 
 Before:
+
 ```json
 "code": {
   "coding": [
@@ -983,6 +1005,7 @@ Before:
   ]
 }
 ```
+
 After: `code` removed entirely. It is optional (`0..1`), and the priority semantics are already carried by `orderedBy` (`http://terminology.hl7.org/CodeSystem/list-order`, code `priority`), which is unchanged. This avoids inventing a custom code with no standard equivalent.
 
 **Scope:** 4 List examples + the `FhirList` schema. All `EPC-EndpointList` / `EPC-list-code` references removed (verified zero remaining); `orderedBy = priority` retained.

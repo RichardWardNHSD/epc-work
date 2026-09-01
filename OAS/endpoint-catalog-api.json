@@ -2645,7 +2645,9 @@
         "properties": {
           "resourceType": {
             "type": "string",
-            "example": "Endpoint"
+            "enum": [
+              "Endpoint"
+            ]
           },
           "id": {
             "type": "string",
@@ -2809,7 +2811,9 @@
         "properties": {
           "resourceType": {
             "type": "string",
-            "example": "Endpoint"
+            "enum": [
+              "Endpoint"
+            ]
           },
           "id": {
             "type": "string",
@@ -2954,7 +2958,9 @@
         "properties": {
           "resourceType": {
             "type": "string",
-            "example": "HealthcareService"
+            "enum": [
+              "HealthcareService"
+            ]
           },
           "id": {
             "type": "string",
