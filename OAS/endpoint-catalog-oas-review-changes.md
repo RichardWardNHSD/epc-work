@@ -9,6 +9,10 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 - **Fixed** — change applied to the OAS.
 - **Pending** — identified, not yet actioned.
 - **Pending (team)** — needs a decision before it can be actioned.
+- **Deferred (alpha)** — parked for the `1.0.0-alpha` release; to be revisited later.
+- **Won't fix / Ignoring** — a conscious decision not to change, recorded with rationale.
+
+> **CapabilityStatement (`/metadata`) parked for alpha.** For the `1.0.0-alpha` release the team has decided to **park the `/metadata` CapabilityStatement**. A CapabilityStatement is a formal conformance claim; publishing an incomplete or partly inaccurate one is worse than not publishing yet, because clients may trust it. Several CapabilityStatement-dependent findings are therefore set to **Deferred (alpha)** rather than Pending — they will be revisited once the EPC profiles (#25) and the `$template` design (#21) are finalised. The `/metadata` operation has been **left in the OAS unchanged pending a team discussion** — no OAS edit has been made for this decision yet.
 
 **Verified column:** records whether an item has been independently double-checked after being actioned. Leave blank until checked; mark (e.g. `Yes`, initials, or a date) once confirmed.
 
@@ -38,11 +42,11 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 17 | PUT operations for HealthcareService, Endpoint, and EndpointTemplate missing`requestBody`                               | Fixed                                                                         | RW - 26/08/26 |
 | 18 | `HealthcareService.type` absent despite being UK Core MustSupport                                                       | Pending (team)                                                                |               |
 | 19 | `HealthcareService.providedBy` modelled as array, FHIR/UK Core say `0..1`                                               | Fixed                                                                         | RW - 26/08/26 |
-| 20 | Create interactions return`200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified`                    | Ignoring                                                                      | RW - 01/09/26 |
+| 20 | Create interactions return`200` instead of `201 Created`, and omit `Location`/`ETag`/`Last-Modified`                    | Won't fix (by design)                                                         | RW - 01/09/26 |
 | 21 | `$template` routes do not follow FHIR operation invocation rules                                                        | Pending (team)                                                                |               |
 | 22 | `Identifier.display` used, which is not a valid FHIR Identifier element                                                 | Fixed                                                                         | RW - 26/08/26 |
 | 23 | Resource schemas require server-assigned`id` but not the mandatory R4 elements; `resourceType` not enum-locked          | Pending                                                                       |               |
-| 24 | CapabilityStatement does not advertise supported profiles,`updateCreate`, or `$template` operations                     | Pending                                                                       |               |
+| 24 | CapabilityStatement does not advertise supported profiles,`updateCreate`, or `$template` operations                     | Deferred (alpha) — `/metadata` parked                                         |               |
 | 25 | `EPC-EndpointList` List profile conformance cannot be verified (profile not supplied)                                   | Pending                                                                       |               |
 | 26 | `OperationOutcome` schema does not enforce base/profile constraints (beyond the naming issue in #4)                     | Pending                                                                       |               |
 | 27 | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Pending (team)                                                                |               |
@@ -50,7 +54,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 29 | Update-as-create not supported: removed`201` from PUTs and upsert wording (`updateCreate` left absent)                  | Fixed                                                                         | RW - 26/08/26 |
 | 30 | `Accept` header marked required; FHIR treats it as optional                                                             | Pending                                                                       |               |
 | 31 | Logical ids / path params constrained to UUID only; FHIR`id` is broader                                                 | Pending                                                                       |               |
-| 32 | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Pending                                                                       |               |
+| 32 | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Deferred (alpha) — `/metadata` parked                                         |               |
 
 > **Provenance:** Items #1–#18 arose during the interactive review session. Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments.
 
@@ -810,35 +814,64 @@ FHIR R4 and the `UKCore-HealthcareService` profile define `providedBy` as `Refer
 
 ### #20 — Create interactions return `200` instead of `201 Created`
 
-**Status: Won't fix (by design)**
+**Status: Pending**
 
-**Problem (as raised)**
+**Problem**
 
-In strict FHIR, a successful create returns `201 Created` with a `Location` header identifying the new resource (and, where versioning is supported, `ETag` / `Last-Modified`). `POST /HealthcareService` and `POST /Endpoint` declare only `200` and omit those headers. (`POST /List` uses `201`.)
+A successful FHIR create must return `201 Created`, along with a `Location` header identifying the newly created resource (and, where versioning is supported, `ETag` and `Last-Modified`). Both `POST /HealthcareService` and `POST /Endpoint` declare only `200` and omit these headers. (`POST /List` correctly uses `201`, but its shared response should also document the FHIR headers.)
 
-**Decision:** The team has decided **not** to implement the `Location` header, and to keep create responses on `200`. This is a deliberate, documented deviation from strict FHIR REST, chosen to **align with how the BaRS API handles resource creation**. It is accepted as a known, intentional non-conformance rather than a defect to fix.
+**Before**
 
-**Consequence — the three orphaned `201` response components are now genuinely dead:**
-Under #29 the `201` responses were removed from the PUT operations, leaving `201-AtomicHealthcareService`, `201-AtomicEndpoint`, and `201-EndpointTemplate` unreferenced. At the time they were retained on the assumption that #20 would switch the POST creates to `201` and reuse them. **With #20 now decided as "won't fix," that reuse will not happen** — those three components can be removed as genuine dead definitions. (`201-AtomicList` remains in use by `POST /List`.) Tracked as a small cleanup; see the observation under #29.
+```json
+"post": {
+  "operationId": "createHealthcareService",
+  "responses": {
+    "200": { "$ref": "#/components/responses/200-AtomicHealthcareService" },
+    ...
+  }
+}
+```
 
-**Note:** `POST /List` still returns `201` while the other creates return `200`. If full internal consistency is wanted, `POST /List` could be aligned to `200` as well — but that is a cosmetic follow-up, not required by the decision above.
+**Recommended after**
+
+```json
+"post": {
+  "operationId": "createHealthcareService",
+  "responses": {
+    "201": { "$ref": "#/components/responses/201-AtomicHealthcareService" },
+    ...
+  }
+}
+```
+
+…where the `201` response also declares a `Location` header (and `ETag` / `Last-Modified` when versioning is supported).
+
+**Recommended fix:** Change create success responses to `201`, add the `Location` header to every create response, and keep body behaviour consistent with the FHIR `Prefer` header rules. Response-header detail is tracked in #18 of the original comments (see also the header note under #27/#29).
 
 ---
 
 ### #21 — `$template` routes do not follow FHIR operation rules
 
-**Status: Pending (team)**
+**Status: Pending (team)** — constrained by decisions below; CapabilityStatement aspect **Deferred (alpha)**.
 
 **Problem**
 
-A `$`-prefixed path under a FHIR base URL is a FHIR *operation*. FHIR R4 operations are invoked with `POST` (or `GET` for a safe operation meeting the R4 input restrictions). `PUT` and `DELETE` are not valid operation-invocation verbs. The spec defines `PUT` and `DELETE` on `Endpoint/{id}/$template`, and custom operations must also be backed by an `OperationDefinition` and advertised in the CapabilityStatement — neither of which is present.
+A `$`-prefixed path under a FHIR base URL is a FHIR *operation*. FHIR R4 operations are invoked with `POST` (or `GET` for a safe operation). `PUT` and `DELETE` are not valid operation-invocation verbs. The spec defines `PUT` and `DELETE` on `Endpoint/{id}/$template`, which FHIR cannot represent — and an operation would need an `OperationDefinition` (which has no way to describe PUT/DELETE-on-an-operation).
 
-**Recommended fix (choose one):**
+**Team decisions recorded:**
 
-1. Define `$template` as a genuine custom FHIR operation: publish an `OperationDefinition`, use permitted GET/POST invocation, and advertise it in `CapabilityStatement.rest.resource.operation`; or
-2. Move template management outside the FHIR base URL and describe it as a non-FHIR API operation.
+1. **`$template` must stay.** The requirements model a template as a *specialised Endpoint*, so relocating template management outside the FHIR base URL (the earlier "Path B") is not viable.
+2. **PUT and DELETE on `$template` must stay.** How an Endpoint is marked as a template is a **deliberately hidden feature** — callers do not know a template is an Endpoint, so they cannot be redirected to the plain `PUT`/`DELETE /Endpoint/{id}` interactions. `/Endpoint/{id}/$template` is the intended abstracted management surface.
 
-**Decision needed:** Which approach — a formal FHIR operation, or relocate outside the FHIR base path.
+**Consequence**
+
+These two constraints mean the current design cannot be made strictly FHIR-conformant while keeping the `$` prefix: `$template` with `PUT`/`DELETE` is, by FHIR's grammar, an illegal operation invocation, and it cannot be described by an `OperationDefinition`. This is therefore an **accepted, intentional deviation** for the foreseeable term.
+
+**Option still open (not yet decided):** dropping the `$` — i.e. `/Endpoint/{id}/template` instead of `/Endpoint/{id}/$template`. A segment without the `$` is an ordinary (non-FHIR) sub-resource path, so all four verbs become legitimate REST with **zero behaviour change and no impact on the hidden-template abstraction**. This would restore conformance for one character of change. Recorded as the recommended route if a path rename is ever acceptable; not actioned.
+
+**CapabilityStatement aspect — Deferred (alpha):** advertising `$template` requires a published `OperationDefinition`, which cannot be authored for the PUT/DELETE design. Since `/metadata` is parked for `1.0.0-alpha` (see the CapabilityStatement note near the top), this aspect is deferred rather than pending.
+
+**No OAS change made** — pending the team discussion.
 
 ---
 
@@ -900,18 +933,22 @@ The reusable `Endpoint` schema requires `id`, but a FHIR create request may omit
 
 ### #24 — CapabilityStatement does not advertise supported profiles
 
-**Status: Pending**
+**Status: Deferred (alpha)** — `/metadata` parked for `1.0.0-alpha`.
 
 **Problem**
 
-The embedded `/metadata` CapabilityStatement lists resource types, interactions, and search parameters, but does not declare the UK Core or EPC profiles the endpoints support. It also describes PUT as able to create resources without setting `updateCreate: true`, and omits the `$template` operation declarations.
+The embedded `/metadata` CapabilityStatement lists resource types, interactions, and search parameters, but does not declare the UK Core or EPC profiles the endpoints support, and omits the `$template` operation declarations.
 
-**Recommended fix:**
+**Decision:** The `/metadata` CapabilityStatement is **parked for the `1.0.0-alpha` release** (see the CapabilityStatement note near the top of this document). Because a CapabilityStatement is a formal conformance claim, an incomplete one is not published rather than published inaccurately. This finding is therefore deferred, not actioned.
 
-- Declare `profile` / `supportedProfile` canonical URLs per resource (e.g. `UKCore-HealthcareService`, the EPC List profile).
-- Set `updateCreate: true` wherever PUT may create a missing resource (see #29).
-- Advertise each custom operation with its `OperationDefinition` canonical (see #21).
+**When revisited (post-alpha), the fix would be:**
+
+- Declare `profile` / `supportedProfile` canonical URLs per resource (e.g. `UKCore-HealthcareService`, the EPC List profile) — blocked on the profiles being supplied (#25).
+- `updateCreate` is not applicable — update-as-create is not supported and the flag is correctly left absent (see #29).
+- Advertise `$template` with its `OperationDefinition` canonical — blocked on the `$template` design (#21), which currently cannot be expressed as a FHIR operation.
 - Keep the CapabilityStatement synchronised with the OAS and the deployed implementation (see #32).
+
+**No OAS change made.**
 
 ---
 
@@ -1079,13 +1116,17 @@ The OAS constrains resource logical ids and path parameters with `format: uuid`.
 
 ### #32 — CapabilityStatement and OAS not kept in sync
 
-**Status: Pending**
+**Status: Deferred (alpha)** — `/metadata` parked for `1.0.0-alpha`.
 
 **Problem**
 
-The embedded CapabilityStatement must stay synchronised with the paths and behaviour the OAS describes. Current drift points include: search parameter names and types, update-as-create behaviour, supported profiles, custom template operations, and response formats/interaction behaviour. Several of the other findings (#7, #8, #9, #21, #24, #29) are symptoms of this drift.
+The embedded CapabilityStatement must stay synchronised with the paths and behaviour the OAS describes. Drift points included: search parameter names and types, update-as-create behaviour, supported profiles, custom template operations, and response formats/interaction behaviour. Several other findings (#7, #8, #9, #21, #24, #29) are symptoms of this drift.
 
-**Recommended fix:** Generate both artefacts from a shared source, or add automated tests comparing the OAS operations with the CapabilityStatement. A small, accurate CapabilityStatement is preferable to a detailed one that drifts from the implementation.
+**Decision:** With `/metadata` parked for `1.0.0-alpha`, there is no published CapabilityStatement to keep in sync during alpha, so this finding is deferred. Note that some of the underlying drift has already been removed on the OAS side regardless: the search-parameter names now match (#7, #8 fixed), `organization` is corrected (#9 fixed), and update-as-create has been removed rather than advertised (#29 fixed).
+
+**When revisited (post-alpha):** Generate both artefacts from a shared source, or add automated tests comparing the OAS operations with the CapabilityStatement. A small, accurate CapabilityStatement is preferable to a detailed one that drifts from the implementation.
+
+**No OAS change made.**
 
 ---
 
