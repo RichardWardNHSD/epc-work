@@ -46,15 +46,15 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 21 | `$template` routes do not follow FHIR operation invocation rules                                                        | Pending (team)                                                                |               |
 | 22 | `Identifier.display` used, which is not a valid FHIR Identifier element                                                 | Fixed                                                                         | RW - 26/08/26 |
 | 23 | Resource schemas require server-assigned`id` but not the mandatory R4 elements; `resourceType` not enum-locked          | Pending                                                                       |               |
-| 24 | CapabilityStatement does not advertise supported profiles,`updateCreate`, or `$template` operations                     | Deferred (alpha) — `/metadata` parked                                         |               |
+| 24 | CapabilityStatement does not advertise supported profiles,`updateCreate`, or `$template` operations                     | Deferred (alpha) —`/metadata` parked                                         |               |
 | 25 | `EPC-EndpointList` List profile conformance cannot be verified (profile not supplied)                                   | Pending                                                                       |               |
 | 26 | `OperationOutcome` schema does not enforce base/profile constraints (beyond the naming issue in #4)                     | Pending                                                                       |               |
-| 27 | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Pending (team)                                                                |               |
+| 27 | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Deferred (alpha) — requirements under review                                 | RW - 01/09/26 |
 | 28 | Create examples include server-managed fields (`id`, `meta.lastUpdated`)                                                | Pending                                                                       |               |
 | 29 | Update-as-create not supported: removed`201` from PUTs and upsert wording (`updateCreate` left absent)                  | Fixed                                                                         | RW - 26/08/26 |
-| 30 | `Accept` header marked required; FHIR treats it as optional                                                             | Won't fix (by design — WAF/versioning/intent)                                 |               |
+| 30 | `Accept` header marked required; FHIR treats it as optional                                                             | Won't fix (by design — WAF/versioning/intent)                                | RW - 01/09/26 |
 | 31 | Logical ids / path params constrained to UUID only; FHIR`id` is broader                                                 | Pending                                                                       |               |
-| 32 | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Deferred (alpha) — `/metadata` parked                                         |               |
+| 32 | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Deferred (alpha) —`/metadata` parked                                         |               |
 
 > **Provenance:** Items #1–#18 arose during the interactive review session. Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments.
 
@@ -978,7 +978,7 @@ Separate from the naming issue in #4, the `OperationOutcome` schema does not enf
 
 ### #27 — `Endpoint.address` redaction produces an incomplete FHIR resource
 
-**Status: Pending (team)**
+**Status: Deferred (alpha)** — closed down for alpha pending a requirements review.
 
 **Problem**
 
@@ -986,12 +986,14 @@ FHIR R4 defines `Endpoint.address` with a minimum cardinality of `1` — a compl
 
 There is also a possible **business-rule regression**: the current wording hides the address for *every* non-owned Endpoint, whereas the earlier requirements only hid addresses explicitly marked `private`.
 
-**Recommended fix:**
+**Decision:** Closed down for `1.0.0-alpha`. The **underlying requirements for address visibility are being reviewed**, so the redaction behaviour and the business rule cannot be settled yet. Rather than encode a mechanism (SUBSETTED tag, whole-resource exclusion, etc.) that the requirements review may change, this is deferred until that review concludes.
 
-- If redaction is required, either exclude the Endpoint entirely from the response, or return an explicitly subsetted resource tagged with the standard `SUBSETTED` code in `Resource.meta.tag`, and document this behaviour clearly.
-- Confirm the intended business rule: redact all non-owned addresses, or only those marked private.
+**To revisit once requirements are confirmed:**
 
-**Note:** This is the visibility mechanism deferred under #14. It is being handled separately, but the FHIR-cardinality implication (`address 1..1`) and the SUBSETTED-tag approach are recorded here.
+- Decide the business rule: redact all non-owned addresses, or only those marked `private` (resolves the possible regression).
+- Decide the FHIR-safe mechanism: exclude the Endpoint entirely, or return an explicitly subsetted resource tagged with the standard `SUBSETTED` code in `Resource.meta.tag` — so the response is not passed off as a complete Endpoint.
+
+**Related:** This is the same address-visibility concern deferred under #14 (`Endpoint.header`). The two should be resolved together when the requirements review lands. **No OAS change made.**
 
 ---
 
