@@ -55,8 +55,14 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 30 | `Accept` header marked required; FHIR treats it as optional                                                             | Won't fix (by design — WAF/versioning/intent)                                | RW - 01/09/26 |
 | 31 | Logical ids / path params constrained to UUID only; FHIR`id` is broader                                                 | Pending                                                                       |               |
 | 32 | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Deferred (alpha) —`/metadata` parked                                         |               |
+| 33 | Parent-template `extension` on Endpoint (ties a child Endpoint to its parent Template) was missing                      | Fixed (extension `url` still needs a real canonical — see detail)             |               |
+| 34 | Process `$template` lookup uses `productId` + PascalCase `ConnectionType`/`PayloadType`; OAS exposes `identifier` + kebab | Pending (team) — process vs OAS alignment                                     |               |
+| 35 | Processes use `_has:HealthcareService:endpoint:_id={id}`; OAS only declares `_has:...:identifier`                        | Pending (team) — process vs OAS alignment                                     |               |
+| 36 | Processes use `GET /HealthcareService?_id=...&_include=HealthcareService:endpoint`; OAS declares neither and forbids `_include` | Pending (team) — process vs OAS alignment                                     |               |
+| 37 | Process create/update payloads send `connectionType.coding[]` (CodeableConcept); OAS schema is now a flat `Coding` (#15) | Pending (team) — process vs OAS alignment                                     |               |
+| 38 | Process docs carry stale details already changed in the OAS (`;version=`, `-epc`, `/id/`, premature UKCore profile)      | Pending — update process docs                                                 |               |
 
-> **Provenance:** Items #1–#18 arose during the interactive review session. Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments.
+> **Provenance:** Items #1–#18 arose during the interactive review session. Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments. Item #33 was identified and restored later in the session. Items #34–#38 came from checking the OAS against the Interim Process documents (`IP001`–`IP004`) in `epc-work/Documents/Processes`.
 
 ---
 
@@ -1163,6 +1169,136 @@ The embedded CapabilityStatement must stay synchronised with the paths and behav
 **When revisited (post-alpha):** Generate both artefacts from a shared source, or add automated tests comparing the OAS operations with the CapabilityStatement. A small, accurate CapabilityStatement is preferable to a detailed one that drifts from the implementation.
 
 **No OAS change made.**
+
+---
+
+### #33 — Parent-template `extension` on Endpoint was missing
+
+**Status: Fixed** (with a caveat on the extension `url` — see below)
+
+**Problem**
+
+A child Endpoint is tied to its parent Template Endpoint via a FHIR `extension` carrying a `valueReference` to the parent. This extension was not present in the reviewed OAS (it could not be found in the working file, the `-rw.json` variant, the last backup, or any commit in git history — so it appears never to have been committed rather than removed by an edit in this session). Without it, the OAS does not express the child→parent-template relationship that the design relies on.
+
+**Change — added the extension to the child Endpoint (schema + examples).**
+
+```json
+"extension": [
+  {
+    "url": "http://hl7.org",
+    "valueReference": {
+      "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+      "display": "Parent Template Endpoint"
+    }
+  }
+]
+```
+
+**Scope:** added to the `Endpoint` schema and the `EndpointBundle` nested resource schema, and to the 5 Endpoint **instance** examples (request body, `200`/`201-AtomicEndpoint`, and both `200-EndpointBundle` entries). **Not** added to the `EndpointTemplate` schema or template examples — a template has no parent template, so the extension belongs only on child Endpoints.
+
+**Modelling notes:**
+- FHIR `extension` is always structurally an **array** (`extension[]`), even though the business rule is one parent template per Endpoint (`0..1`). The schema models it as an array; the examples carry a single entry, expressing the `0..1` intent.
+- The reference target is an `Endpoint` (the parent template is itself an Endpoint resource), consistent with the hidden-template design discussed under #21.
+
+**Caveat — the extension `url` is not a valid canonical (left as-is per instruction).**
+The `url` is `http://hl7.org`, which is the HL7 homepage, not an extension `StructureDefinition` canonical. A FHIR extension's `url` must be the canonical URL of the `StructureDefinition` that defines it (e.g. an EPC/NHS canonical such as `https://fhir.nhs.uk/StructureDefinition/Endpoint-ParentTemplate`). This was **left unchanged as requested**, but it should be replaced with a real canonical (and that extension published) for the resource to be conformant.
+
+---
+
+## Process alignment findings (OAS vs `IP001`–`IP004`)
+
+The following items were found by checking the OAS against the four Interim Process documents in `epc-work/Documents/Processes` (`IP001` manage HealthcareService, `IP002` manage Endpoint Template, `IP003` manage Endpoint, `IP004` daily switch). They are conflicts between what the processes call and what the OAS declares. **No OAS or process changes have been made** — each needs a direction decision: fix the OAS, fix the process docs, or both.
+
+> **What aligns (no action):** All operations the processes use exist in the OAS (`POST/PUT/DELETE/GET` on HealthcareService, Endpoint, `$template`). The parent-template `extension` in `IP003` payloads now matches the OAS (#33). Child Endpoint holding only `status`/`period`/`name` + inherited fields, HealthcareService `endpoint[]` as an array and `providedBy` as a single object, and soft/hard delete via `PUT`/`DELETE` all match.
+
+---
+
+### #34 — `$template` lookup parameter name mismatch
+
+**Status: Pending (team)** — process vs OAS alignment.
+
+**Problem**
+
+Every process (IP002, IP003, IP004) locates a Template with:
+```
+GET /Endpoint/$template?productId={id}&ConnectionType={system|value}&PayloadType={system|value}
+```
+But the OAS `GET /Endpoint/$template` now exposes the query parameters **`identifier`**, **`connection-type`**, **`payload-type`** (following the #7 and #8 renames). So the processes send `productId` (no such OAS param — it is `identifier`) and PascalCase `ConnectionType`/`PayloadType` (now kebab-case in the OAS).
+
+**Recommended direction:** Align the process docs to the OAS names — `identifier`, `connection-type`, `payload-type` — unless `productId` is intended to be a distinct, separately-named lookup parameter, in which case the OAS must add it. (The Template's product id is carried in `Endpoint.identifier`, so `identifier` is the natural FHIR fit.)
+
+---
+
+### #35 — Reverse-chain on `_id` not supported
+
+**Status: Pending (team)** — process vs OAS alignment.
+
+**Problem**
+
+IP003 uses reverse-chaining on the HealthcareService **logical id**:
+```
+GET /Endpoint?_has:HealthcareService:endpoint:_id={hsId}
+GET /Endpoint?_has:HealthcareService:endpoint:_id={hsId}&identifier={productId}
+```
+The OAS only declares `_has:HealthcareService:endpoint:identifier` (reverse-chaining on the HealthcareService **business identifier**, not `_id`). Reverse-chaining on `_id` is not a declared parameter.
+
+**Recommended direction:** Either change the process queries to chain on `identifier` (matching the OAS), or extend the OAS to declare the `_has:...:_id` form if searching by the HealthcareService logical id is genuinely required.
+
+---
+
+### #36 — `_id` and `_include` on `GET /HealthcareService` not supported
+
+**Status: Pending (team)** — process vs OAS alignment.
+
+**Problem**
+
+IP001 (operations reference) and IP004 (verify step) use:
+```
+GET /HealthcareService?_id={id}&_include=HealthcareService:endpoint
+GET /HealthcareService?identifier=...&_include=HealthcareService:endpoint
+```
+The OAS `GET /HealthcareService` declares only `identifier` and `organization.identifier` — there is **no `_id` and no `_include`**. Moreover, the OAS operation description **explicitly states `_include=HealthcareService:endpoint` is not supported**, directing callers to `GET /Endpoint?_has:HealthcareService:endpoint:identifier=...` instead. So the processes rely on behaviour the OAS deliberately does not offer.
+
+**Recommended direction:** Update the process docs to use the OAS-sanctioned pattern (`GET /Endpoint?_has:...:identifier=...`) for retrieving a service's Endpoints, rather than `_include`. If `_include`/`_id` support is actually required, that is a deliberate API-design change that reopens the current "not supported" decision.
+
+---
+
+### #37 — `connectionType` payload shape mismatch (CodeableConcept vs Coding)
+
+**Status: Pending (team)** — process vs OAS alignment.
+
+**Problem**
+
+Process create/update payloads (IP002, IP003) send `connectionType` as a CodeableConcept:
+```json
+"connectionType": { "coding": [ { "system": "...", "code": "hl7-fhir-rest", "display": "HL7 FHIR" } ] }
+```
+But following #15 the OAS models `Endpoint.connectionType` as a flat FHIR `Coding`:
+```json
+"connectionType": { "system": "...", "code": "hl7-fhir-rest", "display": "HL7 FHIR" }
+```
+A payload built per the current process docs would not match the OAS schema.
+
+**Recommended direction:** Update the process payload examples to the flat `Coding` shape (FHIR-correct per #15). `payloadType` remains a `CodeableConcept[]` (`coding[]`) and is unaffected.
+
+---
+
+### #38 — Stale details in the process docs (already changed in the OAS)
+
+**Status: Pending** — update process docs.
+
+**Problem**
+
+The process docs still show several details the OAS has since moved away from during this review:
+
+| Detail in process docs | Current OAS position | Ref |
+|------------------------|----------------------|-----|
+| `Content-Type: application/fhir+json;version=1.4.0` | version parameter removed; plain `application/fhir+json` | #16 |
+| `payloadType` system `...endpoint-payload-type-epc` | `-epc` removed; standard `...endpoint-payload-type` | #3 |
+| `identifier[].system: https://fhir.nhs.uk/id/product-id` (lowercase) | capital `/Id/` | #6 |
+| HS payloads assert `meta.profile: UKCore-HealthcareService` | OAS HS schema does not assert this profile, and `HealthcareService.type` (MustSupport) is still absent | #18 |
+
+**Recommended direction:** Update the process docs to match the OAS on these points. These are documentation-consistency fixes rather than API-design decisions.
 
 ---
 

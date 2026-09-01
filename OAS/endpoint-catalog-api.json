@@ -901,6 +901,15 @@
                       "http://hl7.org/fhir/StructureDefinition/Endpoint"
                     ]
                   },
+                  "extension": [
+                    {
+                      "url": "http://hl7.org",
+                      "valueReference": {
+                        "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                        "display": "Parent Template Endpoint"
+                      }
+                    }
+                  ],
                   "identifier": [
                     {
                       "value": "1000099999",
@@ -1307,6 +1316,15 @@
                   "http://hl7.org/fhir/StructureDefinition/Endpoint"
                 ]
               },
+              "extension": [
+                {
+                  "url": "http://hl7.org",
+                  "valueReference": {
+                    "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                    "display": "Parent Template Endpoint"
+                  }
+                }
+              ],
               "identifier": [
                 {
                   "value": "1000099999",
@@ -1387,6 +1405,15 @@
                   "http://hl7.org/fhir/StructureDefinition/Endpoint"
                 ]
               },
+              "extension": [
+                {
+                  "url": "http://hl7.org",
+                  "valueReference": {
+                    "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                    "display": "Parent Template Endpoint"
+                  }
+                }
+              ],
               "identifier": [
                 {
                   "value": "1000099999",
@@ -1750,6 +1777,15 @@
                         "http://hl7.org/fhir/StructureDefinition/Endpoint"
                       ]
                     },
+                    "extension": [
+                      {
+                        "url": "http://hl7.org",
+                        "valueReference": {
+                          "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                          "display": "Parent Template Endpoint"
+                        }
+                      }
+                    ],
                     "identifier": [
                       {
                         "value": "1000099999",
@@ -1805,6 +1841,15 @@
                         "http://hl7.org/fhir/StructureDefinition/Endpoint"
                       ]
                     },
+                    "extension": [
+                      {
+                        "url": "http://hl7.org",
+                        "valueReference": {
+                          "reference": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                          "display": "Parent Template Endpoint"
+                        }
+                      }
+                    ],
                     "identifier": [
                       {
                         "value": "1000099999",
@@ -2672,6 +2717,33 @@
               }
             }
           },
+          "extension": {
+            "type": "array",
+            "description": "Links this Endpoint to its parent Template Endpoint (0..1 in practice). FHIR extensions are always structurally an array.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "http://hl7.org"
+                },
+                "valueReference": {
+                  "type": "object",
+                  "properties": {
+                    "reference": {
+                      "type": "string",
+                      "example": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
+                    },
+                    "display": {
+                      "type": "string",
+                      "example": "Parent Template Endpoint"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "identifier": {
             "type": "array",
             "items": {
@@ -3210,6 +3282,33 @@
                             "type": "string",
                             "format": "url",
                             "example": "http://hl7.org/fhir/structuredefinition/endpoint"
+                          }
+                        }
+                      }
+                    },
+                    "extension": {
+                      "type": "array",
+                      "description": "Links this Endpoint to its parent Template Endpoint (0..1 in practice). FHIR extensions are always structurally an array.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "format": "url",
+                            "example": "http://hl7.org"
+                          },
+                          "valueReference": {
+                            "type": "object",
+                            "properties": {
+                              "reference": {
+                                "type": "string",
+                                "example": "Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5"
+                              },
+                              "display": {
+                                "type": "string",
+                                "example": "Parent Template Endpoint"
+                              }
+                            }
                           }
                         }
                       }
