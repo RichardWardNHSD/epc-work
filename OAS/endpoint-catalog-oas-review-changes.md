@@ -52,7 +52,7 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 | 27 | `Endpoint.address` redaction produces an incomplete FHIR resource; business rule may have regressed                     | Pending (team)                                                                |               |
 | 28 | Create examples include server-managed fields (`id`, `meta.lastUpdated`)                                                | Pending                                                                       |               |
 | 29 | Update-as-create not supported: removed`201` from PUTs and upsert wording (`updateCreate` left absent)                  | Fixed                                                                         | RW - 26/08/26 |
-| 30 | `Accept` header marked required; FHIR treats it as optional                                                             | Pending                                                                       |               |
+| 30 | `Accept` header marked required; FHIR treats it as optional                                                             | Won't fix (by design — WAF/versioning/intent)                                 |               |
 | 31 | Logical ids / path params constrained to UUID only; FHIR`id` is broader                                                 | Pending                                                                       |               |
 | 32 | CapabilityStatement and OAS not kept in sync (names, types, profiles, operations)                                       | Deferred (alpha) — `/metadata` parked                                         |               |
 
@@ -1067,35 +1067,19 @@ These were **intentionally left in place** (not deleted). They are expected to b
 
 ### #30 — `Accept` header marked required
 
-**Status: Pending**
+**Status: Won't fix (by design)**
 
-**Problem**
+**Problem (as raised)**
 
-The reusable `Accept` header parameter is marked `required: true`. In FHIR, `Accept` is optional — clients may supply it to select a response format, but a FHIR server should have a default when it is absent.
+The reusable `Accept` header parameter is marked `required: true`. In strict FHIR, `Accept` is optional — clients may supply it to select a response format, and a FHIR server should have a default when it is absent. So the standards-only recommendation was to set `required: false`.
 
-**Before**
+**Decision:** The team has decided to **keep `Accept` as `required: true`**. This is a deliberate, documented deviation from the FHIR default, retained for the following reasons:
 
-```json
-"AcceptEPC_HParam": {
-  "name": "Accept",
-  "in": "header",
-  "required": true,
-  ...
-}
-```
+- **Content-based routing & WAF efficiency.** A Web Application Firewall or API gateway (Apigee, AWS API Gateway, Azure API Management) can reject a malformed or missing `Accept` header at the network edge with `406 Not Acceptable`, dropping invalid traffic **before** it reaches the FHIR backend — saving CPU and database resources.
+- **Deterministic versioning.** If the API later needs to support custom payloads or multiple structural versions (e.g. moving from national profiles to local/regional profiles), vendor MIME types in the `Accept` header (e.g. `Accept: application/fhir+json; profile=...`) are cleaner than versioning through URL paths.
+- **Explicit client intent.** Requiring `Accept: application/fhir+json` prevents bugs where a client accidentally processes unstructured data, plain HTML error pages, or fallback text formats when something goes wrong.
 
-**Recommended after**
-
-```json
-"AcceptEPC_HParam": {
-  "name": "Accept",
-  "in": "header",
-  "required": false,
-  ...
-}
-```
-
-**Recommended fix:** Set `required: false`. The server may still reject explicitly unsupported media types with `406 Not Acceptable`.
+**Outcome:** `AcceptEPC_HParam` stays `required: true`. No OAS change made. This is recorded as an accepted, intentional deviation rather than a defect.
 
 ---
 
