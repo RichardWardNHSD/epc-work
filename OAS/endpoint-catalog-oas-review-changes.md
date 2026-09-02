@@ -72,10 +72,12 @@ The ratings below prioritise the findings for the `1.0.0-alpha` release. Fixed i
 
 | MoSCoW rating | Findings | Rationale |
 |---|---|---|
-| **Must have** | #2, #3, #5, #6, #13–#17, #19, #22, #23, #26, #28, #31, #33–#38 | Required to avoid invalid FHIR structures, broken or ambiguous searches, request/schema mismatches, or process flows that cannot be implemented consistently. |
-| **Should have** | #1, #4, #7–#12, #18, #21, #25, #29 | Important conformance, naming, metadata, and consistency improvements. This includes CapabilityStatement-related corrections that have been completed or should be addressed when the statement is revisited. |
+| **Must have** | #1–#3, #5–#7, #13–#17, #19, #22, #23, #25, #26, #28, #29 (Changes 1 and 2), #33–#38 | Required to avoid invalid FHIR structures, broken or ambiguous searches, request/schema mismatches, or process flows that cannot be implemented consistently. |
+| **Should have** | #4, #8–#12, #18, #21, #31 | Important conformance, naming, metadata, and consistency improvements. This includes CapabilityStatement-related corrections that have been completed or should be addressed when the statement is revisited. |
 | **Could have** | None currently | No finding is merely an optional enhancement; each is either needed for correctness/consistency, deliberately deferred, or explicitly accepted by design. |
-| **Won't have this time** | #20, #24, #27, #30, #32 | #20 and #30 are accepted design decisions. #24, #27, and #32 are explicitly deferred until after alpha, including the parked `/metadata` CapabilityStatement work. |
+| **Won't have this time** | #20, #24, #27, #29 (Change 3), #30, #32 | #20, #29 Change 3, and #30 are accepted design decisions. #24, #27, and #32 are explicitly deferred until after alpha, including the parked `/metadata` CapabilityStatement work. |
+
+> **#29 split rating:** Changes 1 and 2 apply and are **Must have**. Change 3 does not apply because `CapabilityStatement.updateCreate` remains absent, correctly indicating that update-as-create is unsupported; it is therefore **Won't have this time**.
 
 ---
 
