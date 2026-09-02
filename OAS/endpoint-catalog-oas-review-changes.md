@@ -66,6 +66,19 @@ This document is both a record of the changes made to `endpoint-catalog-api.json
 
 ---
 
+## MoSCoW rating
+
+The ratings below prioritise the findings for the `1.0.0-alpha` release. Fixed items are retained for traceability and rated according to the impact they would have had if left unresolved. **Won't** means *won't be addressed in this release*, not that the finding has been rejected permanently.
+
+| MoSCoW rating | Findings | Rationale |
+|---|---|---|
+| **Must have** | #2, #3, #5, #6, #13–#17, #19, #22, #23, #26, #28, #31, #33–#38 | Required to avoid invalid FHIR structures, broken or ambiguous searches, request/schema mismatches, or process flows that cannot be implemented consistently. |
+| **Should have** | #1, #4, #7–#12, #18, #21, #25, #29 | Important conformance, naming, metadata, and consistency improvements. This includes CapabilityStatement-related corrections that have been completed or should be addressed when the statement is revisited. |
+| **Could have** | None currently | No finding is merely an optional enhancement; each is either needed for correctness/consistency, deliberately deferred, or explicitly accepted by design. |
+| **Won't have this time** | #20, #24, #27, #30, #32 | #20 and #30 are accepted design decisions. #24, #27, and #32 are explicitly deferred until after alpha, including the parked `/metadata` CapabilityStatement work. |
+
+---
+
 ## Findings — Detail (numeric order)
 
 ---
