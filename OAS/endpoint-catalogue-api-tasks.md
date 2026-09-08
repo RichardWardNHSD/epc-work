@@ -18,24 +18,24 @@ Tasks to bring the new `endpoint-catalogue-api.json` back in line with the FHIR 
 
 ## Must (required for a correct/conformant alpha)
 
-- [ ] **[#1] Period casing** — `Period`/`Start`/`End` → `period`/`start`/`end` in the Endpoint schema, EndpointBundle schema, and all examples.
+- [x] **[#1] Period casing** — `Period`/`Start`/`End` → `period`/`start`/`end` in the Endpoint schema, EndpointBundle schema, and all examples. ✅
 - [ ] **[#2] connectionType/payloadType query params as tokens** — reference `system|value` token string schemas, not nested `coding` object schemas. Remove the `ConnectionType`/`PayloadType` object schemas; add token schemas. Fix the connectionType schema example system (currently shows `endpoint-payload-type`).
-- [ ] **[#3] Remove `-epc` system** — replace `endpoint-payload-type-epc` with standard `endpoint-payload-type` everywhere (~10 occurrences).
-- [ ] **[#5] Identifier system scheme** — `http://fhir.nhs.uk` → `https://fhir.nhs.uk` on HealthcareService identifiers.
+- [x] **[#3] Remove `-epc` system** — replaced `endpoint-payload-type-epc` with standard `endpoint-payload-type` (11 occurrences). ✅
+- [x] **[#5] Identifier system scheme** — `http://fhir.nhs.uk` → `https://fhir.nhs.uk` (8 occurrences). ✅
 - [ ] **[#6] product-id casing** — `https://fhir.nhs.uk/id/product-id` → `/Id/product-id` (8 occurrences).
 - [ ] **[#7] Rename search params** — `ConnectionType` → `connection-type`, `PayloadType` → `payload-type` (param `name` field only).
 - [ ] **[#8] Rename identifier params** — `Endpoint.identifier` / `HealthcareService.identifier` → `identifier`.
 - [ ] **[#9] organization search param** — CapabilityStatement already has `organization` as `reference` (good). Align `HCProvidedBy_QParam` name `HealthcareService.providedBy` → `organization.identifier` (reference chaining).
-- [ ] **[#13] managingOrganization cardinality** — model `Endpoint.managingOrganization` as a single object (`0..1`), not an array (3 schemas + 8 examples).
-- [ ] **[#14] Endpoint.header** — model as FHIR `string 0..*` (array of connection headers); remove the `public`/`private` visibility usage; update the 2 operation descriptions to stop attributing address visibility to `header`.
+- [x] **[#13] managingOrganization cardinality** — modelled `Endpoint.managingOrganization` as a single object (`0..1`), not an array (11 occurrences). ✅
+- [x] **[#14] Endpoint.header** — modelled as FHIR `string 0..*` (array); removed `public`/`private` usage from schema (3) + examples (8); rewrote the 2 operation descriptions to attribute address visibility to ownership, not `header`. ✅
 - [ ] **[#15] connectionType as Coding** — model `Endpoint.connectionType` as a flat FHIR `Coding` (`system`/`code`/`display`/`version`/`userSelected`), not `CodeableConcept` `coding[]`. Update description refs to `connectionType.code`. Leave `payloadType` as `CodeableConcept[]`.
 - [ ] **[#16] Media type version param** — `application/fhir+json;version=1.4.0` → `application/fhir+json` on the 4 request bodies.
 - [ ] **[#17] PUT request bodies** — add `requestBody` to `PUT /HealthcareService/{id}`, `PUT /Endpoint/{id}`, `PUT /Endpoint/{id}/$template`.
-- [ ] **[#19] providedBy cardinality** — model `HealthcareService.providedBy` as a single object (`0..1`), not an array (2 schemas + 5 examples).
-- [ ] **[#22] Remove Identifier.display** — remove the invalid `display` from all 12 `Identifier` objects (examples + schemas). Keep valid `Coding.display` and `Reference.display`.
+- [x] **[#19] providedBy cardinality** — modelled `HealthcareService.providedBy` as a single object (`0..1`), not an array (6 occurrences). ✅
+- [x] **[#22] Remove Identifier.display** — removed the invalid `display` from all 12 `Identifier` objects (examples + schemas). Valid `Coding.display` and `Reference.display` preserved. ✅
 - [ ] **[#25] Remove custom List profile** — remove `EPC-EndpointList` profile and `EPC-list-code` from List; use base FHIR `List`; drop `List.code` (priority semantics live in `orderedBy = priority`).
-- [ ] **[#29] Remove update-as-create** — remove the `201` response and the upsert wording from all 4 PUT operations; leave `updateCreate` absent (upsert not supported).
-- [ ] **[#33] Parent-template extension** — re-add the parent-template `extension` (`valueReference` to the parent Template Endpoint) to the Endpoint schema, the EndpointBundle nested resource, and the 5 Endpoint examples. Not on templates. Confirm/replace the extension `url` canonical (currently `http://hl7.org`, which is not a valid extension canonical).
+- [x] **[#29] Remove update-as-create** — removed the `201` response from all 4 PUT operations and the upsert wording from all 4 descriptions; `updateCreate` left absent. ✅
+- [x] **[#33] Parent-template extension** — re-added the parent-template `extension` (`valueReference` to the parent Template Endpoint) to the Endpoint schema, the EndpointBundle nested resource, and the 5 Endpoint examples (not on templates). ✅ ⚠️ **Still TODO:** the extension `url` is `http://hl7.org`, which is not a valid extension canonical — replace with a real `StructureDefinition` URL when available.
 - [ ] **[#34/#37] Process alignment** — after the OAS param renames (#7/#8) and connectionType flattening (#15), update process docs `IP001`–`IP004`: `$template` `productId` → `identifier`, kebab-case params, flat `connectionType`.
 
 ---
