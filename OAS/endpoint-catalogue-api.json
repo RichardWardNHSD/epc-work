@@ -1,0 +1,3849 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "The Endpoint Catalog API provides a FHIR R4 interface for managing and querying Endpoint and HealthcareService resources. It enables connecting parties to discover service endpoints by organisation, service identifier, connection type and payload type.",
+    "version": "1.4.0-alpha",
+    "title": "Endpoint Catalog API",
+    "termsOfService": "https://digital.nhs.uk/developer/api-catalogue/endpoint-catalogue",
+    "contact": {
+      "email": "api.management@nhs.net",
+      "url": "https://digital.nhs.uk/developer/api-catalogue/endpoint-catalogue",
+      "name": "NHS England API Management"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://sandbox.api.service.nhs.uk/endpoint-catalogue/FHIR/R4",
+      "description": "Sandbox (standalone path \u2014 target state)"
+    },
+    {
+      "url": "https://int.api.service.nhs.uk/endpoint-catalogue/FHIR/R4",
+      "description": "Integration (standalone path \u2014 target state)"
+    },
+    {
+      "url": "https://api.service.nhs.uk/endpoint-catalogue/FHIR/R4",
+      "description": "Production (standalone path \u2014 target state)"
+    }
+  ],
+  "security": [
+    {
+      "OAuth_AppRestricted": []
+    },
+    {
+      "OAuth_CIS2": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Endpoint"
+    },
+    {
+      "name": "HealthcareService"
+    },
+    {
+      "name": "Metadata"
+    },
+    {
+      "name": "List"
+    }
+  ],
+  "paths": {
+    "/metadata": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Get the Endpoint Catalogue API capability statement",
+        "description": "Returns the CapabilityStatement for the Endpoint Catalogue API.\n\nThis describes the resources, interactions, and search parameters supported by this API. Consumers can use this to programmatically discover what the API supports.\n\nNo NHSD-Target-Identifier header is required.",
+        "operationId": "getMetadata",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+          },
+          {
+            "$ref": "#/components/parameters/X-Request-Id"
+          },
+          {
+            "$ref": "#/components/parameters/X-Correlation-Id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The CapabilityStatement for the Endpoint Catalogue API",
+            "content": {
+              "application/fhir+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capability"
+                },
+                "example": {
+                  "resourceType": "CapabilityStatement",
+                  "id": "endpoint-catalogue-api",
+                  "url": "https://api.service.nhs.uk/endpoint-catalogue/FHIR/R4",
+                  "name": "Endpoint Catalogue API CapabilityStatement",
+                  "status": "active",
+                  "version": "1.4.0",
+                  "experimental": false,
+                  "date": "2026-06-08T00:00:00+01:00",
+                  "publisher": "NHS England",
+                  "contact": [
+                    {
+                      "name": "Endpoint Catalogue Team",
+                      "telecom": [
+                        {
+                          "system": "email",
+                          "value": "england.bookingandreferralstandard@nhs.net"
+                        }
+                      ]
+                    }
+                  ],
+                  "kind": "instance",
+                  "software": {
+                    "name": "Endpoint Catalogue API",
+                    "version": "1.4.0"
+                  },
+                  "implementation": {
+                    "description": "Endpoint Catalogue API - FHIR R4 service discovery",
+                    "url": "https://api.service.nhs.uk/endpoint-catalogue/FHIR/R4"
+                  },
+                  "fhirVersion": "4.0.1",
+                  "format": [
+                    "json"
+                  ],
+                  "rest": [
+                    {
+                      "mode": "server",
+                      "security": [
+                        {
+                          "service": {
+                            "coding": [
+                              {
+                                "code": "OAuth",
+                                "system": "http://terminology.hl7.org/CodeSystem/restful-security-service",
+                                "display": "OAuth"
+                              }
+                            ]
+                          }
+                        }
+                      ],
+                      "resource": [
+                        {
+                          "type": "Endpoint",
+                          "interaction": [
+                            {
+                              "code": "read"
+                            },
+                            {
+                              "code": "search-type"
+                            },
+                            {
+                              "code": "create"
+                            },
+                            {
+                              "code": "update"
+                            },
+                            {
+                              "code": "delete"
+                            }
+                          ],
+                          "searchParam": [
+                            {
+                              "name": "identifier",
+                              "type": "token"
+                            },
+                            {
+                              "name": "_has:HealthcareService:endpoint:_id",
+                              "type": "token"
+                            },
+                            {
+                              "name": "connection-type",
+                              "type": "token"
+                            },
+                            {
+                              "name": "payload-type",
+                              "type": "token"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "HealthcareService",
+                          "interaction": [
+                            {
+                              "code": "read"
+                            },
+                            {
+                              "code": "search-type"
+                            },
+                            {
+                              "code": "create"
+                            },
+                            {
+                              "code": "update"
+                            },
+                            {
+                              "code": "delete"
+                            }
+                          ],
+                          "searchParam": [
+                            {
+                              "name": "_id",
+                              "type": "token"
+                            },
+                            {
+                              "name": "identifier",
+                              "type": "token"
+                            },
+                            {
+                              "name": "organization",
+                              "type": "reference"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "List",
+                          "interaction": [
+                            {
+                              "code": "read"
+                            },
+                            {
+                              "code": "search-type"
+                            },
+                            {
+                              "code": "create"
+                            },
+                            {
+                              "code": "update"
+                            },
+                            {
+                              "code": "delete"
+                            }
+                          ],
+                          "searchParam": [
+                            {
+                              "name": "subject",
+                              "type": "reference"
+                            }
+                          ],
+                          "searchInclude": [
+                            "List:item"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        }
+      }
+    },
+    "/HealthcareService": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "get": {
+        "tags": [
+          "HealthcareService"
+        ],
+        "summary": "Get the HealthcareService for an identifier",
+        "description": "Get the HealthcareService for an identifier.\n\n**Note:** `_include=HealthcareService:endpoint` is not supported on this endpoint. The `GET /Endpoint` search provides visibility filtering (status, period, HealthcareService.active) and supports filtering by `connectionType` and `payloadType`, which cannot be applied through `_include`.\n\nTo retrieve Endpoints for a HealthcareService, use:\n```\nGET /Endpoint?_has:HealthcareService:endpoint:_id={id}\n```",
+        "operationId": "findHealthcareServiceByOrg",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ServiceId_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/HCProvidedBy_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/HealthcareServiceIdentifier_QParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-HealthcareServiceBundle"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "HealthcareService"
+        ],
+        "summary": "Create a HealthcareService",
+        "description": "Create a single HealthcareService resource.\n\nThe API validates all `endpoint[]` references in the request body before writing the resource. If any referenced Endpoint does not exist, the request is rejected with a `422 Unprocessable Entity` response and the HealthcareService is not created.\n\nThis validation is performed server-side — callers do not need to pre-validate Endpoint references before submitting the request.",
+        "operationId": "createHealthcareService",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicHealthcareService"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/HealthcareService"
+        },
+        "parameters": []
+      }
+    },
+    "/HealthcareService/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/HealthcareServiceIdentifier_PParam"
+        },
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "get": {
+        "tags": [
+          "HealthcareService"
+        ],
+        "summary": "Get a specific HealthcareService",
+        "description": "Read operation for a Specific HealthcareService",
+        "operationId": "getHealthcareService",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicHealthcareService"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "put": {
+        "tags": [
+          "HealthcareService"
+        ],
+        "summary": "Update a Specific HealthcareService",
+        "description": "Creates a new current version for an existing resource [(update)](https://www.hl7.org/fhir/http.html#update) or creates an initial version if no resource already exists for the given id [(new)](https://www.hl7.org/fhir/http.html#upsert).\n\nThe API validates all `endpoint[]` references in the request body before writing the resource. If any referenced Endpoint does not exist, the request is rejected with a `422 Unprocessable Entity` response and the HealthcareService is not updated.\n\nThis validation is performed server-side — callers do not need to pre-validate Endpoint references before submitting the request.",
+        "operationId": "replaceHealthcareService",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicHealthcareService"
+          },
+          "201": {
+            "$ref": "#/components/responses/201-AtomicHealthcareService"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "delete": {
+        "tags": [
+          "HealthcareService"
+        ],
+        "summary": "Delete a Specific HealthcareService",
+        "description": "Delete a Specific HealthcareService",
+        "operationId": "deleteHealthcareService",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-Delete"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/Endpoint": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Search for Endpoints by HealthcareService, connectionType and payloadType",
+        "description": "Search for Endpoint resources. Results can be filtered by organisation, HealthcareService association, connection type, and payload type.\n\nThe Endpoint.address will be omitted from results where Endpoint.header is set to private, unless the requestor is the owner of that Endpoint.\n\n### Query parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| _has | string | Filter by associated HealthcareService. Use _has:HealthcareService.Identifier=<system>\\|<value> or _has:HealthcareService.Id=<uuid> |\n| identifier | string | Filter by the Endpoint's own identifier (not the resource id). URL-encode the value. |\n| connection-type | string | Filter by technical protocol, e.g. hl7-fhir-rest. Matches against Endpoint.connectionType.coding.code. |\n| payload-type | string | Filter by message standard, e.g. bars. Matches against Endpoint.payloadType.coding.code. |",
+        "operationId": "findEndpointByOrg",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EndpointHas_Qparam"
+          },
+          {
+            "$ref": "#/components/parameters/EndpointIdentifier_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/ConnectionType_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/PayloadType_QParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-EndpointBundle"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Create an Endpoint",
+        "description": "Create a single Endpoint resource.  \n",
+        "operationId": "createEndpoint",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicEndpoint"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/Endpoint"
+        },
+        "parameters": []
+      }
+    },
+    "/Endpoint/$template": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Get the Endpoint template based on an Organization, Endpoint, ConnectionType and PayloadType identifiers",
+        "description": "Get the Endpoint template for an identifier. Its address will be omitted if the Endpoint.header is set to private, unless the requestor is the owner.",
+        "operationId": "getEndpointTemplate",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EndpointIdentifier_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/ConnectionType_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/PayloadType_QParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-EndpointTemplate"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Create an Endpoint template",
+        "description": "Create a single Endpoint template resource.  \n",
+        "operationId": "createEndpointTemplate",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-EndpointTemplate"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/EndpointTemplate"
+        },
+        "parameters": []
+      }
+    },
+    "/Endpoint/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/EndpointIdentifier_PParam"
+        },
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Get a Specific Endpoint",
+        "description": "Read operation for a specific Endpoint",
+        "operationId": "getEndpoint",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicEndpoint"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "put": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Update a Specific Endpoint",
+        "description": "Creates a new current version for an existing resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).\n\nOnly the owner of an Endpoint can modify it. \n",
+        "operationId": "replaceEndpoint",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicEndpoint"
+          },
+          "201": {
+            "$ref": "#/components/responses/201-AtomicEndpoint"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "delete": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Delete a Specific Endpoint",
+        "description": "Delete a Specific Endpoint.\n\nOnly the owner of an Endpoint can delete it. \n",
+        "operationId": "deleteEndpoint",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-Delete"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/Endpoint/{id}/$template": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/EndpointIdentifier_PParam"
+        },
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "put": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Update a Specific Endpoint template",
+        "description": "Creates a new current version for an existing resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).\n\nOnly the owner of an Endpoint can modify its template. \n",
+        "operationId": "replaceEndpointTemplate",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-EndpointTemplate"
+          },
+          "201": {
+            "$ref": "#/components/responses/201-EndpointTemplate"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "delete": {
+        "tags": [
+          "Endpoint"
+        ],
+        "summary": "Delete a Specific Endpoint",
+        "description": "Delete a Specific Endpoint template.\n\nOnly the owner of an Endpoint can delete its template. \n",
+        "operationId": "deleteEndpointTemplate",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-Delete"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/List": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "post": {
+        "tags": [
+          "List"
+        ],
+        "summary": "Create a priority-ordered Endpoint list for a HealthcareService",
+        "description": "Create a FHIR R4 [List](https://www.hl7.org/fhir/list.html) resource representing the priority-ordered set of Endpoints for a HealthcareService.\n\nNeither `Endpoint` nor `HealthcareService` carry a preferred order \u2014 the `List` resource is the mechanism for expressing communication preference.\n\n- `List.subject` must reference a `HealthcareService` resource\n- Each `List.entry[].item` must reference an `Endpoint` resource\n- Priority is determined by array position \u2014 index 0 is the highest priority\n- `List.orderedBy` must be set to `priority`\n- Only one `current` list should exist per HealthcareService\n\n### Constraint: One List per HealthcareService\n\nA `List` can only be associated with **one** HealthcareService (via `List.subject`). If a `current` List already exists for the HealthcareService referenced in `List.subject`, the API will reject the request with a `409 Conflict` response.\n\n**Error response:**\n```json\n{\n  \"resourceType\": \"OperationOutcome\",\n  \"issue\": [{\n    \"severity\": \"error\",\n    \"code\": \"conflict\",\n    \"details\": {\n      \"coding\": [{\n        \"system\": \"https://fhir.nhs.uk/Codesystem/http-error-codes\",\n        \"code\": \"LIST_ALREADY_EXISTS\"\n      }]\n    },\n    \"diagnostics\": \"A current List already exists for HealthcareService/{id}. Update the existing List or retire it before creating a new one.\"\n  }]\n}\n```\n\n### Reference validation\n\nThe API validates that all references in the payload exist before writing the List:\n\n- `List.subject` — the referenced HealthcareService must exist. If not, the API returns `422 Unprocessable Entity` with error code `REFERENCE_NOT_FOUND`.\n- `List.entry[].item` — every referenced Endpoint must exist. If any Endpoint does not exist, the API returns `422 Unprocessable Entity` with error code `REFERENCE_NOT_FOUND`.\n\nThis is a pure existence check — it does not validate Endpoint status, period, or association with the HealthcareService.\n",
+        "operationId": "createList",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/FhirList"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/201-AtomicList"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "get": {
+        "tags": [
+          "List"
+        ],
+        "summary": "Search for endpoint priority lists",
+        "description": "Search for `List` resources. Use `subject` to find the priority-ordered Endpoint list for a specific HealthcareService.\n\nUse `_include=List:item` to return the referenced `Endpoint` resources inline in the same Bundle, avoiding a second request.\n\n### Important: No connectionType or payloadType filtering on this endpoint\n\n`GET /List` does **not** support filtering by `connectionType` or `payloadType`. This is because:\n\n1. The `List` resource is a pure ordering mechanism \u2014 it holds references to Endpoints by ID, with no knowledge of what type each Endpoint is.\n2. `connectionType` and `payloadType` are properties of the Endpoint (resolved from its parent Template at read time). They are not properties of the List or its entries.\n3. FHIR `_include` has no filter mechanism \u2014 when `_include=List:item` is used, all referenced Endpoints are returned regardless of their type.\n\nIf you need **both** priority ordering **and** type filtering, use the two-step pattern:\n\n1. `GET /List?subject=HealthcareService/{id}&status=current` \u2014 retrieve the priority order\n2. `GET /Endpoint?_has:HealthcareService:endpoint:_id={id}&ConnectionType={type}&PayloadType={type}` \u2014 retrieve type-filtered Endpoints\n3. Client-side: apply the List order to the filtered results (iterate `List.entry[]`, skip entries not in the Step 2 response, preserve relative order of the rest)\n\n### No visibility filtering applied\n\nNo visibility filtering (status, period, or HealthcareService.active) is applied to Endpoints returned via `_include` on this endpoint. `/List` is intended for Endpoint administration and priority management, not consumer routing \u2014 administrators need to see all Endpoints regardless of their operational state.\n\n### Query parameters\n\n| Parameter | Type | Description |\n|-----------|------|-------------|\n| `subject` | string | Filter by HealthcareService reference, e.g. `HealthcareService/{id}` |\n| `status` | string | Filter by list status: `current`, `retired`, `entered-in-error` |\n| `_include` | string | Include referenced Endpoint resources. Use `List:item` |\n",
+        "operationId": "findList",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "description": "Filter lists by HealthcareService reference. Use the relative reference format `HealthcareService/{id}`.",
+            "schema": {
+              "type": "string",
+              "example": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Filter by list status.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "current",
+                "retired",
+                "entered-in-error"
+              ],
+              "example": "current"
+            }
+          },
+          {
+            "name": "_include",
+            "in": "query",
+            "required": false,
+            "description": "Include referenced Endpoint resources in the response Bundle. Note: No connectionType, payloadType, or visibility filtering is applied to the included Endpoints. The List resource holds Endpoint references by ID only \u2014 it has no knowledge of Endpoint types. All referenced Endpoints are returned regardless of their connectionType, payloadType, status, or period. This is intentional: /List is an administration resource for managing priority ordering, not a consumer routing endpoint. Consumers needing type-filtered, ordered Endpoints should use the two-step pattern described in the operation description above.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "List:item"
+              ],
+              "example": "List:item"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-ListBundle"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        }
+      }
+    },
+    "/List/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "The logical id of the List resource.",
+          "in": "path",
+          "required": true,
+          "allowEmptyValue": false,
+          "schema": {
+            "$ref": "#/components/schemas/GUID"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/X-Request-Id"
+        },
+        {
+          "$ref": "#/components/parameters/X-Correlation-Id"
+        },
+        {
+          "$ref": "#/components/parameters/AcceptEPC_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/NHSD-End-User-Organisation-ODS"
+        }
+      ],
+      "get": {
+        "tags": [
+          "List"
+        ],
+        "summary": "Get a specific List resource",
+        "description": "Read a specific FHIR R4 List resource by its logical id.",
+        "operationId": "getList",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicList"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "put": {
+        "tags": [
+          "List"
+        ],
+        "summary": "Update a specific List resource",
+        "description": "Creates a new current version for an existing List resource ([update](https://www.hl7.org/fhir/http.html#update)) or creates an initial version if no resource already exists for the given id ([new](https://www.hl7.org/fhir/http.html#upsert)).\n\n### Constraint: List.subject cannot be changed\n\nThe `List.subject` reference (the HealthcareService this List belongs to) cannot be changed on an update. If the `List.subject` in the PUT payload differs from the existing List's subject, the API will reject the request with a `422 Unprocessable Entity` response.\n\nA List can only be associated with **one** HealthcareService. To move priority ordering to a different HealthcareService, retire the existing List and create a new one.\n\n**Error response:**\n```json\n{\n  \"resourceType\": \"OperationOutcome\",\n  \"issue\": [{\n    \"severity\": \"error\",\n    \"code\": \"business-rule\",\n    \"details\": {\n      \"coding\": [{\n        \"system\": \"https://fhir.nhs.uk/Codesystem/http-error-codes\",\n        \"code\": \"SUBJECT_IMMUTABLE\"\n      }]\n    },\n    \"diagnostics\": \"List.subject cannot be changed. The List is permanently bound to HealthcareService/{id}.\"\n  }]\n}\n```\n\n### Reference validation\n\nThe API validates that all `List.entry[].item` references exist before writing the List. If any referenced Endpoint does not exist, the API returns `422 Unprocessable Entity` with error code `REFERENCE_NOT_FOUND`.\n\nThis is a pure existence check — it does not validate Endpoint status, period, or association with the HealthcareService.\n",
+        "operationId": "replaceList",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/FhirList"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-AtomicList"
+          },
+          "201": {
+            "$ref": "#/components/responses/201-AtomicList"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      },
+      "delete": {
+        "tags": [
+          "List"
+        ],
+        "summary": "Delete a specific List resource",
+        "description": "Delete a specific FHIR R4 List resource by its logical id.",
+        "operationId": "deleteList",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/200-Delete"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX"
+          }
+        },
+        "parameters": []
+      }
+    }
+  },
+  "components": {
+    "requestBodies": {
+      "Endpoint": {
+        "content": {
+          "application/fhir+json;version=1.4.0": {
+            "schema": {
+              "$ref": "#/components/schemas/Endpoint"
+            },
+            "examples": {
+              "successExample": {
+                "value": {
+                  "resourceType": "Endpoint",
+                  "id": "0cb21027-a246-43e6-9c7a-35b17163eab1",
+                  "meta": {
+                    "lastUpdated": "2021-10-11T15:23:30+00:00",
+                    "profile": [
+                      "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                    ]
+                  },
+                  "identifier": [
+                    {
+                      "value": "1000099999",
+                      "system": "https://fhir.nhs.uk/Id/dos-service-id",
+                      "display": "Directory of Services (DOS)"
+                    },
+                    {
+                      "system": "https://fhir.nhs.uk/id/product-id",
+                      "value": "SupplierProduct-v2024.12.12"
+                    }
+                  ],
+                  "status": "active",
+                  "name": "Service Endpoint Name",
+                  "connectionType": {
+                    "coding": [
+                      {
+                        "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                        "code": "hl7-fhir-msg",
+                        "display": "HL7 FHIR Messaging"
+                      }
+                    ]
+                  },
+                  "payloadType": [
+                    {
+                      "coding": [
+                        {
+                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                          "code": "bars",
+                          "display": "BaRS"
+                        }
+                      ]
+                    }
+                  ],
+                  "managingOrganization": [
+                    {
+                      "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "X254"
+                      }
+                    }
+                  ],
+                  "address": "https://myService.nhs.uk/Base/Address",
+                  "header": "public",
+                  "Period": {
+                    "Start": "2021-10-11T15:23:30+00:00",
+                    "End": "2021-10-11T15:23:30+00:00"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "EndpointTemplate": {
+        "content": {
+          "application/fhir+json;version=1.4.0": {
+            "schema": {
+              "$ref": "#/components/schemas/EndpointTemplate"
+            },
+            "examples": {
+              "successExample": {
+                "value": {
+                  "resourceType": "Endpoint",
+                  "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                  "meta": {
+                    "lastUpdated": "2021-10-11T15:23:30+00:00",
+                    "profile": [
+                      "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                    ]
+                  },
+                  "identifier": [
+                    {
+                      "system": "https://fhir.nhs.uk/id/product-id",
+                      "value": "SupplierProduct-v2024.12.12"
+                    }
+                  ],
+                  "status": "active",
+                  "name": "Example Template",
+                  "connectionType": {
+                    "coding": [
+                      {
+                        "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                        "code": "hl7-fhir-rest",
+                        "display": "HL7 FHIR"
+                      }
+                    ]
+                  },
+                  "payloadType": [
+                    {
+                      "coding": [
+                        {
+                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                          "code": "bars",
+                          "display": "BaRS"
+                        }
+                      ]
+                    }
+                  ],
+                  "managingOrganization": [
+                    {
+                      "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "X254"
+                      }
+                    }
+                  ],
+                  "address": "https://myService.nhs.uk/Base/Address",
+                  "header": "public"
+                }
+              }
+            }
+          }
+        }
+      },
+      "HealthcareService": {
+        "content": {
+          "application/fhir+json;version=1.4.0": {
+            "schema": {
+              "$ref": "#/components/schemas/HealthcareService"
+            },
+            "examples": {
+              "successExample": {
+                "value": {
+                  "resourceType": "HealthcareService",
+                  "id": "7ded9440-3543-4809-b834-25c9be211195",
+                  "meta": {
+                    "lastUpdated": "2021-11-26T15:00:00.8185338+00:00",
+                    "profile": [
+                      "http://hl7.org/fhir/StructureDefinition/HealthcareService",
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+                    ]
+                  },
+                  "identifier": [
+                    {
+                      "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                      "value": "111111111"
+                    },
+                    {
+                      "system": "http://fhir.nhs.uk/Id/product-id",
+                      "value": "AAA000"
+                    }
+                  ],
+                  "active": true,
+                  "providedBy": [
+                    {
+                      "identifier": {
+                        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                        "value": "R778"
+                      }
+                    }
+                  ],
+                  "name": "Example Healthcare Service",
+                  "endpoint": [
+                    {
+                      "reference": "Endpoint/4e958d43-ad80-40c9-85ff-2be003d1ea86"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": true
+      },
+      "FhirList": {
+        "required": true,
+        "content": {
+          "application/fhir+json;version=1.4.0": {
+            "schema": {
+              "$ref": "#/components/schemas/FhirList"
+            },
+            "examples": {
+              "successExample": {
+                "value": {
+                  "resourceType": "List",
+                  "id": "f7d3e2a1-0000-0000-0000-000000000099",
+                  "meta": {
+                    "lastUpdated": "2026-05-06T10:00:01+00:00",
+                    "profile": [
+                      "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                    ]
+                  },
+                  "status": "current",
+                  "mode": "working",
+                  "title": "Anytown UTC \u2014 Endpoint Priority Order",
+                  "code": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
+                        "code": "endpoint-priority",
+                        "display": "Endpoint Priority Order"
+                      }
+                    ]
+                  },
+                  "subject": {
+                    "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
+                    "display": "Anytown UTC"
+                  },
+                  "date": "2026-05-06T10:00:00+00:00",
+                  "orderedBy": {
+                    "coding": [
+                      {
+                        "system": "http://terminology.hl7.org/CodeSystem/list-order",
+                        "code": "priority",
+                        "display": "Sorted by Priority"
+                      }
+                    ]
+                  },
+                  "entry": [
+                    {
+                      "item": {
+                        "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001",
+                        "display": "Primary Endpoint"
+                      }
+                    },
+                    {
+                      "item": {
+                        "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002",
+                        "display": "Secondary Endpoint"
+                      }
+                    },
+                    {
+                      "item": {
+                        "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000003",
+                        "display": "Fallback Endpoint"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "AcceptEPC_HParam": {
+        "name": "Accept",
+        "description": "The Accept header must specify the type of content the requester can process.",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "application/fhir+json;"
+        }
+      },
+      "ConnectionType_QParam": {
+        "name": "ConnectionType",
+        "description": "Filter by the technical protocol. Value must be a URL-encoded `system|code` token.\n\n**Format:** `{system}|{code}`\n\n**Example (before URL encoding):**\n```\nhttp://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest\n```\n\n**Example (URL encoded):**\n```\nConnectionType=http%3A%2F%2Fterminology.hl7.org%2FCodeSystem%2Fendpoint-connection-type%7Chl7-fhir-rest\n```\n",
+        "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
+        "schema": {
+          "type": "string",
+          "example": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type|hl7-fhir-rest"
+        }
+      },
+      "PayloadType_QParam": {
+        "name": "PayloadType",
+        "description": "Filter by the message standard or payload type supported by the Endpoint. Value must be a URL-encoded `system|code` token.\n\n**Format:** `{system}|{code}`\n\n**Example (before URL encoding):**\n```\nhttp://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars\n```\n\n**Example (URL encoded):**\n```\nPayloadType=http%3A%2F%2Fterminology.hl7.org%2FCodeSystem%2Fendpoint-payload-type-epc%7Cbars\n```\n",
+        "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
+        "schema": {
+          "type": "string",
+          "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc|bars"
+        }
+      },
+      "HealthcareServiceIdentifier_QParam": {
+        "name": "HealthcareService.identifier",
+        "description": "The identifier of the HealthcareService.\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
+        "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
+        "schema": {
+          "$ref": "#/components/schemas/Service"
+        }
+      },
+      "HCProvidedBy_QParam": {
+        "name": "HealthcareService.providedBy",
+        "description": "The identifier of the organization that is managing the endpoint(s).\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
+        "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
+        "schema": {
+          "$ref": "#/components/schemas/ODS"
+        }
+      },
+      "HealthcareServiceIdentifier_PParam": {
+        "name": "id",
+        "description": "The identifier of the HealthcareService.",
+        "in": "path",
+        "required": true,
+        "allowEmptyValue": false,
+        "schema": {
+          "$ref": "#/components/schemas/GUID"
+        }
+      },
+      "EndpointIdentifier_QParam": {
+        "name": "Endpoint.identifier",
+        "description": "The identifier of the *type* of Endpoint, usually the identifier set by the organisation/supplier that created the Endpoint. \nIt is important to note that this is **not** the same as **Endpoint.id**, which is the unique identifier for the Endpoint resource. The Endpoint.identifier can be shared across multiple Endpoint resources.\nThis needs to be Url Encoded as its passed as a query parameter and part of the url.\n",
+        "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
+        "schema": {
+          "$ref": "#/components/schemas/EndpointIdentifier"
+        }
+      },
+      "EndpointHas_Qparam": {
+        "name": "_has",
+        "description": "Reverse chained search \u2014 return Endpoints that are referenced by a HealthcareService matching the given criteria.\n\nFollows the FHIR R4 _has reverse chaining syntax (see [FHIR R4 \u00a73.1.1.4.16](https://hl7.org/fhir/R4/search.html#has)).\n\nSupported forms:\n\n| Parameter name | Description | Example |\n|----------------|-------------|----------|\n| `_has:HealthcareService:endpoint:_id` | Filter by HealthcareService resource id (UUID) | `_has:HealthcareService:endpoint:_id=9f2c6f12-1a6d-4d9c-a111-123456789abc` |\n| `_has:HealthcareService:endpoint:identifier` | Filter by HealthcareService identifier (system\\|value token) | `_has:HealthcareService:endpoint:identifier=https://fhir.nhs.uk/Id/dos-service-id\\|2000099999` |\n\n| Segment | Meaning |\n|---------|----------|\n| HealthcareService | The resource type that refers back to Endpoint |\n| endpoint | The search parameter on HealthcareService that holds the Endpoint reference |\n| _id / identifier | The search parameter on HealthcareService to filter by |\n| value | The UUID (for _id) or system\\|value token (for identifier) |\n\n**Examples:**\n```\nGET /Endpoint?_has:HealthcareService:endpoint:_id=9f2c6f12-1a6d-4d9c-a111-123456789abc\nGET /Endpoint?_has:HealthcareService:endpoint:identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999\n```",
+        "in": "query",
+        "required": false,
+        "allowEmptyValue": false,
+        "schema": {
+          "type": "string",
+          "example": "_has:HealthcareService:endpoint:identifier=https://fhir.nhs.uk/Id/dos-service-id|2000099999"
+        }
+      },
+      "EndpointIdentifier_PParam": {
+        "name": "id",
+        "description": "The unique identifier of the endpoint.",
+        "in": "path",
+        "required": true,
+        "allowEmptyValue": false,
+        "schema": {
+          "$ref": "#/components/schemas/GUID"
+        }
+      },
+      "ServiceId_QParam": {
+        "name": "_id",
+        "in": "query",
+        "required": false,
+        "description": "Filter by the HealthcareService resource id (UUID).\n\nReturns the specific HealthcareService matching the given id.\n\nTo retrieve the Endpoints associated with a HealthcareService, use GET /Endpoint with the _has:HealthcareService:endpoint:_id parameter.\n\nExample:\nGET /HealthcareService?_id=9f2c6f12-1a6d-4d9c-a111-123456789abc",
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "example": "9f2c6f12-1a6d-4d9c-a111-123456789abc"
+        }
+      },
+      "NHSD-End-User-Organisation-ODS": {
+        "name": "NHSD-End-User-Organisation-ODS",
+        "in": "header",
+        "required": true,
+        "description": "The ODS code of the organisation making the request. Must match the organisation claim in the bearer token. Used for authorisation (ownership check) and audit.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "R778"
+      },
+      "X-Request-Id": {
+        "name": "X-Request-Id",
+        "in": "header",
+        "required": true,
+        "description": "A UUID identifying this request. Mirrored back in the response.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "X-Correlation-Id": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": true,
+        "description": "A UUID for end-to-end tracing across multiple systems. Mirrored back in the response.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "responses": {
+      "200-Delete": {
+        "description": "The resource was successfully delete.",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+              "meta": {
+                "profile": [
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                ]
+              },
+              "issue": [
+                {
+                  "severity": "information",
+                  "code": "informational",
+                  "details": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+                        "code": "OK"
+                      }
+                    ]
+                  },
+                  "diagnostics": "Resource deleted successfully."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "200-AtomicEndpoint": {
+        "description": "The Operation was Successful",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Endpoint"
+            },
+            "example": {
+              "resourceType": "Endpoint",
+              "id": "0cb21027-a246-43e6-9c7a-35b17163eab1",
+              "meta": {
+                "lastUpdated": "2021-10-11T15:23:30+00:00",
+                "profile": [
+                  "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                ]
+              },
+              "identifier": [
+                {
+                  "value": "1000099999",
+                  "system": "https://fhir.nhs.uk/Id/dos-service-id",
+                  "display": "Directory of Services (DOS)"
+                },
+                {
+                  "system": "https://fhir.nhs.uk/id/product-id",
+                  "value": "SupplierProduct-v2024.12.12"
+                }
+              ],
+              "status": "active",
+              "name": "Service Endpoint Name",
+              "connectionType": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                    "code": "hl7-fhir-msg",
+                    "display": "HL7 FHIR Messaging"
+                  }
+                ]
+              },
+              "payloadType": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "code": "bars",
+                      "display": "BaRS"
+                    }
+                  ]
+                }
+              ],
+              "managingOrganization": [
+                {
+                  "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "X254"
+                  }
+                }
+              ],
+              "address": "https://myService.nhs.uk/Base/Address",
+              "header": "public",
+              "Period": {
+                "Start": "2021-10-11T15:23:30+00:00",
+                "End": "2021-10-11T15:23:30+00:00"
+              }
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "201-AtomicEndpoint": {
+        "description": "Resource Created Successfully",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Endpoint"
+            },
+            "example": {
+              "resourceType": "Endpoint",
+              "id": "0cb21027-a246-43e6-9c7a-35b17163eab1",
+              "meta": {
+                "lastUpdated": "2021-10-11T15:23:30+00:00",
+                "profile": [
+                  "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                ]
+              },
+              "identifier": [
+                {
+                  "value": "1000099999",
+                  "system": "https://fhir.nhs.uk/Id/dos-service-id",
+                  "display": "Directory of Services (DOS)"
+                },
+                {
+                  "system": "https://fhir.nhs.uk/id/product-id",
+                  "value": "SupplierProduct-v2024.12.12"
+                }
+              ],
+              "status": "active",
+              "name": "Service Endpoint Name",
+              "connectionType": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                    "code": "hl7-fhir-msg",
+                    "display": "HL7 FHIR Messaging"
+                  }
+                ]
+              },
+              "payloadType": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "code": "bars",
+                      "display": "BaRS"
+                    }
+                  ]
+                }
+              ],
+              "managingOrganization": [
+                {
+                  "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "X254"
+                  }
+                }
+              ],
+              "address": "https://myService.nhs.uk/Base/Address",
+              "header": "public",
+              "Period": {
+                "Start": "2021-10-11T15:23:30+00:00",
+                "End": "2021-10-11T15:23:30+00:00"
+              }
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "200-EndpointTemplate": {
+        "description": "The Operation was Successful",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EndpointTemplate"
+            },
+            "example": {
+              "resourceType": "Endpoint",
+              "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+              "meta": {
+                "lastUpdated": "2021-10-11T15:23:30+00:00",
+                "profile": [
+                  "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                ]
+              },
+              "identifier": [
+                {
+                  "system": "https://fhir.nhs.uk/id/product-id",
+                  "value": "SupplierProduct-v2024.12.12"
+                }
+              ],
+              "status": "active",
+              "name": "Example Template",
+              "connectionType": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                    "code": "hl7-fhir-rest",
+                    "display": "HL7 FHIR"
+                  }
+                ]
+              },
+              "payloadType": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "code": "bars",
+                      "display": "BaRS"
+                    }
+                  ]
+                }
+              ],
+              "managingOrganization": [
+                {
+                  "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "X254"
+                  }
+                }
+              ],
+              "address": "https://myService.nhs.uk/Base/Address",
+              "header": "public"
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "201-EndpointTemplate": {
+        "description": "Resource Created Successfully",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EndpointTemplate"
+            },
+            "example": {
+              "resourceType": "Endpoint",
+              "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+              "meta": {
+                "lastUpdated": "2021-10-11T15:23:30+00:00",
+                "profile": [
+                  "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                ]
+              },
+              "identifier": [
+                {
+                  "system": "https://fhir.nhs.uk/id/product-id",
+                  "value": "SupplierProduct-v2024.12.12"
+                }
+              ],
+              "status": "active",
+              "name": "Example Template",
+              "connectionType": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                    "code": "hl7-fhir-rest",
+                    "display": "HL7 FHIR"
+                  }
+                ]
+              },
+              "payloadType": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                      "code": "bars",
+                      "display": "BaRS"
+                    }
+                  ]
+                }
+              ],
+              "managingOrganization": [
+                {
+                  "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "X254"
+                  }
+                }
+              ],
+              "address": "https://myService.nhs.uk/Base/Address",
+              "header": "public"
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "200-AtomicHealthcareService": {
+        "description": "The Operation was Successful",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/HealthcareService"
+            },
+            "example": {
+              "resourceType": "HealthcareService",
+              "id": "7ded9440-3543-4809-b834-25c9be211195",
+              "meta": {
+                "lastUpdated": "2021-11-26T15:00:00.8185338+00:00",
+                "profile": [
+                  "http://hl7.org/fhir/StructureDefinition/HealthcareService",
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+                ]
+              },
+              "identifier": [
+                {
+                  "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                  "value": "111111111"
+                },
+                {
+                  "system": "http://fhir.nhs.uk/Id/product-id",
+                  "value": "AAA000"
+                }
+              ],
+              "active": true,
+              "providedBy": [
+                {
+                  "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "R778"
+                  }
+                }
+              ],
+              "name": "Example Healthcare Service",
+              "endpoint": [
+                {
+                  "reference": "Endpoint/4e958d43-ad80-40c9-85ff-2be003d1ea86"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "201-AtomicHealthcareService": {
+        "description": "Resource Created Successfully",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/HealthcareService"
+            },
+            "example": {
+              "resourceType": "HealthcareService",
+              "id": "7ded9440-3543-4809-b834-25c9be211195",
+              "meta": {
+                "lastUpdated": "2021-11-26T15:00:00.8185338+00:00",
+                "profile": [
+                  "http://hl7.org/fhir/StructureDefinition/HealthcareService",
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+                ]
+              },
+              "identifier": [
+                {
+                  "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                  "value": "111111111"
+                },
+                {
+                  "system": "http://fhir.nhs.uk/Id/product-id",
+                  "value": "AAA000"
+                }
+              ],
+              "active": true,
+              "providedBy": [
+                {
+                  "identifier": {
+                    "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                    "value": "R778"
+                  }
+                }
+              ],
+              "name": "Example Healthcare Service",
+              "endpoint": [
+                {
+                  "reference": "Endpoint/4e958d43-ad80-40c9-85ff-2be003d1ea86"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "200-EndpointBundle": {
+        "description": "The operation was successful",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/EndpointBundle"
+            },
+            "example": {
+              "resourceType": "Bundle",
+              "id": "777a156c-af3c-4748-a8a3-7e95e4b0df9a",
+              "type": "searchset",
+              "total": 2,
+              "timestamp": "2026-03-26T10:30:00Z",
+              "link": [
+                {
+                  "relation": "self",
+                  "url": "https://sandbox.api.service.nhs.uk/endpoint-catalogue/FHIR/R4/Endpoint?organization=org-123"
+                }
+              ],
+              "entry": [
+                {
+                  "fullUrl": "https://sandbox.api.service.nhs.uk/endpoint-catalogue/FHIR/R4/Endpoint/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                  "resource": {
+                    "resourceType": "Endpoint",
+                    "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                    "meta": {
+                      "lastUpdated": "2021-10-11T15:23:30+00:00",
+                      "profile": [
+                        "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                      ]
+                    },
+                    "identifier": [
+                      {
+                        "value": "1000099999",
+                        "system": "https://fhir.nhs.uk/Id/dos-service-id",
+                        "display": "Directory of Services (DOS)"
+                      },
+                      {
+                        "system": "https://fhir.nhs.uk/id/product-id",
+                        "value": "SupplierProduct-v2024.12.12"
+                      }
+                    ],
+                    "status": "active",
+                    "name": "Service Endpoint Name",
+                    "connectionType": {
+                      "coding": [
+                        {
+                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                          "code": "hl7-fhir-msg",
+                          "display": "HL7 FHIR Messaging"
+                        }
+                      ]
+                    },
+                    "payloadType": [
+                      {
+                        "coding": [
+                          {
+                            "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                            "code": "bars",
+                            "display": "BaRS"
+                          }
+                        ]
+                      }
+                    ],
+                    "managingOrganization": [
+                      {
+                        "identifier": {
+                          "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                          "value": "X254"
+                        }
+                      }
+                    ],
+                    "address": "https://myService.nhs.uk/Base/Address",
+                    "header": "public",
+                    "Period": {
+                      "Start": "2021-10-11T15:23:30+00:00",
+                      "End": "2021-10-11T15:23:30+00:00"
+                    }
+                  }
+                },
+                {
+                  "fullUrl": "https://sandbox.api.service.nhs.uk/endpoint-catalogue/FHIR/R4/Endpoint/c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                  "resource": {
+                    "resourceType": "Endpoint",
+                    "id": "c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                    "meta": {
+                      "lastUpdated": "2021-10-11T15:23:30+00:00",
+                      "profile": [
+                        "http://hl7.org/fhir/StructureDefinition/Endpoint"
+                      ]
+                    },
+                    "identifier": [
+                      {
+                        "value": "1000099999",
+                        "system": "https://fhir.nhs.uk/Id/dos-service-id",
+                        "display": "Directory of Services (DOS)"
+                      },
+                      {
+                        "system": "https://fhir.nhs.uk/id/product-id",
+                        "value": "SupplierProduct-v2024.12.12"
+                      }
+                    ],
+                    "status": "active",
+                    "name": "Service Endpoint Name",
+                    "connectionType": {
+                      "coding": [
+                        {
+                          "system": "http://terminology.hl7.org/CodeSystem/endpoint-connection-type",
+                          "code": "hl7-fhir-msg",
+                          "display": "HL7 FHIR Messaging"
+                        }
+                      ]
+                    },
+                    "payloadType": [
+                      {
+                        "coding": [
+                          {
+                            "system": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type-epc",
+                            "code": "bars",
+                            "display": "BaRS"
+                          }
+                        ]
+                      }
+                    ],
+                    "managingOrganization": [
+                      {
+                        "identifier": {
+                          "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                          "value": "X254"
+                        }
+                      }
+                    ],
+                    "address": "https://myService.nhs.uk/Base/Address",
+                    "header": "public",
+                    "Period": {
+                      "Start": "2021-10-11T15:23:30+00:00",
+                      "End": "2021-10-11T15:23:30+00:00"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "200-HealthcareServiceBundle": {
+        "description": "The operation was successful",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/HealthcareServiceBundle"
+            },
+            "example": {
+              "resourceType": "Bundle",
+              "id": "777a156c-af3c-4748-a8a3-7e95e4b0df9a",
+              "type": "searchset",
+              "total": 1,
+              "timestamp": "2026-03-26T10:30:00Z",
+              "link": [
+                {
+                  "relation": "self",
+                  "url": "https://sandbox.api.service.nhs.uk/endpoint-catalogue/FHIR/R4/HealthcareService?organization=org-123"
+                }
+              ],
+              "entry": [
+                {
+                  "fullUrl": "https://sandbox.api.service.nhs.uk/endpoint-catalogue/FHIR/R4/HealthcareService/5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                  "resource": {
+                    "resourceType": "HealthcareService",
+                    "id": "5fce3e6a-ba37-4289-84d1-cc3ebdb992f5",
+                    "meta": {
+                      "lastUpdated": "2021-11-26T15:00:00.8185338+00:00",
+                      "profile": [
+                        "http://hl7.org/fhir/StructureDefinition/HealthcareService",
+                        "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+                      ]
+                    },
+                    "identifier": [
+                      {
+                        "system": "http://fhir.nhs.uk/Id/dos-service-id",
+                        "value": "111111111"
+                      },
+                      {
+                        "system": "http://fhir.nhs.uk/Id/product-id",
+                        "value": "AAA000"
+                      }
+                    ],
+                    "active": true,
+                    "providedBy": [
+                      {
+                        "identifier": {
+                          "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+                          "value": "R778"
+                        }
+                      }
+                    ],
+                    "name": "Example Healthcare Service",
+                    "endpoint": [
+                      {
+                        "reference": "Endpoint/4e958d43-ad80-40c9-85ff-2be003d1ea86"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "200-AtomicList": {
+        "description": "The Operation was Successful",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/FhirList"
+            },
+            "example": {
+              "resourceType": "List",
+              "id": "f7d3e2a1-0000-0000-0000-000000000099",
+              "meta": {
+                "lastUpdated": "2026-05-06T10:00:01+00:00",
+                "profile": [
+                  "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                ]
+              },
+              "status": "current",
+              "mode": "working",
+              "title": "Anytown UTC \u2014 Endpoint Priority Order",
+              "code": {
+                "coding": [
+                  {
+                    "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
+                    "code": "endpoint-priority",
+                    "display": "Endpoint Priority Order"
+                  }
+                ]
+              },
+              "subject": {
+                "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
+                "display": "Anytown UTC"
+              },
+              "date": "2026-05-06T10:00:00+00:00",
+              "orderedBy": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/list-order",
+                    "code": "priority",
+                    "display": "Sorted by Priority"
+                  }
+                ]
+              },
+              "entry": [
+                {
+                  "item": {
+                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001",
+                    "display": "Primary Endpoint"
+                  }
+                },
+                {
+                  "item": {
+                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002",
+                    "display": "Secondary Endpoint"
+                  }
+                },
+                {
+                  "item": {
+                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000003",
+                    "display": "Fallback Endpoint"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "201-AtomicList": {
+        "description": "Resource Created Successfully",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/FhirList"
+            },
+            "example": {
+              "resourceType": "List",
+              "id": "f7d3e2a1-0000-0000-0000-000000000099",
+              "meta": {
+                "lastUpdated": "2026-05-06T10:00:01+00:00",
+                "profile": [
+                  "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                ]
+              },
+              "status": "current",
+              "mode": "working",
+              "title": "Anytown UTC \u2014 Endpoint Priority Order",
+              "code": {
+                "coding": [
+                  {
+                    "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
+                    "code": "endpoint-priority",
+                    "display": "Endpoint Priority Order"
+                  }
+                ]
+              },
+              "subject": {
+                "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
+                "display": "Anytown UTC"
+              },
+              "date": "2026-05-06T10:00:00+00:00",
+              "orderedBy": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/list-order",
+                    "code": "priority",
+                    "display": "Sorted by Priority"
+                  }
+                ]
+              },
+              "entry": [
+                {
+                  "item": {
+                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001",
+                    "display": "Primary Endpoint"
+                  }
+                },
+                {
+                  "item": {
+                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002",
+                    "display": "Secondary Endpoint"
+                  }
+                },
+                {
+                  "item": {
+                    "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000003",
+                    "display": "Fallback Endpoint"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "200-ListBundle": {
+        "description": "A Bundle containing zero or more List resources matching the search criteria.",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/FhirList"
+            },
+            "example": {
+              "resourceType": "Bundle",
+              "id": "a1b2c3d4-0000-0000-0000-000000000010",
+              "type": "searchset",
+              "total": 1,
+              "timestamp": "2026-05-06T10:05:00+00:00",
+              "link": [
+                {
+                  "relation": "self",
+                  "url": "https://sandbox.api.service.nhs.uk/endpoint-catalogue/FHIR/R4/List?subject=HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc&status=current"
+                }
+              ],
+              "entry": [
+                {
+                  "resource": {
+                    "resourceType": "List",
+                    "id": "f7d3e2a1-0000-0000-0000-000000000099",
+                    "meta": {
+                      "lastUpdated": "2026-05-06T10:00:01+00:00",
+                      "profile": [
+                        "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                      ]
+                    },
+                    "status": "current",
+                    "mode": "working",
+                    "title": "Anytown UTC \u2014 Endpoint Priority Order",
+                    "code": {
+                      "coding": [
+                        {
+                          "system": "https://fhir.nhs.uk/CodeSystem/EPC-list-code",
+                          "code": "endpoint-priority",
+                          "display": "Endpoint Priority Order"
+                        }
+                      ]
+                    },
+                    "subject": {
+                      "reference": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc",
+                      "display": "Anytown UTC"
+                    },
+                    "date": "2026-05-06T10:00:00+00:00",
+                    "orderedBy": {
+                      "coding": [
+                        {
+                          "system": "http://terminology.hl7.org/CodeSystem/list-order",
+                          "code": "priority",
+                          "display": "Sorted by Priority"
+                        }
+                      ]
+                    },
+                    "entry": [
+                      {
+                        "item": {
+                          "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001",
+                          "display": "Primary Endpoint"
+                        }
+                      },
+                      {
+                        "item": {
+                          "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000002",
+                          "display": "Secondary Endpoint"
+                        }
+                      },
+                      {
+                        "item": {
+                          "reference": "Endpoint/e1a2b3c4-0000-0000-0000-000000000003",
+                          "display": "Fallback Endpoint"
+                        }
+                      }
+                    ]
+                  },
+                  "search": {
+                    "mode": "match"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "4XX": {
+        "description": "Client error. The request could not be processed due to an issue with the request itself.\n\n| HTTP status | Error code | Description |\n| ----------- | ---------- | ----------- |\n| 400 | BAD_REQUEST | The request is malformed or missing required fields |\n| 401 | UNAUTHORIZED | Missing or invalid bearer token |\n| 403 | FORBIDDEN | The authenticated caller is not authorised for this operation |\n| 404 | NOT_FOUND | The requested resource does not exist |\n| 409 | CONFLICT | A duplicate resource exists or a conflict was detected |\n| 422 | UNPROCESSABLE_ENTITY | The request body failed validation (e.g., an `endpoint[]` reference points to a non-existent Endpoint) |\n| 429 | TOO_MANY_REQUESTS | Rate limit exceeded |",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+              "meta": {
+                "profile": [
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                ]
+              },
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "invariant",
+                  "details": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+                        "code": "REC_BAD_REQUEST"
+                      }
+                    ]
+                  },
+                  "diagnostics": "Attempts to Validate the message have failed."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "5XX": {
+        "description": "Server error. The request could not be processed due to an issue on the server.\n\n| HTTP status | Error code | Description |\n| ----------- | ---------- | ----------- |\n| 500 | INTERNAL_SERVER_ERROR | An unexpected error occurred |\n| 502 | BAD_GATEWAY | The upstream service returned an invalid response |\n| 503 | SERVICE_UNAVAILABLE | The service is temporarily unavailable |\n| 504 | GATEWAY_TIMEOUT | The upstream service did not respond in time |",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+              "meta": {
+                "profile": [
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                ]
+              },
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "exception",
+                  "details": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+                        "code": "REC_SERVER_ERROR"
+                      }
+                    ]
+                  },
+                  "diagnostics": "Too many requests have been made by this source in a given amount of time: <further diagnostics information, error message/error text>"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Capability": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "CapabilityStatement"
+          },
+          "id": {
+            "type": "string",
+            "example": "endpoint-catalogue-api"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://int.api.service.nhs.uk/endpoint-catalogue/FHIR/R4",
+            "format": "url"
+          },
+          "name": {
+            "type": "string",
+            "example": "Endpoint Catalogue API CapabilityStatement"
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.2.0"
+          },
+          "experimental": {
+            "type": "boolean",
+            "example": false
+          },
+          "date": {
+            "type": "string",
+            "example": "2022-09-16T15:00:00+01:00",
+            "format": "date-time"
+          },
+          "publisher": {
+            "type": "string",
+            "example": "NHS Digital"
+          },
+          "contact": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "NHS Booking and Referral Standard"
+                },
+                "telecom": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "system": {
+                        "type": "string",
+                        "example": "email"
+                      },
+                      "value": {
+                        "type": "string",
+                        "example": "bookingandreferralstandard@nhs.net"
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "example": "instance"
+          },
+          "software": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Endpoint Catalogue API"
+              },
+              "version": {
+                "type": "string",
+                "example": "1.1.0"
+              }
+            },
+            "additionalProperties": false
+          },
+          "implementation": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "example": "Endpoint Catalogue API \u2014 FHIR R4 service discovery"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://int.api.service.nhs.uk/endpoint-catalogue/FHIR/R4",
+                "format": "url"
+              }
+            },
+            "additionalProperties": false
+          },
+          "fhirVersion": {
+            "type": "string",
+            "example": "4.0.1"
+          },
+          "format": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "xml"
+            }
+          },
+          "rest": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "example": "server"
+                },
+                "interaction": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "example": "transaction"
+                      }
+                    }
+                  }
+                },
+                "security": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "service": {
+                        "type": "object",
+                        "properties": {
+                          "coding": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "service": {
+                                  "type": "object",
+                                  "properties": {
+                                    "coding": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "code": {
+                                            "type": "string"
+                                          },
+                                          "system": {
+                                            "type": "string",
+                                            "format": "url"
+                                          },
+                                          "display": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "resource": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "example": "CapabilityStatement"
+                      },
+                      "interaction": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "versioning": {
+                        "type": "string",
+                        "example": "no-version"
+                      },
+                      "searchParam": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "start"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "date"
+                            }
+                          }
+                        }
+                      },
+                      "searchInclude": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "example": "Slot:schedule"
+                        }
+                      }
+                    }
+                  }
+                },
+                "operation": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "example": "$process-message"
+                      },
+                      "definition": {
+                        "type": "string",
+                        "format": "url",
+                        "example": "http://hl7.org/fhir/OperationDefinition/MessageHeader-process-message"
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "messaging": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "protocol": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "example": "http"
+                          }
+                        }
+                      },
+                      "address": {
+                        "type": "string",
+                        "format": "url",
+                        "example": "https://int.api.service.nhs.uk/endpoint-catalogue/FHIR/R4"
+                      }
+                    }
+                  }
+                },
+                "supportedMessage": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "example": "receiver"
+                      },
+                      "definition": {
+                        "type": "string",
+                        "example": "MessageDefinition/example-message-definition"
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Endpoint": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "Endpoint"
+          },
+          "id": {
+            "type": "string",
+            "example": "91607239-b002-470a-8709-6b25bd50fdd1",
+            "format": "uuid"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "lastUpdated": {
+                "type": "string",
+                "example": "2021-10-11T15:01:30+00:00",
+                "format": "date-time"
+              },
+              "profile": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "http://hl7.org/fhir/structuredefinition/endpoint"
+                }
+              }
+            }
+          },
+          "identifier": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "system": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                },
+                "value": {
+                  "type": "string",
+                  "example": "1000099999"
+                },
+                "display": {
+                  "type": "string",
+                  "example": "Directory of Services (DOS)"
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          },
+          "name": {
+            "type": "string",
+            "example": "Service Endpoint name"
+          },
+          "connectionType": {
+            "type": "object",
+            "properties": {
+              "coding": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                    },
+                    "code": {
+                      "type": "string",
+                      "example": "hl7-fhir-msg"
+                    },
+                    "display": {
+                      "type": "string",
+                      "example": "HL7 FHIR Messaging"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "payloadType": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "coding": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "system": {
+                        "type": "string",
+                        "format": "url",
+                        "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                      },
+                      "code": {
+                        "type": "string",
+                        "example": "bars"
+                      },
+                      "display": {
+                        "type": "string",
+                        "example": "BaRS"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "managingOrganization": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://fhir.nhs.uk/Id/ods-organization-code"
+                    },
+                    "value": {
+                      "type": "string",
+                      "example": "X254"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "address": {
+            "type": "string",
+            "format": "url",
+            "example": "https://myService.nhs.uk/Base/Address"
+          },
+          "header": {
+            "type": "string",
+            "example": "public"
+          },
+          "Period": {
+            "type": "object",
+            "properties": {
+              "Start": {
+                "type": "string",
+                "example": "2021-10-11T15:01:30+00:00",
+                "format": "date-time"
+              },
+              "End": {
+                "type": "string",
+                "example": "2021-10-12T15:01:30+00:00",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "required": [
+          "resourceType",
+          "id"
+        ]
+      },
+      "EndpointTemplate": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "Endpoint"
+          },
+          "id": {
+            "type": "string",
+            "example": "91607239-b002-470a-8709-6b25bd50fdd1",
+            "format": "uuid"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "lastUpdated": {
+                "type": "string",
+                "example": "2021-10-11T15:01:30+00:00",
+                "format": "date-time"
+              },
+              "profile": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "http://hl7.org/fhir/structuredefinition/endpoint"
+                }
+              }
+            }
+          },
+          "identifier": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "system": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                },
+                "value": {
+                  "type": "string",
+                  "example": "1000099999"
+                },
+                "display": {
+                  "type": "string",
+                  "example": "Directory of Services (DOS)"
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          },
+          "name": {
+            "type": "string",
+            "example": "Service Endpoint name"
+          },
+          "connectionType": {
+            "type": "object",
+            "properties": {
+              "coding": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                    },
+                    "code": {
+                      "type": "string",
+                      "example": "hl7-fhir-msg"
+                    },
+                    "display": {
+                      "type": "string",
+                      "example": "HL7 FHIR Messaging"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "payloadType": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "coding": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "system": {
+                        "type": "string",
+                        "format": "url",
+                        "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                      },
+                      "code": {
+                        "type": "string",
+                        "example": "bars"
+                      },
+                      "display": {
+                        "type": "string",
+                        "example": "BaRS"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "managingOrganization": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://fhir.nhs.uk/Id/ods-organization-code"
+                    },
+                    "value": {
+                      "type": "string",
+                      "example": "X254"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "address": {
+            "type": "string",
+            "format": "url",
+            "example": "https://myService.nhs.uk/Base/Address"
+          },
+          "header": {
+            "type": "string",
+            "example": "public"
+          }
+        }
+      },
+      "HealthcareService": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "HealthcareService"
+          },
+          "id": {
+            "type": "string",
+            "example": "7ded9440-3543-4809-b834-25c9be211195",
+            "format": "uuid"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "lastUpdated": {
+                "type": "string",
+                "example": "2021-10-11T15:01:30+00:00",
+                "format": "date-time"
+              },
+              "profile": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+                }
+              }
+            }
+          },
+          "identifier": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "system": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                },
+                "value": {
+                  "type": "string",
+                  "example": "1000099999"
+                },
+                "display": {
+                  "type": "string",
+                  "example": "Directory of Services (DOS)"
+                }
+              }
+            }
+          },
+          "active": {
+            "type": "boolean",
+            "example": true
+          },
+          "name": {
+            "type": "string",
+            "example": "Example Healthcare Service"
+          },
+          "providedBy": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                    },
+                    "value": {
+                      "type": "string",
+                      "example": "1000099999"
+                    },
+                    "display": {
+                      "type": "string",
+                      "example": "Directory of Services (DOS)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "endpoint": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reference": {
+                  "type": "string",
+                  "example": "Endpoint/7ded9440-3543-4809-b834-25c9be211195"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "resourceType",
+          "id"
+        ],
+        "x-examples": {
+          "example": {
+            "resourceType": "Endpoint",
+            "meta": {
+              "profile": "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+            }
+          }
+        }
+      },
+      "OperationalOutcome": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "OperationOutcome"
+          },
+          "id": {
+            "type": "string",
+            "example": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+            "format": "uuid"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "profile": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "issue": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "severity": {
+                  "type": "string",
+                  "example": "information"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "informational"
+                },
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "coding": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "system": {
+                            "type": "string",
+                            "format": "url"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "display": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "diagnostics": {
+                  "type": "string",
+                  "example": "Resource updated"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ConnectionType": {
+        "type": "object",
+        "properties": {
+          "connectionType": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "coding": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "system": {
+                        "type": "string",
+                        "format": "url"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "display": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "PayloadType": {
+        "type": "object",
+        "properties": {
+          "payloadType": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "coding": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "system": {
+                        "type": "string",
+                        "format": "url"
+                      },
+                      "code": {
+                        "type": "string"
+                      },
+                      "display": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "ODS": {
+        "type": "string",
+        "example": "https://fhir.nhs.uk/Id/ods-organization-code|A001"
+      },
+      "EndpointBundle": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "example": "777a156c-af3c-4748-a8a3-7e95e4b0df9a"
+          },
+          "type": {
+            "type": "string",
+            "example": "searchset"
+          },
+          "total": {
+            "type": "integer",
+            "example": 2
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "link": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "relation": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "entry": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fullUrl": {
+                  "type": "string"
+                },
+                "resource": {
+                  "type": "object",
+                  "properties": {
+                    "resourceType": {
+                      "type": "string",
+                      "example": "Endpoint"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "91607239-b002-470a-8709-6b25bd50fdd1",
+                      "format": "uuid"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "lastUpdated": {
+                          "type": "string",
+                          "example": "2021-10-11T15:01:30+00:00",
+                          "format": "date-time"
+                        },
+                        "profile": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "url",
+                            "example": "http://hl7.org/fhir/structuredefinition/endpoint"
+                          }
+                        }
+                      }
+                    },
+                    "identifier": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "system": {
+                            "type": "string",
+                            "format": "url",
+                            "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "1000099999"
+                          },
+                          "display": {
+                            "type": "string",
+                            "example": "Directory of Services (DOS)"
+                          }
+                        }
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "active"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Service Endpoint name"
+                    },
+                    "connectionType": {
+                      "type": "object",
+                      "properties": {
+                        "coding": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "system": {
+                                "type": "string",
+                                "format": "url",
+                                "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                              },
+                              "code": {
+                                "type": "string",
+                                "example": "hl7-fhir-msg"
+                              },
+                              "display": {
+                                "type": "string",
+                                "example": "HL7 FHIR Messaging"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "payloadType": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "coding": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "system": {
+                                  "type": "string",
+                                  "format": "url",
+                                  "example": "http://terminology.hl7.org/CodeSystem/endpoint-payload-type"
+                                },
+                                "code": {
+                                  "type": "string",
+                                  "example": "bars"
+                                },
+                                "display": {
+                                  "type": "string",
+                                  "example": "BaRS"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "managingOrganization": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "identifier": {
+                            "type": "object",
+                            "properties": {
+                              "system": {
+                                "type": "string",
+                                "format": "url",
+                                "example": "https://fhir.nhs.uk/Id/ods-organization-code"
+                              },
+                              "value": {
+                                "type": "string",
+                                "example": "X254"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "address": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://myService.nhs.uk/Base/Address"
+                    },
+                    "header": {
+                      "type": "string",
+                      "example": "public"
+                    },
+                    "Period": {
+                      "type": "object",
+                      "properties": {
+                        "Start": {
+                          "type": "string",
+                          "example": "2021-10-11T15:01:30+00:00",
+                          "format": "date-time"
+                        },
+                        "End": {
+                          "type": "string",
+                          "example": "2021-10-12T15:01:30+00:00",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "HealthcareServiceBundle": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "example": "777a156c-af3c-4748-a8a3-7e95e4b0df9a"
+          },
+          "type": {
+            "type": "string",
+            "example": "searchset"
+          },
+          "total": {
+            "type": "integer",
+            "example": 1
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "link": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "relation": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "entry": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fullUrl": {
+                  "type": "string"
+                },
+                "resource": {
+                  "type": "object",
+                  "properties": {
+                    "resourceType": {
+                      "type": "string",
+                      "example": "HealthcareService"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "7ded9440-3543-4809-b834-25c9be211195",
+                      "format": "uuid"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "lastUpdated": {
+                          "type": "string",
+                          "example": "2021-10-11T15:01:30+00:00",
+                          "format": "date-time"
+                        },
+                        "profile": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "url",
+                            "example": "https://fhir.hl7.org.uk/StructureDefinition/UKCore-HealthcareService"
+                          }
+                        }
+                      }
+                    },
+                    "identifier": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "system": {
+                            "type": "string",
+                            "format": "url",
+                            "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                          },
+                          "value": {
+                            "type": "string",
+                            "example": "1000099999"
+                          },
+                          "display": {
+                            "type": "string",
+                            "example": "Directory of Services (DOS)"
+                          }
+                        }
+                      }
+                    },
+                    "active": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Example Healthcare Service"
+                    },
+                    "providedBy": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "identifier": {
+                            "type": "object",
+                            "properties": {
+                              "system": {
+                                "type": "string",
+                                "format": "url",
+                                "example": "https://fhir.nhs.uk/Id/dos-service-id"
+                              },
+                              "value": {
+                                "type": "string",
+                                "example": "1000099999"
+                              },
+                              "display": {
+                                "type": "string",
+                                "example": "Directory of Services (DOS)"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "endpoint": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "reference": {
+                            "type": "string",
+                            "example": "Endpoint/7ded9440-3543-4809-b834-25c9be211195"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Service": {
+        "type": "string",
+        "example": "https://fhir.nhs.uk/Id/dos-service-id|1000099999"
+      },
+      "GUID": {
+        "type": "string",
+        "format": "uuid",
+        "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+      },
+      "EndpointIdentifier": {
+        "type": "string",
+        "example": "https://fhir.nhs.uk/Id/EndpointSystem|EndpointValue"
+      },
+      "FhirList": {
+        "type": "object",
+        "description": "A FHIR R4 List resource representing a priority-ordered collection of Endpoint resources for a specific HealthcareService. The `subject` references the owning HealthcareService. Each `entry[].item` references an Endpoint resource. Priority is determined by array position \u2014 index 0 is the highest priority. `orderedBy` must be set to `priority`.",
+        "required": [
+          "resourceType",
+          "status",
+          "mode",
+          "subject",
+          "entry"
+        ],
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "enum": [
+              "List"
+            ],
+            "example": "List"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "f7d3e2a1-0000-0000-0000-000000000099"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "lastUpdated": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-05-06T10:00:01+00:00"
+              },
+              "profile": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.nhs.uk/StructureDefinition/EPC-EndpointList"
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Indicates the current state of this list.",
+            "enum": [
+              "current",
+              "retired",
+              "entered-in-error"
+            ],
+            "example": "current"
+          },
+          "mode": {
+            "type": "string",
+            "description": "How this list was prepared. Use `working` for a list maintained over time.",
+            "enum": [
+              "working",
+              "snapshot",
+              "changes"
+            ],
+            "example": "working"
+          },
+          "title": {
+            "type": "string",
+            "description": "A human-readable label for the list.",
+            "example": "Anytown UTC \u2014 Endpoint Priority Order"
+          },
+          "code": {
+            "type": "object",
+            "description": "Classifies the purpose of the list.",
+            "properties": {
+              "coding": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://fhir.nhs.uk/CodeSystem/EPC-list-code"
+                    },
+                    "code": {
+                      "type": "string",
+                      "example": "endpoint-priority"
+                    },
+                    "display": {
+                      "type": "string",
+                      "example": "Endpoint Priority Order"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "subject": {
+            "type": "object",
+            "description": "The HealthcareService this list belongs to. All Endpoint entries in the list are associated with this service.",
+            "required": [
+              "reference"
+            ],
+            "properties": {
+              "reference": {
+                "type": "string",
+                "description": "Relative reference to the HealthcareService, e.g. `HealthcareService/{id}`.",
+                "example": "HealthcareService/9f2c6f12-1a6d-4d9c-a111-123456789abc"
+              },
+              "display": {
+                "type": "string",
+                "description": "Plain text name of the HealthcareService.",
+                "example": "Anytown UTC"
+              }
+            }
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the list was last changed.",
+            "example": "2026-05-06T10:00:00+00:00"
+          },
+          "orderedBy": {
+            "type": "object",
+            "description": "Declares the ordering semantics. Must be `priority` to indicate entries are ordered by array position (index 0 = highest priority).",
+            "properties": {
+              "coding": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "http://terminology.hl7.org/CodeSystem/list-order"
+                    },
+                    "code": {
+                      "type": "string",
+                      "example": "priority"
+                    },
+                    "display": {
+                      "type": "string",
+                      "example": "Sorted by Priority"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "entry": {
+            "type": "array",
+            "description": "The ordered list of Endpoint references. Array position determines priority \u2014 index 0 is the highest priority Endpoint. Consumers MUST use array position as the authoritative order.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "item"
+              ],
+              "properties": {
+                "deleted": {
+                  "type": "boolean",
+                  "description": "True if this entry has been removed from the list.",
+                  "example": false
+                },
+                "date": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "When this entry was added to the list.",
+                  "example": "2026-05-06T10:00:00+00:00"
+                },
+                "item": {
+                  "type": "object",
+                  "description": "A reference to an Endpoint resource.",
+                  "required": [
+                    "reference"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string",
+                      "description": "Relative reference to an Endpoint resource, e.g. `Endpoint/{id}`.",
+                      "example": "Endpoint/e1a2b3c4-0000-0000-0000-000000000001"
+                    },
+                    "display": {
+                      "type": "string",
+                      "description": "Plain text name of the Endpoint.",
+                      "example": "Primary Endpoint"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "OAuth_AppRestricted": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Application-restricted access. Bearer token obtained via signed JWT authentication. Used for system-to-system operations (read and automated writes)."
+      },
+      "OAuth_CIS2": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "User-restricted access via NHS CIS2. Bearer token obtained via CIS2 authentication flow. Used for administrative operations where a human user is present."
+      }
+    }
+  }
+}
