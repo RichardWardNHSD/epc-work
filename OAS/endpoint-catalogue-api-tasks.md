@@ -10,7 +10,8 @@ Tasks to bring the new `endpoint-catalogue-api.json` back in line with the FHIR 
 
 ## Open decisions (resolve first)
 
-- [x] **Version number** — set to `1.0.0-alpha` (first release). Aligned all 5 occurrences: `info.version`, the `/metadata` CapabilityStatement `version` + `software.version`, and the two `Capability` schema examples. ✅ Done.
+- [x] **Version number** — set to `1.0.0-alpha` (first release). Aligned all occurrences in `info.version`. ✅ Done. (The `/metadata` and `Capability` version examples were subsequently removed — see below.)
+- [x] **Remove `/metadata` + CapabilityStatement for alpha** — removed the `/metadata` path, the `Capability` schema, and the `Metadata` tag. Zero dangling references; valid JSON. This makes #11, #12, #24, #32 N/A for alpha. The `_id` reconciliation also removed the `_id` searchParam from the (now-deleted) CapabilityStatement. ✅ Done. Backup: `/tmp/cat-backup-pre-metadata.json`.
 - [ ] **`_id` search additions** — the new file adds `_id` on `GET /HealthcareService` and `_has:HealthcareService:endpoint:_id` on `GET /Endpoint`. Confirm these are intended to stay (they resolve process conflicts #35/#36 by extending the API rather than editing the process docs).
 - [ ] **Approach** — re-apply each fix by hand, or port the fixed content from `OAS/old/endpoint-catalog-api.json` via a careful merge that preserves the new file's additions (`_id`, `_has:_id`, version).
 
@@ -42,9 +43,9 @@ Tasks to bring the new `endpoint-catalogue-api.json` back in line with the FHIR 
 
 ## Should (important, but alpha can proceed short-term)
 
-- [ ] **[#11] Stale Capability schema examples** — update `version`, `publisher`, `date` to match the info block / `/metadata` (depends on the version decision above).
+- [x] **[#11] Stale Capability schema examples** — **N/A: the `Capability` schema was removed with `/metadata`** (see below). No longer applicable. ✅
 - [ ] **[#18] HealthcareService.type** *(team)* — add `type` (`CodeableConcept 0..*`, UK Core MustSupport) to the HealthcareService schema + bundle. Do **not** add to `required`. Blocked on confirming the value-set / system binding.
-- [ ] **[#23] resourceType enum (Part A)** — enum-lock `resourceType` on `Endpoint`, `EndpointTemplate`, `HealthcareService` (`FhirList` already done). Parts B & C (required-cardinality via create/response schema split) deferred with #28.
+- [x] **[#23] resourceType enum (Part A)** — enum-locked `resourceType` on `Endpoint`, `EndpointTemplate`, `HealthcareService` (`FhirList` already done). ✅ Parts B & C (required-cardinality via create/response schema split) still pending, deferred with #28.
 - [ ] **[#26] OperationOutcome constraints** — enforce base/UK Core structure (`resourceType` enum, `issue` 1..*, `severity`/`code` required + value sets). Tie to the #4 naming decision.
 - [ ] **[#28] Server-managed fields in create examples** — remove `id`, `meta.lastUpdated`, `meta.versionId` from create examples. Tie to the #23 schema split.
 - [ ] **[#31] UUID-only ids** — reconsider `format: uuid` on logical ids / path params (~41 occurrences) vs the broader FHIR `id` datatype. If UUID-only is an intentional EPC restriction, document it; otherwise relax the pattern.
@@ -54,10 +55,10 @@ Tasks to bring the new `endpoint-catalogue-api.json` back in line with the FHIR 
 
 ## Could (desirable polish, low urgency)
 
-- [ ] **[#10] Accept header example** — remove the trailing semicolon: `application/fhir+json;` → `application/fhir+json`.
-- [ ] **[#12] Capability format example** — `xml` → `json`.
-- [ ] **[#24] CapabilityStatement advertising** *(deferred, alpha)* — profiles / `updateCreate` / `$template` advertising; parked with `/metadata` for alpha.
-- [ ] **[#32] CapabilityStatement/OAS sync** *(deferred, alpha)* — parked with `/metadata` for alpha.
+- [x] **[#10] Accept header example** — removed the trailing semicolon: `application/fhir+json;` → `application/fhir+json`. ✅
+- [x] **[#12] Capability format example** — **N/A: the `Capability` schema was removed with `/metadata`** (see below). No longer applicable. ✅
+- [x] **[#24] CapabilityStatement advertising** — **N/A for alpha: `/metadata` and the CapabilityStatement have been removed** (see below). No statement to advertise profiles/operations in. Revisit if/when a CapabilityStatement is reintroduced post-alpha. ✅
+- [x] **[#32] CapabilityStatement/OAS sync** — **N/A for alpha: `/metadata` removed** (see below). No published statement to keep in sync. Revisit post-alpha. ✅
 
 ---
 
