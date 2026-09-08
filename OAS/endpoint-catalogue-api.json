@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "description": "The Endpoint Catalog API provides a FHIR R4 interface for managing and querying Endpoint and HealthcareService resources. It enables connecting parties to discover service endpoints by organisation, service identifier, connection type and payload type.",
-    "version": "1.4.0-alpha",
+    "version": "1.0.0-alpha",
     "title": "Endpoint Catalog API",
     "termsOfService": "https://digital.nhs.uk/developer/api-catalogue/endpoint-catalogue",
     "contact": {
@@ -85,7 +85,7 @@
                   "url": "https://api.service.nhs.uk/endpoint-catalogue/FHIR/R4",
                   "name": "Endpoint Catalogue API CapabilityStatement",
                   "status": "active",
-                  "version": "1.4.0",
+                  "version": "1.0.0-alpha",
                   "experimental": false,
                   "date": "2026-06-08T00:00:00+01:00",
                   "publisher": "NHS England",
@@ -103,7 +103,7 @@
                   "kind": "instance",
                   "software": {
                     "name": "Endpoint Catalogue API",
-                    "version": "1.4.0"
+                    "version": "1.0.0-alpha"
                   },
                   "implementation": {
                     "description": "Endpoint Catalogue API - FHIR R4 service discovery",
@@ -2434,7 +2434,7 @@
           },
           "version": {
             "type": "string",
-            "example": "1.2.0"
+            "example": "1.0.0-alpha"
           },
           "experimental": {
             "type": "boolean",
@@ -2491,7 +2491,7 @@
               },
               "version": {
                 "type": "string",
-                "example": "1.1.0"
+                "example": "1.0.0-alpha"
               }
             },
             "additionalProperties": false
