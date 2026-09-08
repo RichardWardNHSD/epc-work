@@ -74,9 +74,9 @@ Tasks to bring the new `endpoint-catalogue-api.json` back in line with the FHIR 
 
 ## New reconciliation (from the new file's additions)
 
-- [x] **[#35/#36] `_id` search reconciliation** — **Decision applied:**
-  - **Kept** `GET /HealthcareService?_id={uuid}` (`ServiceId_QParam`). → Report **#36 resolved by extending the OAS** (the API now supports direct `_id` lookup on HealthcareService).
-  - **Removed** `_has:HealthcareService:endpoint:_id` on `GET /Endpoint` (from the `_has` param description, the CapabilityStatement Endpoint searchParams, and 4 operation descriptions). Only `_has:HealthcareService:endpoint:identifier` remains. → Report **#35: the `_id` reverse-chain is NOT supported**; any process step using `_has:...:_id` must switch to `_has:...:identifier`.
+- [x] **[#35/#36] `_id` search reconciliation** — **Decision applied (both `_id` forms removed):**
+  - **Removed** `GET /HealthcareService?_id={uuid}` (`ServiceId_QParam` component + its use) — redundant with `GET /HealthcareService/{id}` (direct read by logical id). → Report **#36: `_id` query not supported; use `GET /HealthcareService/{id}`**.
+  - **Removed** `_has:HealthcareService:endpoint:_id` on `GET /Endpoint` (from the `_has` param description and 4 operation descriptions; also removed from the CapabilityStatement before `/metadata` itself was deleted). Only `_has:HealthcareService:endpoint:identifier` remains. → Report **#35: the `_id` reverse-chain is NOT supported**; process steps using `_has:...:_id` must switch to `_has:...:identifier`.
   - `GET /List` `_include=List:item` retained (legitimate on List). ✅
   - ⚠️ **Follow-up:** report #35/#36 wording and the process docs (IP001–IP004) still need updating to match this decision — see the process-doc tasks below.
 
