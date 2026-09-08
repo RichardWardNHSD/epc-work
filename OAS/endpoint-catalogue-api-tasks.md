@@ -10,7 +10,7 @@ Tasks to bring the new `endpoint-catalogue-api.json` back in line with the FHIR 
 
 ## Open decisions (resolve first)
 
-- [ ] **Version number** — new file says `1.4.0-alpha`; the review decided `1.0.0-alpha` (first release). Confirm which is correct, then align `info.version`, the `/metadata` example, and the `Capability` schema examples. (Affects #11.)
+- [x] **Version number** — set to `1.0.0-alpha` (first release). Aligned all 5 occurrences: `info.version`, the `/metadata` CapabilityStatement `version` + `software.version`, and the two `Capability` schema examples. ✅ Done.
 - [ ] **`_id` search additions** — the new file adds `_id` on `GET /HealthcareService` and `_has:HealthcareService:endpoint:_id` on `GET /Endpoint`. Confirm these are intended to stay (they resolve process conflicts #35/#36 by extending the API rather than editing the process docs).
 - [ ] **Approach** — re-apply each fix by hand, or port the fixed content from `OAS/old/endpoint-catalog-api.json` via a careful merge that preserves the new file's additions (`_id`, `_has:_id`, version).
 
