@@ -69,8 +69,9 @@ MoSCoW is a suggested prioritisation for discussion — adjust as the team sees 
 | 36 | Processes use `GET /HealthcareService?_id=...&_include=HealthcareService:endpoint`; OAS declares neither and forbids `_include` | Pending (team) — process vs OAS alignment                                     | Must |               |
 | 37 | Process create/update payloads send `connectionType.coding[]` (CodeableConcept); OAS schema is now a flat `Coding` (#15) | Pending (team) — process vs OAS alignment                                     | Must |               |
 | 38 | Process docs carry stale details already changed in the OAS (`;version=`, `-epc`, `/id/`, premature UKCore profile)      | Pending — update process docs                                                 | Should |               |
+| 39 | US spelling "Catalog" in `info.title`/`info.description` should be "Catalogue"                                          | Fixed                                                                         | Should |               |
 
-> **Provenance:** Items #1–#18 arose during the interactive review session. Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments. Item #33 was identified and restored later in the session. Items #34–#38 came from checking the OAS against the Interim Process documents (`IP001`–`IP004`) in `epc-work/Documents/Processes`.
+> **Provenance:** Items #1–#18 arose during the interactive review session. Items #19–#26 were carried over from the earlier standalone conformance review (`endpoint-catalog-oas-fhir-r4-uk-core-review.md`, since merged into this document). Items #27–#32 were added from a later set of review comments. Item #33 was identified and restored later in the session. Items #34–#38 came from checking the OAS against the Interim Process documents (`IP001`–`IP004`) in `epc-work/Documents/Processes`. Item #39 was a spelling-consistency fix (`endpoint-catalogue-api.json`).
 
 ---
 
@@ -1398,6 +1399,32 @@ The process docs still show several details the OAS has since moved away from du
 | HS payloads assert `meta.profile: UKCore-HealthcareService` | OAS HS schema does not assert this profile, and `HealthcareService.type` (MustSupport) is still absent | #18 |
 
 **Recommended direction:** Update the process docs to match the OAS on these points. These are documentation-consistency fixes rather than API-design decisions.
+
+---
+
+### #39 — "Catalog" → "Catalogue" spelling
+
+**Status: Fixed**
+
+**MoSCoW: Should**
+
+**Problem**
+
+The API `info.title` and `info.description` used the US spelling "Endpoint Catalog API". The rest of the artefact — server URLs and the NHS developer/API-catalogue slugs — already used the UK spelling `endpoint-catalogue` / `api-catalogue`, so the prose was inconsistent.
+
+**Before**
+```json
+"title": "Endpoint Catalog API",
+"description": "The Endpoint Catalog API provides a FHIR R4 interface for..."
+```
+
+**After**
+```json
+"title": "Endpoint Catalogue API",
+"description": "The Endpoint Catalogue API provides a FHIR R4 interface for..."
+```
+
+Applied to `info.title` and `info.description` in `endpoint-catalogue-api.json`. No "Catalog" (non-"Catalogue") spelling remains. The server URLs/slugs were already `catalogue` and were unchanged.
 
 ---
 

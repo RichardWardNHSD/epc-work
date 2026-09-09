@@ -12,6 +12,7 @@ Tasks to bring the new `endpoint-catalogue-api.json` back in line with the FHIR 
 
 - [x] **Version number** — set to `1.0.0-alpha` (first release). Aligned all occurrences in `info.version`. ✅ Done. (The `/metadata` and `Capability` version examples were subsequently removed — see below.)
 - [x] **Remove `/metadata` + CapabilityStatement for alpha** — removed the `/metadata` path, the `Capability` schema, and the `Metadata` tag. Zero dangling references; valid JSON. This makes #11, #12, #24, #32 N/A for alpha. The `_id` reconciliation also removed the `_id` searchParam from the (now-deleted) CapabilityStatement. ✅ Done. Backup: `/tmp/cat-backup-pre-metadata.json`.
+- [x] **[#39] "Catalog" → "Catalogue" spelling** — corrected the US spelling in `info.title` ("Endpoint Catalog API" → "Endpoint Catalogue API") and `info.description`. The server URLs / API slugs already used `endpoint-catalogue`/`api-catalogue`. No "Catalog" (non-Catalogue) spelling remains. ✅ Done.
 - [ ] **`_id` search additions** — the new file adds `_id` on `GET /HealthcareService` and `_has:HealthcareService:endpoint:_id` on `GET /Endpoint`. Confirm these are intended to stay (they resolve process conflicts #35/#36 by extending the API rather than editing the process docs).
 - [ ] **Approach** — re-apply each fix by hand, or port the fixed content from `OAS/old/endpoint-catalog-api.json` via a careful merge that preserves the new file's additions (`_id`, `_has:_id`, version).
 
