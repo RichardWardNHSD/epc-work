@@ -205,10 +205,22 @@ For detail on the R&M support infrastructure, see
 | 2 | Observability (ODIN)               | OpenTelemetry instrumentation, ODIN export, Grafana dashboards, cross-service correlation     | EPC-NF06, EPC-NF07, EPC-NF08, EPC-NF09  | ODIN onboarding prerequisites unresolved; CloudWatch provides adequate MVP observability                                                                                                                  | **M**             | OTel layer configuration, Grafana dashboard build, alert recreation — primarily configuration, no application logic changes           | [mvp-deferral-observability.md](./mvp-deferral-observability.md)         |
 | 3 | ~~Endpoint Ordering (List)~~       | ~~FHIR List resource for priority ordering, auto-creation, multi-protocol failover~~          | ~~EPCFUNC-06 (endpoint ordering)~~      | ~~MVP consumers (BaRS) have one Endpoint per type per service — nothing to order. Required for DUEC.~~                                                                                                   | **~~M~~**         | ~~New DynamoDB table, new Lambda handler, auto-creation/sync logic, OAS additions, consumer contract changes~~                         | [mvp-deferral-endpoint-ordering.md](./mvp-deferral-endpoint-ordering.md) |
 | 4 | Disaster Recovery (Full DR Plan)   | Multi-region failover, tested runbooks, scheduled DR exercises, formal RPO/RTO                | EPC-NF09 (Platinum service class)       | Serverless inherent resilience + PITR is sufficient for MVP. Full DR delivered at production readiness review. ⚠️**Requires a let (exemption) from Engineering CoE — MVP is not Red Lines compliant.** | **S**             | Mostly process and testing — runbook documentation, backup automation in CI/CD, scheduling quarterly exercises, no new infrastructure | [mvp-deferral-disaster-recovery.md](./mvp-deferral-disaster-recovery.md) |
-| 5 | Private Endpoint Address Redaction | `header: private` field triggering address omission for non-owner consumers                   | EPCSe001 AC4                            | Under discussion and may be struck from the spec. All MVP endpoints are public (BaRS). Adds conditional logic to every read path.                                                                         | **S**             | Conditional check on read path + ownership lookup per Endpoint. Small code change but touches every GET response.                      | [mvp-deferral-private-endpoint.md](./mvp-deferral-private-endpoint.md)   |
+| 5 | Full Penetration Test              | Independent, full-scope security penetration test of the EPC (API, backend, and infrastructure) with findings remediated and signed off | Security assurance (path to live)       | MVP is internal-only — no external supplier or third-party access, so the exposed attack surface is limited. A full penetration test is required before full rollout when external consumers are granted access. ⚠️**Full external rollout must not proceed until a complete penetration test has been passed and findings remediated.** | **S**             | Primarily engagement and process — booking an accredited testing team, scoping, test execution, and remediation of findings. No new infrastructure, though remediation effort depends on findings. | [mvp-deferral-pen-test.md](./mvp-deferral-pen-test.md)                   |
 
 > **Note:** Item 3 (Endpoint Ordering) has been implemented by the supplier and is no
 > longer deferred from the MVP. The deferral document is retained for historical context.
+
+> **Note:** Private Endpoint Address Redaction (formerly deferral item 5) has been
+> **removed from scope entirely — not deferred.** It was based on overloading the FHIR R4
+> `Endpoint.header` element with `public`/`private` values to control `address` visibility,
+> which is a non-conformant misuse of that element (`header` in FHIR R4 carries connection
+> headers to send when contacting the endpoint, not a visibility flag). The EPC OAS now
+> defines `header` per its correct FHIR R4 meaning (a `0..*` array of header strings), and
+> no address-redaction behaviour is built. See [Endpoint Header](../endpoint-header.md) for
+> the analysis and [mvp-deferral-private-endpoint.md](./mvp-deferral-private-endpoint.md)
+> for the withdrawal record. If an address-visibility capability is genuinely required in
+> future, it must be modelled correctly (a FHIR extension or a dedicated element), not by
+> repurposing `header`.
 
 ---
 
@@ -237,10 +249,12 @@ refinement, implementation, testing, and documentation — not just coding.
 | Observability (ODIN)         | M     |
 | ~~Endpoint Ordering (List)~~ | ~~M~~ |
 | Disaster Recovery            | S     |
-| Private Endpoint Redaction   | S     |
+| Full Penetration Test        | S     |
 
 > **Note:** Endpoint Ordering (List) has been implemented by the supplier and no longer
-> contributes to effort savings. The remaining deferrals still apply.
+> contributes to effort savings. Private Endpoint Address Redaction has been removed from
+> scope entirely (non-conformant use of `Endpoint.header`) rather than deferred, so it is
+> not an effort saving. The remaining deferrals still apply.
 
 **Elapsed time saved:** *to be provided by supplier.*
 

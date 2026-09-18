@@ -218,7 +218,6 @@ is delivered:
 | **ODS ownership check** | Enforced on all write operations in MVP and final. |
 | **Product ID ownership check** | Enforced in MVP and final. |
 | **ODS spoofing protection** | Enforced in MVP and final. |
-| **`header: private` redaction** | Applies in MVP and final. |
 | **All CRUD operations** | `GET`, `POST`, `PUT`, `DELETE` on all resource types exist in both MVP and final. The operations are the same — only the authorisation gate is expanded later. |
 | **Error response format** | FHIR OperationOutcome throughout. Error codes unchanged. |
 | **Request/response payloads** | No change to any FHIR resource payloads, search parameters, or response structures between MVP and final. |
@@ -241,7 +240,7 @@ is delivered:
 | Authentication | Application-restricted (signed JWT) | Application-restricted + CIS2 user-restricted |
 | Identity granularity | Application (client_id + ODS + Product ID) | Application + individual user |
 | Write authorisation | ODS ownership + Product ID ownership | ODS + Product ID + role check |
-| Read authorisation | All resources visible (except private address redaction) | Same |
+| Read authorisation | All resources visible in full (no address redaction) | Same |
 | Audit attribution | Application + ODS code | Application + ODS code + individual user identity |
 | Admin override | R&M batch pipeline (privileged application) | System Admin role |
 | Cross-org operations | R&M team only | Programme Admin role |

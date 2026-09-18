@@ -1,0 +1,2157 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "## Overview\n\nPrototype Direct Integration API for managing appointments using FHIR R4 (4.0.1).\n\nThis specification contains the following operations:\n* Search for appointments, including supported `_include` results.\n* Get, create, update, patch and delete an appointment.\n* Retrieve the server capability statement using `/metadata`.\n\n## Relationship to BaRS\n\nThis prototype Direct Integration API is based on and aligned with the Booking and Referral Standard (BaRS). It focuses on the Appointment and metadata operations described in this specification.\n\nBaRS is the definitive reference for the standard, including its requirements, resource definitions and implementation guidance. This prototype specification supplements that guidance for direct integration; it does not replace or redefine BaRS. If this specification differs from BaRS, the BaRS standard takes precedence, and the difference should be treated as a prototype limitation to be resolved.\n\nRefer to the [BaRS implementation guide](https://simplifier.net/guide/nhsbookingandreferralstandard) for the authoritative guidance. Alignment with BaRS does not, by itself, establish that this prototype has been formally assessed or approved as conformant.\n\n## Prototype configuration\n\nThe server URL is a placeholder. Replace it with the Direct Integration API deployment URL before use.\n\n## Security and authentication\n\nThis prototype uses patient-based, user-restricted access through NHS login and NHS API Platform token exchange. This is the prototype's security profile; BaRS remains the definitive reference for the underlying standard.\n\n### Authentication flow\n\nRegister the application separately with NHS login and NHS API Platform and enable access to this API in the chosen environment.\n\n1. Authenticate the patient using the NHS login OpenID Connect authorisation-code flow and validate the returned ID token.\n2. Exchange that ID token at the NHS API Platform token endpoint, authenticating the application with a signed client assertion.\n3. Send the resulting API Platform access token as `Authorization: Bearer <access_token>` on every API request, including `/metadata`.\n\nUse `https://int.api.service.nhs.uk/oauth2/token` for integration testing and `https://api.service.nhs.uk/oauth2/token` for production. Follow the [NHS token-exchange guidance](https://digital.nhs.uk/developer/guides-and-documentation/security-and-authorisation/user-restricted-restful-apis-nhs-login-separate-authentication-and-authorisation) for request parameters, client assertions, token refresh and environment pairing.\n\nThe bearer credential for this API is the exchanged access token. Do not send an NHS login ID token, NHS login access token or client assertion as this API's bearer credential.\n\n### Identity and verification\n\nNHS login uses `openid` for authentication; request the approved `profile` scope when an NHS number is needed for patient matching. Validate identity claims and the returned verification level using the [NHS login OIDC guidance](https://nhsconnect.github.io/nhslogin/oidc-login-flow/) and [scopes and claims guidance](https://nhsconnect.github.io/nhslogin/scopes-and-claims/).\n\nPrototype policy: appointment access requires high identity verification (P9). Configure the accepted authentication vectors during onboarding; do not infer adequate assurance merely from a successful sign-in. See [NHS login verification guidance](https://nhsconnect.github.io/nhslogin/step-up-p5-p9/).\n\n### Patient authorisation — prototype policy\n\nThe API gateway must validate the API Platform access token and convey authenticated patient and application context to the receiving service through a trusted channel. A receiving service must reject caller-supplied identity context that has not been authenticated by that channel. Do not assume the access token is a locally decodable JWT.\n\nEvery appointment request must be authorised against the authenticated patient's local record:\n\n* Searches return only that patient's appointments. Supplied identifiers and demographic filters must not broaden access to another patient.\n* Reads, updates, patches and deletes require the appointment to belong to that patient.\n* Creation must bind the appointment to that patient. Updates and patches must not reassign it to another patient.\n* Included resources must be authorised for disclosure in the context of the permitted appointment.\n* Acting for another patient requires a separately defined delegated-access policy; this prototype does not grant that access.\n\nAuthentication does not automatically permit every operation. The receiving service must also enforce its appointment-management rules and application permissions. Routing, software, organisation and practitioner headers provide context, not proof of patient identity.\n\n### Authentication and authorisation failures\n\nReturn `401` for missing, invalid or expired API credentials, with a `WWW-Authenticate: Bearer` challenge. Return `403` when valid credentials lack sufficient permissions, patient access or required assurance. Return an OperationOutcome without disclosing another patient's details. OAuth token-endpoint errors follow the linked NHS guidance and are outside this API's paths.\n\n### Prototype deployment\n\nThis specification defines the intended security contract. NHS login onboarding, API Platform product configuration, token validation and patient-level enforcement must be implemented and enabled before deployment. The placeholder API server URL does not imply that this prototype is already available on NHS API Platform.\n\n## Errors\n\nError responses use HTTP status codes and the OperationOutcome structure defined in this specification.\n",
+    "version": "1.4.0-alpha",
+    "title": "Direct Integration API (Prototype)",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://example.org/direct-integration/FHIR/R4",
+      "description": "Prototype placeholder — replace with the deployment base URL"
+    }
+  ],
+  "security": [
+    {
+      "NHSLoginPatientAccess": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Booking"
+    },
+    {
+      "name": "Metadata"
+    }
+  ],
+  "paths": {
+    "/metadata": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/CorrelationId_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/TargetIdentifierMeta_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingOrganisation_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingPractitioner_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingDevice_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/Accept_HParam"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Get capability statement",
+        "description": "Retrieve the Direct Integration API server CapabilityStatement to discover its supported FHIR version, formats, security and appointment interactions.",
+        "operationId": "getMeta",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/fhir+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capability"
+                },
+                "example": {
+                  "resourceType": "CapabilityStatement",
+                  "id": "Direct-Integration-FHIR-Server",
+                  "url": "https://example.org/direct-integration/FHIR/R4",
+                  "name": "DirectIntegrationCapabilityStatement",
+                  "status": "draft",
+                  "version": "1.2.0",
+                  "experimental": true,
+                  "date": "2022-09-16T15:00:00+01:00",
+                  "kind": "instance",
+                  "software": {
+                    "name": "Direct Integration API",
+                    "version": "1.1.0"
+                  },
+                  "implementation": {
+                    "description": "Prototype Direct Integration API FHIR server",
+                    "url": "https://example.org/direct-integration/FHIR/R4"
+                  },
+                  "fhirVersion": "4.0.1",
+                  "format": [
+                    "xml",
+                    "json"
+                  ],
+                  "rest": [
+                    {
+                      "mode": "server",
+                      "security": {
+                        "service": [
+                          {
+                            "coding": [
+                              {
+                                "system": "http://terminology.hl7.org/CodeSystem/restful-security-service",
+                                "code": "OAuth",
+                                "display": "OAuth"
+                              }
+                            ]
+                          }
+                        ],
+                        "description": "Patient authentication through NHS login, followed by NHS API Platform token exchange. Patient-level authorisation and P9 verification are required by this prototype."
+                      },
+                      "resource": [
+                        {
+                          "type": "Appointment",
+                          "interaction": [
+                            {
+                              "code": "read"
+                            },
+                            {
+                              "code": "search-type"
+                            },
+                            {
+                              "code": "create"
+                            },
+                            {
+                              "code": "update"
+                            },
+                            {
+                              "code": "patch"
+                            },
+                            {
+                              "code": "delete"
+                            }
+                          ],
+                          "searchParam": [
+                            {
+                              "name": "patient:identifier",
+                              "type": "token",
+                              "documentation": "The patient's NHS number. The primary identifier of a patient across systems, unique to NHS England and Wales. It can be used without reference to Name, Date of Birth or Postcode parameters.\n\n|Type           |Expression|\n|-------             | --------|\n|[token](https://hl7.org/implement/standards/FHIR/search.html#token) |Appointment.participant.actor:identifier |\n\n**Example query without encoding** \n*https://fhir.nhs.uk/Id/nhs-number|4857773456*\n"
+                            },
+                            {
+                              "name": "patient:name",
+                              "type": "string",
+                              "documentation": "The patient's name, including family, given, prefix, suffix and/or text. The Receiving system will check against any patient name fields they hold to establish a match. It is expected this parameter is used in conjunction with Date of Birth and Postcode to ensure a unique match.\n"
+                            },
+                            {
+                              "name": "patient:birthdate",
+                              "type": "date",
+                              "documentation": "The patient's Date of Birth. The Receiving system will check against the patient Date of Birth to establish a match. It is expected this parameter is used in conjunction with Name and Postcode to ensure a unique match.\n"
+                            },
+                            {
+                              "name": "patient:address-postalcode",
+                              "type": "string",
+                              "documentation": "The patient's Home address Postcode. The Receiving system will check against the patient 'Home' address Postcode to establish a match. It is expected this parameter is used in conjunction with Name and Date of Birth to ensure a unique match.\n"
+                            }
+                          ],
+                          "versioning": "no-version",
+                          "searchInclude": [
+                            "Appointment:slot",
+                            "Appointment:based-on",
+                            "Slot:schedule",
+                            "Schedule:actor:Practitioner",
+                            "Schedule:actor:PractitionerRole",
+                            "Schedule:actor:HealthcareService",
+                            "HealthcareService:providedBy",
+                            "HealthcareService:location"
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "application/fhir+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capability"
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX-DirectIntegration"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX-DirectIntegration"
+          },
+          "401": {
+            "$ref": "#/components/responses/PatientUnauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/PatientForbidden"
+          }
+        }
+      }
+    },
+    "/Appointment": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/CorrelationId_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/TargetIdentifier_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingOrganisation_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingPractitioner_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingDevice_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/Accept_HParam"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Booking"
+        ],
+        "summary": "Get bookings for a patient",
+        "description": "\n### Returns bookings for a specified patient\nUse this endpoint to get all bookings for a given patient. All bookings for the specified patient at the specified target endpoint will be returned in a FHIR searchset Bundle containing Appointment resources. \n\nIf a sender wants to cancel a particular booking, they must perform a read first, comparing and amending the details prior to performing the update.\n\nPatient access: the receiving service must authorise this operation for the authenticated patient and restrict all returned or modified resources accordingly. See the patient-authorisation policy in the API overview.",
+        "operationId": "getBookingByPatient",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PatientId_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/PatientName_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/PatientDoB_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/PatientPostcode_QParam"
+          },
+          {
+            "$ref": "#/components/parameters/AppointmentInclude_QParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/fhir+json;version=1.0.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchBundleAppt"
+                },
+                "examples": {
+                  "BookingsForPatient": {
+                    "summary": "Get bookings for a patient (no _include)",
+                    "description": "A default response, with no `_include` parameters supplied, containing only the matched Appointment resources.",
+                    "value": {
+                      "resourceType": "Bundle",
+                      "type": "searchset",
+                      "total": 2,
+                      "link": [
+                        {
+                          "relation": "self",
+                          "url": "https://example.org/direct-integration/FHIR/R4/Appointment"
+                        }
+                      ],
+                      "entry": [
+                        {
+                          "fullUrl": "https://example.org/direct-integration/FHIR/R4/Appointment/c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                          "resource": {
+                            "resourceType": "Appointment",
+                            "id": "c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                            "meta": {
+                              "lastUpdated": "2021-11-11T12:11:30+00:00",
+                              "profile": [
+                                "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                              ]
+                            },
+                            "status": "booked",
+                            "description": "Reason for calling",
+                            "start": "2021-10-12T12:30:30+00:00",
+                            "end": "2021-10-12T12:40:30+00:00",
+                            "slot": [
+                              {
+                                "reference": "Slot/95CA8891-5CB2-4AFC-A6E4-2D20645FDE60"
+                              }
+                            ],
+                            "created": "2021-10-11T15:01:30+00:00",
+                            "basedOn": [
+                              {
+                                "reference": "ServiceRequest/136bb75d-90ef-461f-4773-fde7f899803d",
+                                "type": "ServiceRequest"
+                              }
+                            ],
+                            "participant": [
+                              {
+                                "actor": {
+                                  "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                                },
+                                "status": "accepted",
+                                "type": [
+                                  {
+                                    "coding": [
+                                      {
+                                        "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                                        "code": "ATND",
+                                        "display": "attender"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          "search": {
+                            "mode": "match"
+                          }
+                        },
+                        {
+                          "fullUrl": "https://example.org/direct-integration/FHIR/R4/Appointment/91607239-b002-470a-8709-6b25bd50fdd1",
+                          "resource": {
+                            "resourceType": "Appointment",
+                            "id": "91607239-b002-470a-8709-6b25bd50fdd1",
+                            "meta": {
+                              "lastUpdated": "2021-10-11T15:01:30+00:00",
+                              "profile": [
+                                "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                              ]
+                            },
+                            "status": "booked",
+                            "description": "Reason for calling",
+                            "start": "2021-10-12T12:30:30+00:00",
+                            "end": "2021-10-12T12:40:30+00:00",
+                            "slot": [
+                              {
+                                "reference": "Slot/deb4c4b3-870b-4599-84df-5e54cef7afda"
+                              }
+                            ],
+                            "created": "2021-10-11T15:01:30+00:00",
+                            "basedOn": [
+                              {
+                                "reference": "ServiceRequest/236bb75d-90ef-461f-b71e-fde7f899802c",
+                                "type": "ServiceRequest"
+                              }
+                            ],
+                            "participant": [
+                              {
+                                "actor": {
+                                  "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                                },
+                                "status": "accepted",
+                                "type": [
+                                  {
+                                    "coding": [
+                                      {
+                                        "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                                        "code": "ATND",
+                                        "display": "attender"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          "search": {
+                            "mode": "match"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "BookingsForPatientWithIncludes": {
+                    "summary": "Get bookings for a patient, with _include=Appointment:slot&_include=Slot:schedule&_include=Schedule:actor:HealthcareService&_include=HealthcareService:location",
+                    "description": "A response to a request such as:\n\n`GET [base]/Appointment?patient:identifier=https://fhir.nhs.uk/Id/nhs-number|4857773456&_include=Appointment:slot&_include=Slot:schedule&_include=Schedule:actor:HealthcareService&_include=HealthcareService:location`\n\nThe matched Appointment is returned with `search.mode: \"match\"`, and each additionally requested resource (Slot, Schedule, HealthcareService and Location) is returned alongside it in the same Bundle with `search.mode: \"include\"`, so the sender does not need to make separate follow-up reads to resolve them.",
+                    "value": {
+                      "resourceType": "Bundle",
+                      "type": "searchset",
+                      "total": 1,
+                      "link": [
+                        {
+                          "relation": "self",
+                          "url": "https://example.org/direct-integration/FHIR/R4/Appointment?patient:identifier=https%3A%2F%2Ffhir.nhs.uk%2FId%2Fnhs-number%7C4857773456&_include=Appointment:slot&_include=Slot:schedule&_include=Schedule:actor:HealthcareService&_include=HealthcareService:location"
+                        }
+                      ],
+                      "entry": [
+                        {
+                          "fullUrl": "https://example.org/direct-integration/FHIR/R4/Appointment/c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                          "resource": {
+                            "resourceType": "Appointment",
+                            "id": "c3f6145e-1a26-4345-b3f2-dccbcba62049",
+                            "meta": {
+                              "lastUpdated": "2021-11-11T12:11:30+00:00",
+                              "profile": [
+                                "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                              ]
+                            },
+                            "status": "booked",
+                            "description": "Reason for calling",
+                            "start": "2021-10-12T12:30:30+00:00",
+                            "end": "2021-10-12T12:40:30+00:00",
+                            "slot": [
+                              {
+                                "reference": "Slot/95CA8891-5CB2-4AFC-A6E4-2D20645FDE60"
+                              }
+                            ],
+                            "created": "2021-10-11T15:01:30+00:00",
+                            "basedOn": [
+                              {
+                                "reference": "ServiceRequest/136bb75d-90ef-461f-4773-fde7f899803d",
+                                "type": "ServiceRequest"
+                              }
+                            ],
+                            "participant": [
+                              {
+                                "actor": {
+                                  "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                                },
+                                "status": "accepted",
+                                "type": [
+                                  {
+                                    "coding": [
+                                      {
+                                        "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+                                        "code": "ATND",
+                                        "display": "attender"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          "search": {
+                            "mode": "match"
+                          }
+                        },
+                        {
+                          "fullUrl": "https://example.org/direct-integration/FHIR/R4/Slot/95CA8891-5CB2-4AFC-A6E4-2D20645FDE60",
+                          "resource": {
+                            "resourceType": "Slot",
+                            "id": "95CA8891-5CB2-4AFC-A6E4-2D20645FDE60",
+                            "schedule": {
+                              "reference": "Schedule/7d3e6b2a-4b7a-4e0e-9c1f-1a2b3c4d5e6f"
+                            },
+                            "status": "busy",
+                            "start": "2021-10-12T12:30:30+00:00",
+                            "end": "2021-10-12T12:40:30+00:00"
+                          },
+                          "search": {
+                            "mode": "include"
+                          }
+                        },
+                        {
+                          "fullUrl": "https://example.org/direct-integration/FHIR/R4/Schedule/7d3e6b2a-4b7a-4e0e-9c1f-1a2b3c4d5e6f",
+                          "resource": {
+                            "resourceType": "Schedule",
+                            "id": "7d3e6b2a-4b7a-4e0e-9c1f-1a2b3c4d5e6f",
+                            "actor": [
+                              {
+                                "reference": "HealthcareService/2000099999",
+                                "type": "HealthcareService"
+                              }
+                            ],
+                            "planningHorizon": {
+                              "start": "2021-10-11T00:00:00+00:00",
+                              "end": "2021-10-18T00:00:00+00:00"
+                            }
+                          },
+                          "search": {
+                            "mode": "include"
+                          }
+                        },
+                        {
+                          "fullUrl": "https://example.org/direct-integration/FHIR/R4/HealthcareService/2000099999",
+                          "resource": {
+                            "resourceType": "HealthcareService",
+                            "id": "2000099999",
+                            "name": "Example Urgent Treatment Centre",
+                            "location": [
+                              {
+                                "reference": "Location/8f1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c"
+                              }
+                            ]
+                          },
+                          "search": {
+                            "mode": "include"
+                          }
+                        },
+                        {
+                          "fullUrl": "https://example.org/direct-integration/FHIR/R4/Location/8f1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+                          "resource": {
+                            "resourceType": "Location",
+                            "id": "8f1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+                            "name": "Example Urgent Treatment Centre - Main Site",
+                            "address": {
+                              "line": [
+                                "1 Example Street"
+                              ],
+                              "city": "Leeds",
+                              "postalCode": "LS1 4AP"
+                            }
+                          },
+                          "search": {
+                            "mode": "include"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "application/fhir+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchBundleAppt"
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX-DirectIntegration"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX-DirectIntegration"
+          },
+          "401": {
+            "$ref": "#/components/responses/PatientUnauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/PatientForbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Booking"
+        ],
+        "summary": "Create an Appointment resource",
+        "description": "Create a single Appointment resource.\n\nPatient access: the receiving service must authorise this operation for the authenticated patient and restrict all returned or modified resources accordingly. See the patient-authorisation policy in the API overview.",
+        "operationId": "createAppointment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/use-context_HParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/fhir+json;version=1.0.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "example": {
+                  "resourceType": "Appointment",
+                  "id": "91607239-b002-470a-8709-6b25bd50fdd1",
+                  "meta": {
+                    "lastUpdated": "2021-10-11T15:01:30+00:00",
+                    "profile": [
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                    ]
+                  },
+                  "status": "booked",
+                  "description": "Reason for calling",
+                  "start": "2021-10-12T12:30:30+00:00",
+                  "end": "2021-10-12T12:40:30+00:00",
+                  "slot": [
+                    {
+                      "reference": "urn:uuid:deb4c4b3-870b-4599-84df-5e54cef7afda"
+                    }
+                  ],
+                  "created": "2021-10-11T15:01:30+00:00",
+                  "basedOn": [
+                    {
+                      "reference": "ServiceRequest/236bb75d-90ef-461f-b71e-fde7f899802c",
+                      "type": "serviceRequest"
+                    }
+                  ],
+                  "participant": [
+                    {
+                      "actor": {
+                        "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                      },
+                      "status": "accepted"
+                    }
+                  ]
+                }
+              },
+              "application/fhir+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX-DirectIntegration"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX-DirectIntegration"
+          },
+          "401": {
+            "$ref": "#/components/responses/PatientUnauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/PatientForbidden"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/Appointment"
+        }
+      }
+    },
+    "/Appointment/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/RequestId_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/CorrelationId_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/TargetIdentifier_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/ResourceId_Param"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingOrganisation_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingPractitioner_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/RequestingDevice_HParam"
+        },
+        {
+          "$ref": "#/components/parameters/Accept_HParam"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Booking"
+        ],
+        "summary": "Get a specific booking",
+        "description": "\n### Returns specific booking by id\nUse this endpoint to get a specific booking by its unique id. A booking with the specified identifier at the specified target endpoint will be returned in the format of a FHIR Appointment resource, should it exist. \n\nIf a sender wants to cancel a booking, they must perform a read first, comparing and amending the details prior to performing the update.\n\nPatient access: the receiving service must authorise this operation for the authenticated patient and restrict all returned or modified resources accordingly. See the patient-authorisation policy in the API overview.",
+        "operationId": "getBooking",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/fhir+json;version=1.0.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "example": {
+                  "resourceType": "Appointment",
+                  "id": "91607239-b002-470a-8709-6b25bd50fdd1",
+                  "meta": {
+                    "lastUpdated": "2021-10-11T15:01:30+00:00",
+                    "profile": [
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                    ]
+                  },
+                  "status": "booked",
+                  "description": "Reason for calling",
+                  "start": "2021-10-12T12:30:30+00:00",
+                  "end": "2021-10-12T12:40:30+00:00",
+                  "slot": [
+                    {
+                      "reference": "urn:uuid:deb4c4b3-870b-4599-84df-5e54cef7afda"
+                    }
+                  ],
+                  "created": "2021-10-11T15:01:30+00:00",
+                  "basedOn": [
+                    {
+                      "reference": "ServiceRequest/236bb75d-90ef-461f-b71e-fde7f899802c",
+                      "type": "serviceRequest"
+                    }
+                  ],
+                  "participant": [
+                    {
+                      "actor": {
+                        "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                      },
+                      "status": "accepted"
+                    }
+                  ]
+                }
+              },
+              "application/fhir+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX-DirectIntegration"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX-DirectIntegration"
+          },
+          "401": {
+            "$ref": "#/components/responses/PatientUnauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/PatientForbidden"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Booking"
+        ],
+        "summary": "Update an Appointment resource by id",
+        "description": "Update a single Appointment resource identified by its id.\n\nPatient access: the receiving service must authorise this operation for the authenticated patient and restrict all returned or modified resources accordingly. See the patient-authorisation policy in the API overview.",
+        "operationId": "updateAppointment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationId_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/TargetIdentifier_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/ResourceId_Param"
+          },
+          {
+            "$ref": "#/components/parameters/RequestingOrganisation_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/RequestingPractitioner_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/RequestingDevice_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/Accept_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/use-context_HParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/fhir+json;version=1.0.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "example": {
+                  "resourceType": "Appointment",
+                  "id": "91607239-b002-470a-8709-6b25bd50fdd1",
+                  "meta": {
+                    "lastUpdated": "2021-10-11T15:01:30+00:00",
+                    "profile": [
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                    ]
+                  },
+                  "status": "booked",
+                  "description": "Reason for calling",
+                  "start": "2021-10-12T12:30:30+00:00",
+                  "end": "2021-10-12T12:40:30+00:00",
+                  "slot": [
+                    {
+                      "reference": "urn:uuid:deb4c4b3-870b-4599-84df-5e54cef7afda"
+                    }
+                  ],
+                  "created": "2021-10-11T15:01:30+00:00",
+                  "basedOn": [
+                    {
+                      "reference": "ServiceRequest/236bb75d-90ef-461f-b71e-fde7f899802c",
+                      "type": "serviceRequest"
+                    }
+                  ],
+                  "participant": [
+                    {
+                      "actor": {
+                        "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                      },
+                      "status": "accepted"
+                    }
+                  ]
+                }
+              },
+              "application/fhir+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX-DirectIntegration"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX-DirectIntegration"
+          },
+          "401": {
+            "$ref": "#/components/responses/PatientUnauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/PatientForbidden"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/Appointment"
+        }
+      },
+      "patch": {
+        "tags": [
+          "Booking"
+        ],
+        "summary": "Partially update a specific Appointment",
+        "description": "Partially update a single Appointment resource.\n\nPatient access: the receiving service must authorise this operation for the authenticated patient and restrict all returned or modified resources accordingly. See the patient-authorisation policy in the API overview.",
+        "operationId": "patchAppointment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/use-context_HParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/fhir+json;version=1.0.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                },
+                "example": {
+                  "resourceType": "Appointment",
+                  "id": "91607239-b002-470a-8709-6b25bd50fdd1",
+                  "meta": {
+                    "lastUpdated": "2021-10-11T15:01:30+00:00",
+                    "profile": [
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                    ]
+                  },
+                  "status": "booked",
+                  "description": "Reason for calling",
+                  "start": "2021-10-12T12:30:30+00:00",
+                  "end": "2021-10-12T12:40:30+00:00",
+                  "slot": [
+                    {
+                      "reference": "urn:uuid:deb4c4b3-870b-4599-84df-5e54cef7afda"
+                    }
+                  ],
+                  "created": "2021-10-11T15:01:30+00:00",
+                  "basedOn": [
+                    {
+                      "reference": "ServiceRequest/236bb75d-90ef-461f-b71e-fde7f899802c",
+                      "type": "serviceRequest"
+                    }
+                  ],
+                  "participant": [
+                    {
+                      "actor": {
+                        "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                      },
+                      "status": "accepted"
+                    }
+                  ]
+                }
+              },
+              "application/fhir+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX-DirectIntegration"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX-DirectIntegration"
+          },
+          "401": {
+            "$ref": "#/components/responses/PatientUnauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/PatientForbidden"
+          }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AppointmentPatch"
+        }
+      },
+      "delete": {
+        "tags": [
+          "Booking"
+        ],
+        "summary": "Delete or Cancel a Appointment resource by id",
+        "description": "Delete or Cancel a single Appointment resource.\n\nPatient access: the receiving service must authorise this operation for the authenticated patient and restrict all returned or modified resources accordingly. See the patient-authorisation policy in the API overview.",
+        "operationId": "deleteAppointment",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/CorrelationId_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/TargetIdentifier_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/ResourceId_Param"
+          },
+          {
+            "$ref": "#/components/parameters/RequestingOrganisation_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/RequestingPractitioner_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/RequestingDevice_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/Accept_HParam"
+          },
+          {
+            "$ref": "#/components/parameters/use-context_HParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/fhir+json;version=1.0.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalOutcome"
+                },
+                "example": {
+                  "resourceType": "OperationOutcome",
+                  "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+                  "meta": {
+                    "profile": [
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                    ]
+                  },
+                  "issue": [
+                    {
+                      "severity": "information",
+                      "code": "informational",
+                      "details": {
+                        "coding": [
+                          {
+                            "system": "https://fhir.nhs.uk/CodeSystem/NRLF-SuccessCode",
+                            "code": "RESOURCE_UPDATED",
+                            "display": "Resource updated"
+                          }
+                        ]
+                      },
+                      "diagnostics": "Resource updated"
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+                }
+              },
+              "X-Request-Id": {
+                "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/4XX-DirectIntegration"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/5XX-DirectIntegration"
+          },
+          "401": {
+            "$ref": "#/components/responses/PatientUnauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/PatientForbidden"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "requestBodies": {
+      "Appointment": {
+        "content": {
+          "application/fhir+json;version=1.4.0": {
+            "schema": {
+              "$ref": "#/components/schemas/Appointment"
+            },
+            "examples": {
+              "successExample": {
+                "value": {
+                  "resourceType": "Appointment",
+                  "id": "91607239-b002-470a-8709-6b25bd50fdd1",
+                  "meta": {
+                    "lastUpdated": "2021-10-11T15:01:30+00:00",
+                    "profile": [
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                    ]
+                  },
+                  "status": "booked",
+                  "description": "Reason for calling",
+                  "start": "2021-10-12T12:30:30+00:00",
+                  "end": "2021-10-12T12:40:30+00:00",
+                  "slot": [
+                    {
+                      "reference": "urn:uuid:deb4c4b3-870b-4599-84df-5e54cef7afda"
+                    }
+                  ],
+                  "created": "2021-10-11T15:01:30+00:00",
+                  "basedOn": [
+                    {
+                      "reference": "ServiceRequest/236bb75d-90ef-461f-b71e-fde7f899802c",
+                      "type": "serviceRequest"
+                    }
+                  ],
+                  "participant": [
+                    {
+                      "actor": {
+                        "reference": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                      },
+                      "status": "accepted"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "AppointmentPatch": {
+        "content": {
+          "application/fhir+json;version=1.4.0": {
+            "schema": {
+              "$ref": "#/components/schemas/Appointment"
+            },
+            "examples": {
+              "successExample": {
+                "value": {
+                  "resourceType": "Appointment",
+                  "meta": {
+                    "lastUpdated": "2021-11-11T12:11:30+00:00",
+                    "profile": [
+                      "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                    ]
+                  },
+                  "id": "91607239-b002-470a-8709-6b25bd50fdd1",
+                  "status": "booked"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "ResourceId_Param": {
+        "name": "id",
+        "description": "The identifier of the resource.",
+        "in": "path",
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "example": "91607239-b002-470a-8709-6b25bd50fdd1"
+        },
+        "required": true,
+        "allowEmptyValue": false
+      },
+      "PatientId_QParam": {
+        "name": "patient:identifier",
+        "description": "The patient's NHS number. The primary identifier of a patient across systems, unique to NHS England and Wales. It can be used without reference to Name, Date of Birth or Postcode parameters.\n\n|Type           |Expression|\n|-------             | --------|\n|[token](https://hl7.org/implement/standards/FHIR/search.html#token) |Appointment.participant.actor:identifier |\n\n**Example query without encoding** \n*https://fhir.nhs.uk/Id/nhs-number|4857773456*\n\n\nFor patient access, the supplied NHS number must match the authenticated patient. If omitted, the server must still restrict the search to that patient.",
+        "required": false,
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "example": "https%3A%2F%2Ffhir.nhs.uk%2FId%2Fnhs-number%7C4857773456"
+        }
+      },
+      "PatientName_QParam": {
+        "name": "patient:name",
+        "description": "The patient's name, including family, given, prefix, suffix and/or text. The Receiving system will check against any patient name fields they hold to establish a match. It is expected this parameter is used in conjunction with Date of Birth and Postcode to ensure a unique match.\n\n\nFor patient access, this is an additional filter within the authenticated patient context, not an identity credential.",
+        "required": false,
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "example": "John%20Smith%0A"
+        }
+      },
+      "PatientDoB_QParam": {
+        "name": "patient:birthdate",
+        "description": "The patient's Date of Birth. The Receiving system will check against the patient Date of Birth to establish a match. It is expected this parameter is used in conjunction with Name and Postcode to ensure a unique match.\n\n\nFor patient access, this is an additional filter within the authenticated patient context, not an identity credential.",
+        "required": false,
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "example": "eq20%2F01%2F1995%0A"
+        }
+      },
+      "PatientPostcode_QParam": {
+        "name": "patient:address-postalcode",
+        "description": "The patient's Home address Postcode. The Receiving system will check against the patient 'Home' address Postcode to establish a match. It is expected this parameter is used in conjunction with Name and Date of Birth to ensure a unique match.\n\n\nFor patient access, this is an additional filter within the authenticated patient context, not an identity credential.",
+        "required": false,
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "example": "LS1%204AP%0A"
+        }
+      },
+      "AppointmentInclude_QParam": {
+        "name": "_include",
+        "description": "Inclusions that drive the recursive depth of the search. Use this to ask the Receiver to return additional resources referenced by the Appointment(s), in the same response Bundle, rather than the sender having to perform separate follow-up reads.\n\n**Note**: _include shares the same syntax as _revinclude - up to three components, separated by colon characters (:). Unlike search queries, this is not a FHIRPath expression.\n\nThe parameter can be repeated to request more than one inclusion on the same request, allowing a full chain of related resources (for example Appointment -> Slot -> Schedule -> HealthcareService -> Location) to be resolved in a single call.\n\nThe full list of applicable _includes are shown below. If any cannot be honoured the Receiver will respond, ignoring the unsupported _include(s), with the url reflecting this omission in the response Bundle.link.url.\n\n|Expression                        | Inclusion         |Description|\n|-------                           |--------           |-------- |\n| Appointment:slot                 | Slot               | Include the Slot Resource(s) referenced within the Appointment Resources|\n| Appointment:based-on             | ServiceRequest     | Include the ServiceRequest (referral) Resource that the Appointment is based on|\n| Slot:schedule                    | Schedule           | Include Schedule Resources referenced within the Slot Resources|\n| Schedule:actor:Practitioner      | Practitioner       | Include Practitioner Resources referenced within the Schedule Resources|\n| Schedule:actor:PractitionerRole  | PractitionerRole   | Include PractitionerRole Resources referenced within the Schedule Resources|\n| Schedule:actor:HealthcareService | HealthcareService  | Include HealthcareService Resources referenced within the Schedule Resources|\n| HealthcareService:providedBy     | Organization       | Include Organization Resources referenced within the HealthcareService Resources|\n| HealthcareService:location       | Location           | Include Location Resources referenced within the HealthcareService Resources|\n\n**Example usage**\n\nGet bookings for a patient and include just the Slot each booking is linked to:\n\n`GET [base]/Appointment?patient:identifier=https://fhir.nhs.uk/Id/nhs-number|4857773456&_include=Appointment:slot`\n\nGet bookings for a patient and resolve the chain from Slot through to the HealthcareService and Location it is delivered at:\n\n`GET [base]/Appointment?patient:identifier=https://fhir.nhs.uk/Id/nhs-number|4857773456&_include=Appointment:slot&_include=Slot:schedule&_include=Schedule:actor:HealthcareService&_include=HealthcareService:location`\n\nGet bookings for a patient and include the referral (ServiceRequest) each booking was based on:\n\n`GET [base]/Appointment?patient:identifier=https://fhir.nhs.uk/Id/nhs-number|4857773456&_include=Appointment:based-on`\n",
+        "required": false,
+        "in": "query",
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Appointment:slot",
+              "Appointment:based-on",
+              "Slot:schedule",
+              "Schedule:actor:Practitioner",
+              "Schedule:actor:PractitionerRole",
+              "Schedule:actor:HealthcareService",
+              "HealthcareService:providedBy",
+              "HealthcareService:location"
+            ]
+          }
+        }
+      },
+      "TargetIdentifier_HParam": {
+        "name": "NHSD-Target-Identifier",
+        "description": "The identifier of the Target system. A Base64 encoded object containing value and system properties.\n\n**Example object before encoding** \n```json\n{\n  \"value\": \"2000011147\",\n  \"system\": \"https://fhir.nhs.uk/Id/dos-service-id\"\n}\n",
+        "required": true,
+        "in": "header",
+        "schema": {
+          "$ref": "#/components/schemas/TargetIdentifier"
+        }
+      },
+      "TargetIdentifierMeta_HParam": {
+        "name": "NHSD-Target-Identifier",
+        "description": "The identifier of the Target system. A Base64 encoded object containing value and system properties.\n  \n**Example object before encoding** \n```json\n{\n  \"value\": \"NHS0001\",\n  \"system\": \"tests\"\n}\n",
+        "required": false,
+        "in": "header",
+        "schema": {
+          "$ref": "#/components/schemas/TargetIdentifier"
+        }
+      },
+      "RequestingDevice_HParam": {
+        "name": "NHSD-Requesting-Software",
+        "description": "Requesting Software described in an object based on a FHIR 'Device' resource (Standard Base64 encoded JSON).\nAccess-control requirements for these headers depend on the receiving implementation. \n\nThe identifier used, though arbitrary, should be consistent across instances of a product, the name and version of the product should also be accurate and consistent.\n\n**Example object before encoding**\n```json\n{\n  \"resourceType\": \"Device\",\n  \"identifier\": [\n    {\n      \"system\": \"https://consumersupplier.com/Id/device-identifier\",\n      \"value\": \"SUPP-APP-1\"\n    }\n  ],\n  \"deviceName\": {\n    \"name\": \"Supplier product name\",\n    \"type\": \"manufacturer-name\"\n  },\n  \"version\": {\n    \"value\": \"1.0.0\"\n  }\n}\n\n\nThis header describes the calling software; patient identity is established through the authenticated access-token context.",
+        "required": true,
+        "in": "header",
+        "schema": {
+          "$ref": "#/components/schemas/RequestingSoftware"
+        }
+      },
+      "RequestingOrganisation_HParam": {
+        "name": "NHSD-End-User-Organisation",
+        "description": "Requesting Organization described in an object based on a FHIR 'Organization' resource (Standard Base64 encoded JSON).\nThis header is optional in the API definition because its use depends on the authentication mode. It MUST be provided for application-based authentication and SHOULD NOT be provided for patient-based authentication. It does not identify the patient and must not be used to establish patient authorisation.\nIn the example given an ODS code and the Organisation name is provided. Other identifiers are permitted if required. \n\n**Example object before encoding** \n  ```json\n  {\n    \"resourceType\": \"Organization\",\n    \"identifier\": [\n      {\n        \"value\": \"A1001\",\n        \"system\": \"https://fhir.nhs.uk/Id/ods-organization-code\"\n      }\n    ],\n    \"name\": \"My service provider name\"\n  }\n\n  ```",
+        "required": false,
+        "in": "header",
+        "schema": {
+          "$ref": "#/components/schemas/RequestingOrganisation"
+        }
+      },
+      "RequestingPractitioner_HParam": {
+        "name": "NHSD-Requesting-Practitioner",
+        "description": "Requesting Practitioner described in an object based on a FHIR 'PractitionerRole' resource (Standard Base64 encoded JSON).\n\nThis item is not mandatory, however if the information is available it must be included in the request. Only in the event that it is not available, should it be omitted.\n\nThe example given shows a General Practitioner and their SDS Role profile Id.\n\n\n**Example object before encoding** \n```json\n{\n  \"resourceType\": \"PractitionerRole\",\n  \"identifier\": [\n    {\n      \"system\": \"https://fhir.nhs.uk/Id/sds-role-profile-id\",\n      \"value\": \"100334993514\"\n    }\n  ],\n  \"code\": [\n    {\n      \"coding\": [\n        {\n          \"system\": \"http://snomed.info/sct\",\n          \"code\": \"62247001\",\n          \"display\": \"General practitioner\"\n        }\n      ]\n    }\n  ]\n}\n\n\nOmit for a patient acting on their own behalf. This header does not confer practitioner privileges or patient access.",
+        "required": false,
+        "in": "header",
+        "schema": {
+          "$ref": "#/components/schemas/RequestingPractitioner"
+        }
+      },
+      "RequestId_HParam": {
+        "name": "X-Request-Id",
+        "description": "The X-Request-Id for the request header, when supplied, mirrored back by the receiver.",
+        "required": true,
+        "in": "header",
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+        }
+      },
+      "CorrelationId_HParam": {
+        "name": "X-Correlation-Id",
+        "description": "The X-Correlation-Id for the request header, when supplied, mirrored back by the receiver.",
+        "required": true,
+        "in": "header",
+        "schema": {
+          "type": "string",
+          "format": "uuid",
+          "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+        }
+      },
+      "Accept_HParam": {
+        "name": "Accept",
+        "description": "The response media type requested by the client, including the API media-type version where required.",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "application/fhir+json; version=1.4.0"
+        }
+      },
+      "use-context_HParam": {
+        "name": "use-context",
+        "description": "Usage context supplied for API usage statistics.",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "example": "a4t2|validation|servicerequest-response|new\n"
+        }
+      }
+    },
+    "responses": {
+      "4XX-DirectIntegration": {
+        "description": "Below are examples of potential HTTP status codes and their associated error codes, which could be returned in the event of a fault. \n\n| HTTP status | Error code                 | Description |\n| ----------- | -------------------------- | --------------------------------------------- |\n| 400         | SEND_BAD_REQUEST           | The API was unable to process the request. |\n| 400         | REC_BAD_REQUEST            | The Receiver has responded stating the message was malformed. |\n| 401         | SEND_UNAUTHORIZED          | The API deemed you unauthorized to make this request. |\n| 401         | REC_UNAUTHORIZED           | The receiver deemed you unauthorized to make request. |\n| 403         | SEND_FORBIDDEN             | Missing or Expired Token. |\n| 404         | PROXY_NOT_FOUND            | No related people exist for given NHS number. |\n| 404         | REC_NOT_FOUND              | Patient record for given NHS number has been invalidated and not superseded by another NHS number. |\n| 405         | SEND_METHOD_NOT_ALLOWED    | HTTP Verb is not correct for this scenario.|\n| 405         | REC_METHOD_NOT_ALLOWED     | Receiver does not allow this.|\n| 405         | PROXY_METHOD_NOT_ALLOWED   | Proxy does not allow this.|\n| 406         | SEND_NOT_ACCEPTABLE        | Senders message had an incorrect content type defined for a response.|\n| 408         | REC_TIMEOUT                | The downstream domain processing has not completed within the configured timeout period. |\n| 409         | SEND_CONFLICT              |  |\n| 409         | REC_CONFLICT               |  |\n| 409         | PROXY_CONFLICT             |  |\n| 422         | SEND_UNPROCESSABLE_ENTITY  | Message was not malformed but deemed unprocessable. |\n| 422         | REC_UNPROCESSABLE_ENTITY   | Message was not malformed but deemed unprocessable. |         \n| 422         | PROXY_UNPROCESSABLE_ENTITY | Message was not malformed but deemed unprocessable. |         \n| 429         | SEND_TOO_MANY_REQUESTS     | The user has sent too many requests in a given amount of time|\n| 429         | REC_TOO_MANY_REQUESTS      | The user has sent too many requests in a given amount of time|\n",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+              "meta": {
+                "profile": [
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                ]
+              },
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "invariant",
+                  "details": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+                        "code": "REC_BAD_REQUEST"
+                      }
+                    ]
+                  },
+                  "diagnostics": "Attempts to Validate the message have failed."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "5XX-DirectIntegration": {
+        "description": "Below are examples of potential HTTP status codes and their associated error codes, which could be returned in the event of a fault. \n\n| HTTP status | Error code                 | Description |\n| ----------- | -------------------------- | --------------------------------------------- |\n| 500         | REC_SERVER_ERROR           | The receiver server has encountered an Error processing the request. |\n| 500         | PROXY_SERVER_ERROR         | Proxy Error. |\n| 501         | SEND_NOT_IMPLEMENTED       | The Request was not recognized. |\n| 501         | REC_NOT_IMPLEMENTED        | The Receiver did not recognize the request. |\n| 501         | PROXY_NOT_IMPLEMENTED      | The Proxy did not recognize the request. |\n| 503         | REC_UNAVAILABLE            | The Receiver was unavailable to service the request.|\n| 503         | PROXY_UNAVAILABLE          | The Proxy was unavailable to service the request. |\n",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "id": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+              "meta": {
+                "profile": [
+                  "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                ]
+              },
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "exception",
+                  "details": {
+                    "coding": [
+                      {
+                        "system": "https://fhir.nhs.uk/Codesystem/http-error-codes",
+                        "code": "REC_SERVER_ERROR"
+                      }
+                    ]
+                  },
+                  "diagnostics": "Too many requests have been made by this source in a given amount of time: <further diagnostics information, error message/error text>"
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "X-Correlation-Id": {
+            "description": "The X-Correlation-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9562466f-c982-4bd5-bb0e-255e9f5e6689"
+            }
+          },
+          "X-Request-Id": {
+            "description": "The X-Request-Id from the request header, if supplied, mirrored back.",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "c1ab3fba-6bae-4ba4-b257-5a87c44d4a91"
+            }
+          }
+        }
+      },
+      "PatientUnauthenticated": {
+        "description": "Missing, invalid or expired API Platform access token.",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "login",
+                  "diagnostics": "Missing, invalid or expired API Platform access token."
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "WWW-Authenticate": {
+            "description": "Bearer authentication challenge.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Bearer"
+          }
+        }
+      },
+      "PatientForbidden": {
+        "description": "Valid credentials but insufficient permissions, patient access or required identity assurance.",
+        "content": {
+          "application/fhir+json": {
+            "schema": {
+              "$ref": "#/components/schemas/OperationalOutcome"
+            },
+            "example": {
+              "resourceType": "OperationOutcome",
+              "issue": [
+                {
+                  "severity": "error",
+                  "code": "forbidden",
+                  "diagnostics": "Valid credentials but insufficient permissions, patient access or required identity assurance."
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Capability": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "CapabilityStatement"
+          },
+          "id": {
+            "type": "string",
+            "example": "Direct-Integration-FHIR-Server"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://example.org/direct-integration/FHIR/R4",
+            "format": "url"
+          },
+          "name": {
+            "type": "string",
+            "example": "DirectIntegrationCapabilityStatement"
+          },
+          "status": {
+            "type": "string",
+            "example": "draft"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.2.0"
+          },
+          "experimental": {
+            "type": "boolean",
+            "example": true
+          },
+          "date": {
+            "type": "string",
+            "example": "2022-09-16T15:00:00+01:00",
+            "format": "date-time"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "telecom": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "system": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "example": "instance"
+          },
+          "software": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Direct Integration API"
+              },
+              "version": {
+                "type": "string",
+                "example": "1.1.0"
+              }
+            },
+            "additionalProperties": false
+          },
+          "implementation": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "example": "Direct Integration FHIR Server"
+              },
+              "url": {
+                "type": "string",
+                "example": "https://example.org/direct-integration/FHIR/R4",
+                "format": "url"
+              }
+            },
+            "additionalProperties": false
+          },
+          "fhirVersion": {
+            "type": "string",
+            "example": "4.0.1"
+          },
+          "format": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "xml"
+            }
+          },
+          "rest": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "example": "server"
+                },
+                "interaction": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "example": "transaction"
+                      }
+                    }
+                  }
+                },
+                "security": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string",
+                      "example": "Patient authentication through NHS login, followed by NHS API Platform token exchange. Patient-level authorisation and P9 verification are required by this prototype."
+                    },
+                    "service": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "coding": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "system": {
+                                  "type": "string",
+                                  "format": "uri"
+                                },
+                                "code": {
+                                  "type": "string"
+                                },
+                                "display": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "resource": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "example": "CapabilityStatement"
+                      },
+                      "interaction": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "code": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "versioning": {
+                        "type": "string",
+                        "example": "no-version"
+                      },
+                      "searchParam": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "start"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "date"
+                            }
+                          }
+                        }
+                      },
+                      "searchInclude": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "example": "Slot:schedule"
+                        }
+                      }
+                    }
+                  }
+                },
+                "operation": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "example": "$process-message"
+                      },
+                      "definition": {
+                        "type": "string",
+                        "format": "url",
+                        "example": "http://hl7.org/fhir/OperationDefinition/MessageHeader-process-message"
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "TargetIdentifier": {
+        "title": "Identifier",
+        "type": "string",
+        "format": "byte",
+        "example": "eyJzeXN0ZW0iOiJodHRwczovL2ZoaXIubmhzLnVrL0lkL2Rvcy1zZXJ2aWNlLWlkIiwidmFsdWUiOiIyMDAwMDExMTQ3In0=",
+        "description": "Identifier"
+      },
+      "Appointment": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "Appointment"
+          },
+          "id": {
+            "type": "string",
+            "example": "91607239-b002-470a-8709-6b25bd50fdd1",
+            "format": "uuid"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "lastUpdated": {
+                "type": "string",
+                "example": "2021-10-11T15:01:30+00:00",
+                "format": "date-time"
+              },
+              "profile": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "example": "booked"
+          },
+          "description": {
+            "type": "string",
+            "example": "Reason for calling"
+          },
+          "start": {
+            "type": "string",
+            "example": "2021-10-12T12:30:30+00:00",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "example": "2021-10-12T12:40:30+00:00",
+            "format": "date-time"
+          },
+          "slot": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reference": {
+                  "type": "string",
+                  "example": "urn:uuid:deb4c4b3-870b-4599-84df-5e54cef7afda"
+                }
+              }
+            }
+          },
+          "created": {
+            "type": "string",
+            "example": "2021-10-11T15:01:30+00:00",
+            "format": "date-time"
+          },
+          "basedOn": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reference": {
+                  "type": "string",
+                  "example": "ServiceRequest/236bb75d-90ef-461f-b71e-fde7f899802c"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "serviceRequest"
+                }
+              }
+            }
+          },
+          "participant": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "actor": {
+                  "type": "object",
+                  "properties": {
+                    "reference": {
+                      "type": "string",
+                      "example": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                    }
+                  }
+                },
+                "status": {
+                  "type": "string",
+                  "example": "accepted"
+                }
+              }
+            }
+          }
+        }
+      },
+      "SearchBundleAppt": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "Bundle"
+          },
+          "type": {
+            "type": "string",
+            "example": "searchset"
+          },
+          "total": {
+            "type": "integer",
+            "example": 2
+          },
+          "link": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "relation": {
+                  "type": "string",
+                  "example": "self"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://example.org/direct-integration/FHIR/R4/Appointment"
+                }
+              }
+            }
+          },
+          "entry": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fullUrl": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://example.org/direct-integration/FHIR/R4/Appointment/c3f6145e-1a26-4345-b3f2-dccbcba62049"
+                },
+                "resource": {
+                  "type": "object",
+                  "properties": {
+                    "resourceType": {
+                      "type": "string",
+                      "example": "Appointment"
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "example": "c3f6145e-1a26-4345-b3f2-dccbcba62049"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "lastUpdated": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2021-11-11T12:11:30+00:00"
+                        },
+                        "profile": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "url",
+                            "example": "https://fhir.hl7.org.uk/StructureDefinition/UKCore-Appointment"
+                          }
+                        }
+                      }
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "booked"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "Reason for calling"
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2021-10-12T12:30:30+00:00"
+                    },
+                    "end": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2021-10-12T12:40:30+00:00"
+                    },
+                    "slot": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "reference": {
+                            "type": "string",
+                            "example": "Slot/95CA8891-5CB2-4AFC-A6E4-2D20645FDE60"
+                          }
+                        }
+                      }
+                    },
+                    "created": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2021-10-11T15:01:30+00:00"
+                    },
+                    "basedOn": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "reference": {
+                            "type": "string",
+                            "example": "ServiceRequest/136bb75d-90ef-461f-4773-fde7f899803d"
+                          },
+                          "type": {
+                            "type": "string",
+                            "example": "ServiceRequest"
+                          }
+                        }
+                      }
+                    },
+                    "participant": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "actor": {
+                            "type": "object",
+                            "properties": {
+                              "reference": {
+                                "type": "string",
+                                "example": "urn:uuid:788660eb-d2c9-4773-abd4-318484673fb2"
+                              }
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "accepted"
+                          },
+                          "type": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "coding": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "system": {
+                                        "type": "string",
+                                        "format": "url",
+                                        "example": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "example": "ATND"
+                                      },
+                                      "display": {
+                                        "type": "string",
+                                        "example": "attender"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "search": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string",
+                      "example": "match"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "OperationalOutcome": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "example": "OperationOutcome"
+          },
+          "id": {
+            "type": "string",
+            "example": "531e073a-3295-4e67-ae90-e00bd96a9cdd",
+            "format": "uuid"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "profile": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "url",
+                  "example": "https://fhir.hl7.org.uk/StructureDefinition/UKCore-OperationOutcome"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "issue": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "severity": {
+                  "type": "string",
+                  "example": "information"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "informational"
+                },
+                "details": {
+                  "type": "object",
+                  "properties": {
+                    "coding": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "system": {
+                            "type": "string",
+                            "format": "url"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "display": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "diagnostics": {
+                  "type": "string",
+                  "example": "Resource updated"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RequestingOrganisation": {
+        "title": "NHSD-End-User-Organisation",
+        "description": "Requesting Organization described in an object based on a FHIR 'Organization' resource (Standard Base64 encoded JSON).\nThis header is optional in the API definition because its use depends on the authentication mode. It MUST be provided for application-based authentication and SHOULD NOT be provided for patient-based authentication. It does not identify the patient and must not be used to establish patient authorisation.\n\nIn this example an ODS code and the Organisation name is provided. Other identifiers are permitted if required. \n",
+        "type": "string",
+        "format": "byte",
+        "example": "eyJyZXNvdXJjZVR5cGUiOiJPcmdhbml6YXRpb24iLCJpZGVudGlmaWVyIjpbeyJ2YWx1ZSI6IkExMDAxIiwic3lzdGVtIjoiaHR0cHM6Ly9maGlyLm5ocy51ay9JZC9vZHMtb3JnYW5pemF0aW9uLWNvZGUifV0sIm5hbWUiOiJNeSBzZXJ2aWNlIHByb3ZpZGVyIG5hbWUifQo="
+      },
+      "RequestingPractitioner": {
+        "title": "NHSD-Requesting-Practitioner",
+        "description": "Requesting Practitioner described in an object based on a FHIR 'PractitionerRole' resource (Standard Base64 encoded JSON).\n\nThis item is not mandatory, however if the information is available it must be included in the request. Only in the event that it is not available, should it be omitted.\n\nThe example below shows a General Practitioner and their SDS Role profile Id.\nThe Base64 encoded example below shows a General Practitioner and their SDS Role profile Id.\n",
+        "type": "string",
+        "format": "byte",
+        "example": "eyJyZXNvdXJjZVR5cGUiOiJzdHJpbmciLCJpZGVudGlmaWVyIjpbeyJ2YWx1ZSI6InN0cmluZyIsInN5c3RlbSI6InN0cmluZyJ9XSwiY29kZSI6W3siY29kaW5nIjpbeyJzeXN0ZW0iOiJzdHJpbmciLCJjb2RlIjoic3RyaW5nIiwiZGlzcGxheSI6InN0cmluZyJ9XX1dfQo="
+      },
+      "RequestingSoftware": {
+        "title": "NHSD-Requesting-software",
+        "type": "string",
+        "format": "byte",
+        "description": "Requesting Software described in an object based on a FHIR 'Device' resource (Standard Base64 encoded JSON).\nAccess-control requirements for these headers depend on the receiving implementation. \n\nThe identifier used here, though arbitrary, should be consistent across instances of a product, the name and version of the product should also be accurate and consistent.\n",
+        "example": "eyJyZXNvdXJjZVR5cGUiOiJEZXZpY2UiLCJpZGVudGlmaWVyIjpbeyJzeXN0ZW0iOiJodHRwczovL2NvbnN1bWVyc3VwcGxpZXIuY29tL0lkL2RldmljZS1pZGVudGlmaWVyIiwidmFsdWUiOiJTVVBQLUFQUC0xIn1dLCJkZXZpY2VOYW1lIjp7Im5hbWUiOiJTdXBwbGllciBwcm9kdWN0IG5hbWUiLCJ0eXBlIjoibWFudWZhY3R1cmVyLW5hbWUifSwidmVyc2lvbiI6eyJ2YWx1ZSI6IjEuMC4wIn19Cg=="
+      }
+    },
+    "securitySchemes": {
+      "NHSLoginPatientAccess": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "NHS API Platform access token obtained after NHS login authentication and token exchange. Applies to all operations. See Security and authentication in the API overview. OpenAPI 3.0 has no native token-exchange flow, so this scheme describes the bearer credential presented to this API.",
+        "x-token-exchange": {
+          "documentationUrl": "https://digital.nhs.uk/developer/guides-and-documentation/security-and-authorisation/user-restricted-restful-apis-nhs-login-separate-authentication-and-authorisation",
+          "tokenUrls": {
+            "integration": "https://int.api.service.nhs.uk/oauth2/token",
+            "production": "https://api.service.nhs.uk/oauth2/token"
+          },
+          "contentType": "application/x-www-form-urlencoded",
+          "parameters": {
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+            "subject_token": "<NHS login ID token>",
+            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            "client_assertion": "<signed application client assertion>"
+          }
+        }
+      }
+    }
+  }
+}
