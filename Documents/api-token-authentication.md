@@ -99,9 +99,3 @@ Catalogue:
   PTL test material exists (`kid = test-1` is **test-only**).
 - **Phase 2 BaRS→EPC mechanism** (mTLS via EPC Proxy) is pending APIM/Platform confirmation.
 - **EPC CIS2 user-restricted flow** is design-stage (see open questions above).
-
-## Change log
-
-| Date | Change | By |
-|------|--------|-----|
-| 2026-09-24 | Documented OAuth application-restricted (signed JWT) and CIS2 access modes, `epc-bars-proxy` worked example, and two-layer enforcement | Gabriele Manna |

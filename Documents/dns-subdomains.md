@@ -77,10 +77,3 @@ side, mTLS is Terraform-managed via the `api_custom_domain_enabled` toggle in
   certificates → cutover.
 - **Production:** hosted zone not yet created; account ID, zone ID, and NS records to be
   captured once provisioned.
-
-## Change log
-
-| Date | Change | By |
-|------|--------|-----|
-| 2026-09-24 | Recorded real zone IDs + NS records (dev/int/staging); noted int/staging pending rename and prod pending | Gabriele Manna |
-| 2026-05-06 | Page created, subdomains requested | Mukhtar Ata |

@@ -64,9 +64,3 @@ environment.
   certificates.
 - **Production:** production certificate to be issued via the NHS PKI Production CA once the
   prod environment is provisioned.
-
-## Change log
-
-| Date | Change | By |
-|------|--------|-----|
-| 2026-09-24 | Documented APIM `ref` ↔ EPC `staging` mapping and mTLS CN/SAN structure for EPC and BaRS proxies | Gabriele Manna |
