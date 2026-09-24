@@ -31,7 +31,7 @@ Values below reflect the current AWS state (dev account `826164438582`, region
 
 ## NS records
 
-Send these to `dnsteam@nhs.net` for delegation. Renaming a Route 53 zone is a
+Send these to the NHS DNS team (`england.dnsteam@nhs.net`) for delegation. Renaming a Route 53 zone is a
 destroy + recreate, which produces **new** NS records that must be re-delegated — this
 delegation lead time is the critical path, not the engineering.
 
@@ -67,9 +67,11 @@ ns-1066.awsdns-05.org
 ## DNS delegation process
 
 Delegation of an EPC subdomain under `national.nhs.uk` is requested by **email to the NHS
-DNS team at `dnsteam@nhs.net`** — it is **not** a ServiceNow / Jira / ResolveIT ticket.
-(ResolveIT is used only for the separate mTLS client-certificate signing — see
+DNS team at `england.dnsteam@nhs.net`** — it is **not** a ServiceNow / Jira / ResolveIT
+ticket. (ResolveIT is used only for the separate mTLS client-certificate signing — see
 [mtls-certificates.md](./mtls-certificates.md) — do not raise DNS delegation through it.)
+For dev the request was actioned by Martin Slater (Service Consultant, NHS England DNS team);
+delegation completed the same day it was raised.
 
 **Steps (repeat per environment):**
 
@@ -84,23 +86,45 @@ DNS team at `dnsteam@nhs.net`** — it is **not** a ServiceNow / Jira / ResolveI
      --query "DelegationSet.NameServers" --output text --region eu-west-2
    ```
    (or the Terraform output `<zone>_ns_records`).
-3. **Email `dnsteam@nhs.net`** requesting delegation, providing the fields below.
-4. **Wait** for the DNS team to action it — this is the **critical path** (dev took ~8
-   calendar days; allow 1–3 weeks).
-5. **Verify** it resolves publicly: `dig @8.8.8.8 NS <fqdn> +short` returns the four servers.
+3. **Email `england.dnsteam@nhs.net`** requesting delegation, using the template below (CC
+   the owning team).
+4. **Wait** for the DNS team to add the NS records (for dev this was actioned the **same
+   day**), then allow time for public propagation. Treat delegation lead time as the
+   **critical path**.
+5. **Verify** it resolves publicly: `dig @8.8.8.8 NS <fqdn> +short` returns the four servers
+   (dev verified resolving 2026-09-11).
 6. **Enable** the custom-domain toggle (`api_custom_domain_enabled`) for the environment.
 
-**What to include in the email** (mirror the dev request — no official prose template
-exists in the repo):
+**Email template** (based on the actual dev request, 2026-09-03 — substitute `<env>` and the
+zone-specific values):
 
-| Field | Example (dev) |
-|-------|---------------|
-| Subdomain (FQDN) | `endpoint-catalogue-dev.national.nhs.uk` |
-| Environment | Development |
-| AWS account ID | `826164438582` |
-| Hosted zone ID | `Z03119491BA7P8BDBEFZK` |
-| NS records (4) | the four AWS name servers from step 2 |
-| Requestor / owning team | Lead Platform Engineer (owning-team contact) |
+```
+To: england.dnsteam@nhs.net
+Cc: <owning team>
+Subject: DNS delegation for the EPC <env> environment
+
+Hi,
+
+I'm on the EPC team. We need a DNS delegation for the EPC <env> environment. We've created a
+Route 53 hosted zone in our AWS account and its name servers need to be delegated from the
+parent national.nhs.uk zone so the subdomain resolves publicly.
+
+- Subdomain: endpoint-catalogue-<env>.national.nhs.uk
+- AWS account: 826164438582 (eu-west-2)          # prod is a separate account
+- Hosted zone ID: <zone-id>
+- Action needed: create the NS delegation for endpoint-catalogue-<env>.national.nhs.uk in the
+  parent national.nhs.uk zone, pointing at these name servers:
+      <ns-1>
+      <ns-2>
+      <ns-3>
+      <ns-4>
+
+Could you please help with that?
+
+Thank you.
+Best regards,
+<name>
+```
 
 **Per-environment status & specifics:**
 
@@ -133,7 +157,7 @@ blocked).
 ## Open items
 
 - **int / staging rename:** AWS zones are still `barsepc-int` / `barsepc-staging`; rename to
-  `endpoint-catalogue-*` requires new zones → DNS re-delegation via `dnsteam@nhs.net` → new
+  `endpoint-catalogue-*` requires new zones → DNS re-delegation via `england.dnsteam@nhs.net` → new
   certificates → cutover.
 - **Production:** hosted zone not yet created; account ID, zone ID, and NS records to be
   captured once provisioned.
