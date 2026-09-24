@@ -15,7 +15,9 @@ Related docs:
 - [api-token-authentication.md](./api-token-authentication.md) — the OAuth bearer-token flow
   applications use against the proxy.
 - [mtls-certificates.md](./mtls-certificates.md) — the mTLS client certificate the EPC Proxy
-  presents to the backend (self-served via Proxygen's `mtls` secret).
+  presents to the backend (self-served via Proxygen's `mtls` secret); the full backend-mTLS
+  runbook is in the wiki
+  (`bars-endpoint-catalogue-documentation/wiki/components/epc-gateway-mtls-configuration.md`).
 - [bars-proxy-to-epc-proxy-chaining.md](./bars-proxy-to-epc-proxy-chaining.md) — the
   proxy-to-proxy connection model.
 

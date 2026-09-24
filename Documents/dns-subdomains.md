@@ -24,7 +24,10 @@ Values below reflect the current AWS state (dev account `826164438582`, region
 | `endpoint-catalogue-dev.national.nhs.uk` | Development | 826164438582 | `Z03119491BA7P8BDBEFZK` | Delegated / live |
 | `barsepc-int.national.nhs.uk` *(rename to `endpoint-catalogue-int` pending)* | Integration | 826164438582 | `Z0418864395K44ZPUCKP1` | Live (delegated) |
 | `barsepc-staging.national.nhs.uk` *(rename to `endpoint-catalogue-staging` pending)* | Staging | 826164438582 | `Z0950167191DK6OQRYAOY` | Live (delegated) |
-| `endpoint-catalogue-prod.national.nhs.uk` | Production | *[prod account ID]* | *[hosted zone ID]* | Pending (zone not yet created; separate prod account) |
+| `endpoint-catalogue.national.nhs.uk` | Production | *[prod account ID]* | *[hosted zone ID]* | Pending (zone not yet created; separate prod account) |
+
+> Production drops the `-<env>` suffix (`endpoint-catalogue.national.nhs.uk`) per the wiki
+> runbook; dev/int/staging keep the environment suffix.
 
 ## NS records
 
@@ -64,11 +67,17 @@ ns-1066.awsdns-05.org
 ## Purpose
 
 These subdomains host the AWS API Gateway custom domains for the BaRS Endpoint Catalogue
-(EPC) service. mTLS is configured on each endpoint to authenticate incoming requests from
-the APIM BaRS Proxy (see [mtls-certificates.md](./mtls-certificates.md) and
+(EPC) service. Each custom domain carries a public **ACM server certificate**
+(DigiCert-signed). mTLS is configured on each custom domain to authenticate incoming
+requests from the APIM proxies (see [mtls-certificates.md](./mtls-certificates.md) and
 [bars-proxy-to-epc-proxy-chaining.md](./bars-proxy-to-epc-proxy-chaining.md)). On the EPC
 side, mTLS is Terraform-managed via the `api_custom_domain_enabled` toggle in
 `bars-endpoint-catalogue-infra`.
+
+mTLS is enforced **only on the custom domain**. The default AWS `execute-api` URL
+(`https://<api-id>.execute-api.eu-west-2.amazonaws.com/`) bypasses mTLS and stays available
+for Postman and automated e2e tests (except in prod, where direct `execute-api` access is
+blocked).
 
 ## Open items
 
