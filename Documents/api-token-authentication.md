@@ -48,6 +48,23 @@ registered with APIM. This follows the NHS England guide
 4. Receive the **OAuth access token** and send it on API calls as
    `Authorization: Bearer <token>`.
 
+```mermaid
+sequenceDiagram
+    participant App as Client application
+    participant OAuth as NHS OAuth token endpoint
+    participant Proxy as APIM proxy (BaRS / EPC)
+    participant EPC as EPC backend
+
+    App->>App: Build + sign JWT client_assertion (kid, RS512)
+    App->>OAuth: POST grant_type=client_credentials + client_assertion
+    OAuth->>OAuth: Validate JWT signature vs registered JWKS
+    OAuth-->>App: Access token (bearer, ~5 min)
+    App->>Proxy: API call + Authorization: Bearer <token>
+    Proxy->>Proxy: Verify token (signature, expiry, scope)
+    Proxy->>EPC: Forward with trusted NHSD-* headers
+    EPC-->>App: FHIR R4 response
+```
+
 **Notes**
 
 - The public key **must** be registered as a **JWKS**. A bare single JWK is rejected by

@@ -36,6 +36,28 @@ validation.
 
 ## How mTLS works — two phases
 
+Topology — both proxies reach the EPC backend over mTLS on the custom domain:
+
+```mermaid
+flowchart LR
+    C["Consumer"]
+    subgraph Apigee["Apigee (APIM)"]
+        B["BaRS Proxy"]
+        E["EPC Proxy"]
+    end
+    subgraph AWS["AWS API Gateway (EPC team)"]
+        GW["API Gateway<br/>custom domain + mTLS"]
+        L["Lambda<br/>EPC backend"]
+    end
+    C -->|"OAuth bearer token"| B
+    C -->|"OAuth bearer token"| E
+    B -->|"mTLS"| GW
+    E -->|"mTLS"| GW
+    GW --> L
+```
+
+The TLS handshake between a proxy and the EPC API Gateway has two phases:
+
 1. **Phase 1 — server authentication (standard TLS, no custom trust).** Apigee connects to
    `endpoint-catalogue-<env>.national.nhs.uk` and validates the EPC server certificate
    (AWS ACM, DigiCert-signed) against public CA roots.
@@ -43,6 +65,32 @@ validation.
    certificate; Apigee presents the NHS-signed **client certificate**; the gateway validates
    it against the NHS CA chain held in an **S3 truststore**. On success the request is
    forwarded to the EPC Lambda.
+
+```mermaid
+sequenceDiagram
+    participant AP as Apigee proxy
+    participant KS as Proxy keystore
+    participant GW as AWS API Gateway
+    participant S3 as S3 truststore
+    participant L as Lambda (EPC)
+
+    Note over AP,GW: Phase 1 — server auth (standard TLS)
+    AP->>GW: ClientHello
+    GW-->>AP: ServerHello + ACM server cert (DigiCert-signed)
+    AP->>AP: Validate server cert vs public CA roots
+
+    Note over AP,GW: Phase 2 — client auth (mTLS)
+    GW-->>AP: CertificateRequest
+    AP->>KS: Retrieve client cert + key
+    KS-->>AP: client cert + key (NHS-signed)
+    AP->>GW: Client certificate
+    GW->>S3: Load truststore (NHS Root + Sub CA PEM)
+    S3-->>GW: truststore.pem
+    GW->>GW: Validate client cert vs NHS CA chain
+    GW-->>AP: mTLS established
+    GW->>L: Forward request
+    L-->>GW: FHIR R4 Bundle / OperationOutcome
+```
 
 ## Certificate structure
 
