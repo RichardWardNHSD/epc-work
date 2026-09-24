@@ -9,7 +9,10 @@ are bound to are documented separately in [dns-subdomains.md](./dns-subdomains.m
 proxy-to-proxy connection model is in
 [bars-proxy-to-epc-proxy-chaining.md](./bars-proxy-to-epc-proxy-chaining.md).
 
-On the EPC side, mTLS is Terraform-managed via the `api_custom_domain_enabled` toggle in
+mTLS is the *transport-layer* mutual authentication; it is complementary to the OAuth
+bearer-token authentication that applications use, documented in
+[api-token-authentication.md](./api-token-authentication.md). On the EPC side, mTLS is
+Terraform-managed via the `api_custom_domain_enabled` toggle in
 `bars-endpoint-catalogue-infra`.
 
 ## Certificate structure
