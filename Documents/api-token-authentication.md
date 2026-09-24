@@ -30,7 +30,8 @@ the proxy-to-proxy connection model.
 
 Used for system-to-system operations (reads and automated writes). The application proves
 its identity with a short-lived JWT it signs with a private key whose public key is
-registered with APIM.
+registered with APIM. This follows the NHS England guide
+[Application-restricted RESTful APIs — signed JWT authentication](https://digital.nhs.uk/developer/guides-and-documentation/security-and-authorisation/application-restricted-restful-apis-signed-jwt-authentication#step-1-register-your-application-on-the-api-platform).
 
 **Flow**
 
